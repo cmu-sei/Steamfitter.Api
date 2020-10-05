@@ -47,8 +47,8 @@ jobs:
         run: |
           cd Steamfitter.Api.Client
           dotnet pack -c Release /p:version=${{ github.event.inputs.clientVersion }} --include-source
-          mv Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}".nupkg Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}".nupkg.bak
-          unzip Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}".nupkg.bak -d tmp
+          mv Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg.bak
+          unzip Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg.bak -d tmp
           chmod -R 755 tmp
           cd tmp
           sed -i '/<\/version>/a \    <license type="expression">MIT<\/license>' Steamfitter.Api.Client.nuspec
