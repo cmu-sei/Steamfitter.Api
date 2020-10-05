@@ -47,6 +47,7 @@ jobs:
         run: |
           cd Steamfitter.Api.Client
           dotnet pack -c Release /p:version=${{ github.event.inputs.clientVersion }} --include-source
+          cd bin/Release
           mv Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg.bak
           unzip Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg.bak -d tmp
           chmod -R 755 tmp
