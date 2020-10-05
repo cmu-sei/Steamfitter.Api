@@ -33,7 +33,6 @@ jobs:
       - name: Run Swagger
         run: |
           cd Steamfitter.Api
-          ls -lahR
           dotnet swagger tofile --output ../Steamfitter.Api.Client/swagger.json bin/Release/*/Steamfitter.Api.dll v1
                     
       - name: Run AutoRest
