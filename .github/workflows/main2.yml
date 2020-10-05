@@ -45,7 +45,6 @@ jobs:
           cd Steamfitter.Api.Client
           dotnet pack -c Release /p:version=${{ github.event.inputs.clientVersion }}  \
           /p:authors="Carnegie Mellon University/Software Engineering Institute"      \
-          /p:owners="Carnegie Mellon University/Software Engineering Institute"       \
           /p:description="AutoRest generated client for Crucible's Steamfitter.Api"   \
           --include-source
            
@@ -54,6 +53,7 @@ jobs:
           unzip Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg.bak -d tmp
           chmod -R 755 tmp
           cd tmp
+          sed -i '/<\/version>/a \    <owners>Carnegie Mellon University\/Software Engineering Institute<\/owners>' Steamfitter.Api.Client.nuspec
           sed -i '/<\/version>/a \    <license type="expression">MIT<\/license>' Steamfitter.Api.Client.nuspec
           sed -i '/<\/version>/a \    <licenseUrl>https:\/\/licenses.nuget.org\/MIT<\/licenseUrl>' Steamfitter.Api.Client.nuspec
           sed -i '/<\/version>/a \    <projectUrl>https:\/\/github.com\/cmu-sei\/crucible<\/projectUrl>' Steamfitter.Api.Client.nuspec
