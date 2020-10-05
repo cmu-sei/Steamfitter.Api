@@ -24,6 +24,8 @@ jobs:
       - name: Build Steamfitter.Api.Client
         run: |
           cd Steamfitter.Api
+          dotnet new tool-manifest
+          dotnet tool install --version 5.6.2 Swashbuckle.AspNetCore.Cli
           dotnet build -c Release                                                   \
           /p:version=${{ github.event.inputs.clientVersion }}                       \
           /p:authors="Carnegie Mellon University/Software Engineering Institute"    \
@@ -33,8 +35,6 @@ jobs:
       - name: Run Swagger
         run: |
           cd Steamfitter.Api
-          dotnet new tool-manifest
-          dotnet tool install --version 5.6.2 Swashbuckle.AspNetCore.Cli
           dotnet swagger tofile --output ../Steamfitter.Api.Client/swagger.json bin/Release/*/Steamfitter.Api.dll v1
                     
       - name: Run AutoRest
