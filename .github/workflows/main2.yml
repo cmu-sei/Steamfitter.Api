@@ -24,7 +24,7 @@ jobs:
       - name: Build Steamfitter.Api.Client
         run: |
           dotnet build -c Release Steamfitter.Api                                 \
-          /p:version=${{ github.event.inputs.clientVersion }}"                    \
+          /p:version=${{ github.event.inputs.clientVersion }}                     \
           /p:authors="Carnegie Mellon University/Software Engineering Institute"  \
           /p:owners="Carnegie Mellon University/Software Engineering Institute"   \
           /p:description="Steamfitter.Api.Client"   
