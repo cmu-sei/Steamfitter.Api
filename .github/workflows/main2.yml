@@ -23,7 +23,7 @@ jobs:
 
       - name: Build Steamfitter.Api.Client
         run: |
-          dotnet build -c Steamfitter.Api                                         \
+          dotnet build -c Release Steamfitter.Api                                 \
           /p:version=${{ github.event.inputs.clientVersion }}"                    \
           /p:authors="Carnegie Mellon University/Software Engineering Institute"  \
           /p:owners="Carnegie Mellon University/Software Engineering Institute"   \
@@ -38,3 +38,4 @@ jobs:
         run: |
           npm install autorest@3.0.6247
           find . -name "*autorest*"
+          cd Steamfitter.Api.Client
