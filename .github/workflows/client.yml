@@ -23,6 +23,8 @@ jobs:
         id: package_name
         run: |
           echo ::set-output name=name::Steamfitter.Api.Client
+          echo ::set-output name=dll_name::Steamfitter.Api
+          echo ::set-output name=directory::Steamfitter.Api
 
       - uses: actions/checkout@v2
 
@@ -30,13 +32,13 @@ jobs:
         run: |
           dotnet new tool-manifest
           dotnet tool install --version 5.6.3 Swashbuckle.AspNetCore.Cli
-          cd Steamfitter.Api
+          cd ${{ steps.package_name.outputs.directory }}
           dotnet build -c Release /p:version=${{ github.event.inputs.clientVersion }}
           
       - name: Run Swagger
         run: |
-          cd Steamfitter.Api
-          dotnet swagger tofile --output ../${{ steps.package_name.outputs.name }}/swagger.json bin/Release/*/Steamfitter.Api.dll v1
+          cd ${{ steps.package_name.outputs.directory }}
+          dotnet swagger tofile --output ../${{ steps.package_name.outputs.name }}/swagger.json bin/Release/*/${{ steps.package_name.outputs.dll_name }}.dll v1
                     
       - name: Run AutoRest
         run: |
@@ -49,7 +51,7 @@ jobs:
           cd ${{ steps.package_name.outputs.name }}
           dotnet pack -c Release /p:version=${{ github.event.inputs.clientVersion }}  \
           /p:authors="Carnegie Mellon University/Software Engineering Institute"      \
-          /p:description="AutoRest generated client for Crucible's Steamfitter.Api"   \
+          /p:description="AutoRest generated client for Crucible's ${{ steps.package_name.outputs.dll_name }}"   \
           --include-source
            
           cd bin/Release
