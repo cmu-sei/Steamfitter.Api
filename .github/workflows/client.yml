@@ -19,46 +19,50 @@ jobs:
         with:
           dotnet-version: '3.1.x'
 
+      - name: Setup Package Name
+        id: package_name
+        run: |
+          echo ::set-output name=name=Steamfitter.Api.Client
+
       - uses: actions/checkout@v2
 
-      - name: Build Steamfitter.Api.Client
+      - name: Build Package
         run: |
           dotnet new tool-manifest
           dotnet tool install --version 5.6.3 Swashbuckle.AspNetCore.Cli
           cd Steamfitter.Api
-          dotnet build -c Release                                                   \
-          /p:version=${{ github.event.inputs.clientVersion }}
+          dotnet build -c Release /p:version=${{ github.event.inputs.clientVersion }}
           
       - name: Run Swagger
         run: |
           cd Steamfitter.Api
-          dotnet swagger tofile --output ../Steamfitter.Api.Client/swagger.json bin/Release/*/Steamfitter.Api.dll v1
+          dotnet swagger tofile --output ../${{ steps.package_name.outputs.name }}/swagger.json bin/Release/*/Steamfitter.Api.dll v1
                     
       - name: Run AutoRest
         run: |
           npm install autorest@3.0.6247
           find . -name "*autorest*"
-          cd Steamfitter.Api.Client
+          cd ${{ steps.package_name.outputs.name }}
 
       - name: Create NuGet Package
         run: |
-          cd Steamfitter.Api.Client
+          cd ${{ steps.package_name.outputs.name }}
           dotnet pack -c Release /p:version=${{ github.event.inputs.clientVersion }}  \
           /p:authors="Carnegie Mellon University/Software Engineering Institute"      \
           /p:description="AutoRest generated client for Crucible's Steamfitter.Api"   \
           --include-source
            
           cd bin/Release
-          mv Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg.bak
-          unzip Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg.bak -d tmp
+          mv ${{ steps.package_name.outputs.name }}.${{ github.event.inputs.clientVersion }}.nupkg ${{ steps.package_name.outputs.name }}.${{ github.event.inputs.clientVersion }}.nupkg.bak
+          unzip ${{ steps.package_name.outputs.name }}.${{ github.event.inputs.clientVersion }}.nupkg.bak -d tmp
           chmod -R 755 tmp
           cd tmp
-          sed -i '/<\/version>/a \    <owners>Carnegie Mellon University\/Software Engineering Institute<\/owners>' Steamfitter.Api.Client.nuspec
-          sed -i '/<\/version>/a \    <license type="expression">MIT<\/license>' Steamfitter.Api.Client.nuspec
-          sed -i '/<\/version>/a \    <licenseUrl>https:\/\/licenses.nuget.org\/MIT<\/licenseUrl>' Steamfitter.Api.Client.nuspec
-          sed -i '/<\/version>/a \    <projectUrl>https:\/\/github.com\/cmu-sei\/crucible<\/projectUrl>' Steamfitter.Api.Client.nuspec
-          sed -i '/<\/version>/a \    <repository type="git" url="https:\/\/github.com\/cmu-sei\/crucible.git" \/>' Steamfitter.Api.Client.nuspec
-          zip -r ../Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg *
+          sed -i '/<\/version>/a \    <owners>Carnegie Mellon University\/Software Engineering Institute<\/owners>' ${{ steps.package_name.outputs.name }}.nuspec
+          sed -i '/<\/version>/a \    <license type="expression">MIT<\/license>' ${{ steps.package_name.outputs.name }}.nuspec
+          sed -i '/<\/version>/a \    <licenseUrl>https:\/\/licenses.nuget.org\/MIT<\/licenseUrl>' ${{ steps.package_name.outputs.name }}.nuspec
+          sed -i '/<\/version>/a \    <projectUrl>https:\/\/github.com\/cmu-sei\/crucible<\/projectUrl>' ${{ steps.package_name.outputs.name }}.nuspec
+          sed -i '/<\/version>/a \    <repository type="git" url="https:\/\/github.com\/cmu-sei\/crucible.git" \/>' ${{ steps.package_name.outputs.name }}.nuspec
+          zip -r ../${{ steps.package_name.outputs.name }}.${{ github.event.inputs.clientVersion }}.nupkg *
      
       - name: Create Release
         id: create_release
@@ -66,8 +70,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          tag_name: steamfitter.api.client.${{ github.event.inputs.clientVersion }}
-          release_name: Steamfitter.Api.Client ${{ github.event.inputs.clientVersion }}
+          tag_name: ${{ steps.package_name.outputs.name }}.${{ github.event.inputs.clientVersion }}
+          release_name: ${{ steps.package_name.outputs.name }} ${{ github.event.inputs.clientVersion }}
           draft: false
           prerelease: false
 
@@ -78,7 +82,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: Steamfitter.Api.Client/bin/Release/Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg
-          asset_name: Steamfitter.Api.Client.${{ github.event.inputs.clientVersion }}.nupkg
+          asset_path: ${{ steps.package_name.outputs.name }}/bin/Release/${{ steps.package_name.outputs.name }}.${{ github.event.inputs.clientVersion }}.nupkg
+          asset_name: ${{ steps.package_name.outputs.name }}.${{ github.event.inputs.clientVersion }}.nupkg
           asset_content_type: application/zip
-
