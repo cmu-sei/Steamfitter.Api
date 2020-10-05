@@ -1,0 +1,21 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+on: 
+  workflow_dispatch:
+    inputs:
+      clientVersion:
+        description: 'Version of the Client package'     
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run a multi-line script
+        run: |
+          echo "Log level: ${{ github.event.inputs.clientVersion }}"
