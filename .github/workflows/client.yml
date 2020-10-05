@@ -22,7 +22,7 @@ jobs:
       - name: Setup Package Name
         id: package_name
         run: |
-          echo ::set-output name=name=Steamfitter.Api.Client
+          echo ::set-output name=name::Steamfitter.Api.Client
 
       - uses: actions/checkout@v2
 
