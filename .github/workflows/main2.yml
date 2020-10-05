@@ -15,7 +15,26 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+       
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '2.2.103'
 
-      - name: Run a multi-line script
+      - name: Build Steamfitter.Api.Client
         run: |
-          echo "Log level: ${{ github.event.inputs.clientVersion }}"
+          dotnet build -c Steamfitter.Api                                         \
+          /p:version=${{ github.event.inputs.clientVersion }}"                    \
+          /p:authors="Carnegie Mellon University/Software Engineering Institute"  \
+          /p:owners="Carnegie Mellon University/Software Engineering Institute"   \
+          /p:description="Steamfitter.Api.Client"   
+          
+      - name: Run Swagger
+        run: |
+          cd Steamfitter.Api
+          dotnet swagger tofile --output ../Steamfitter.Api.Client/swagger.json bin/Release/*/Steamfitter.Api.dll v1
+                    
+      - name: Run AutoRest
+        run: |
+          npm install autorest@3.0.6247
+          find . -name "*autorest*"
