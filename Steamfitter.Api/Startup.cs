@@ -50,7 +50,7 @@ namespace Steamfitter.Api
             Configuration = configuration;
             Configuration.GetSection("Authorization").Bind(_authOptions);
             Configuration.GetSection("VmTaskProcessing").Bind(_vmTaskProcessingOptions);
-        }        
+        }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -81,13 +81,13 @@ namespace Steamfitter.Api
             services
                 .Configure<ClientOptions>(Configuration.GetSection("ClientSettings"))
                 .AddScoped(config => config.GetService<IOptionsMonitor<ClientOptions>>().CurrentValue);
-            
+
             services
                 .Configure<FilesOptions>(Configuration.GetSection("Files"))
                 .AddScoped(config => config.GetService<IOptionsMonitor<FilesOptions>>().CurrentValue);
-            
+
             services.AddScoped<IPlayerVmService, PlayerVmService>();
-            services.AddScoped<IPlayerService, PlayerService>();            
+            services.AddScoped<IPlayerService, PlayerService>();
             services.AddScoped<IClaimsTransformation, AuthorizationClaimsTransformer>();
             services.AddScoped<IUserClaimsService, UserClaimsService>();
 
@@ -117,7 +117,7 @@ namespace Steamfitter.Api
                 options.JsonSerializerOptions.Converters.Add(new JsonIntegerConverter());
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             })
-            .SetCompatibilityVersion(CompatibilityVersion.Latest); 
+            .SetCompatibilityVersion(CompatibilityVersion.Latest);
 
             services.AddSwagger(_authOptions);
             services.AddS3PlayerApiClient();
@@ -143,7 +143,7 @@ namespace Steamfitter.Api
                 options.LowercaseUrls = true;
             });
 
-            services.AddMemoryCache();            
+            services.AddMemoryCache();
 
             services.AddScoped<IScenarioService, ScenarioService>();
             services.AddScoped<ITaskService, TaskService>();
@@ -168,17 +168,18 @@ namespace Steamfitter.Api
 
             ApplyPolicies(services);
 
-            services.AddAutoMapper(cfg => {
+            services.AddAutoMapper(cfg =>
+            {
                 cfg.ForAllPropertyMaps(
                     pm => pm.SourceType != null && Nullable.GetUnderlyingType(pm.SourceType) == pm.DestinationType,
                     (pm, c) => c.MapFrom<object, object, object, object>(new IgnoreNullSourceValues(), pm.SourceMember.Name));
             }, typeof(Startup));
-            
+
             services.Configure<VmTaskProcessingOptions>(Configuration.GetSection("VmTaskProcessing"));
             services
                 .Configure<ResourceOwnerAuthorizationOptions>(Configuration.GetSection("ResourceOwnerAuthorization"))
                 .AddScoped(config => config.GetService<IOptionsMonitor<ResourceOwnerAuthorizationOptions>>().CurrentValue);
-            
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -190,7 +191,7 @@ namespace Steamfitter.Api
             }
             app.UseRouting();
             app.UseCors("default");
-            
+
             //move any querystring jwt to Auth bearer header
             app.Use(async (context, next) =>
             {
@@ -203,7 +204,7 @@ namespace Steamfitter.Api
                         .SingleOrDefault(x => x.StartsWith("bearer="))?.Split('=')[1];
 
                     if (!String.IsNullOrWhiteSpace(token))
-                        context.Request.Headers.Add("Authorization", new[] {$"Bearer {token}"});
+                        context.Request.Headers.Add("Authorization", new[] { $"Bearer {token}" });
                 }
 
                 await next.Invoke();
@@ -213,6 +214,7 @@ namespace Steamfitter.Api
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
+                c.RoutePrefix = "api";
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Steamfitter v1");
                 c.OAuthClientId(_authOptions.ClientId);
                 c.OAuthClientSecret(_authOptions.ClientSecret);
@@ -239,4 +241,3 @@ namespace Steamfitter.Api
         }
     }
 }
-

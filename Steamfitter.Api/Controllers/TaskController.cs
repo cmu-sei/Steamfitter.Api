@@ -41,7 +41,7 @@ namespace Steamfitter.Api.Controllers
         /// Returns a list of all of the Tasks in the system.
         /// <para />
         /// Only accessible to a SuperUser
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("Tasks")]
         [ProducesResponseType(typeof(IEnumerable<SAVM.Task>), (int)HttpStatusCode.OK)]
@@ -191,7 +191,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new Task with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="task">The data to create the Task with</param>
         /// <param name="ct"></param>
         [HttpPost("Tasks")]
@@ -210,7 +210,7 @@ namespace Steamfitter.Api.Controllers
         /// Copies a Task to the location specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Task
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Task to copy</param>
         /// <param name="newLocation">The Id and type of the new location</param>
         /// <param name="ct"></param>
@@ -230,12 +230,12 @@ namespace Steamfitter.Api.Controllers
         /// Creates a Task in the location specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Task
-        /// </remarks>  
+        /// </remarks>
         /// <param name="resultId">The Id of the Result</param>
         /// <param name="newLocation">The Id and type of the new location</param>
         /// <param name="ct"></param>
         [HttpPost("Tasks/copyfromresult/{resultId}")]
-        [ProducesResponseType(typeof(SAVM.Task[]), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(SAVM.Task), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "createTaskFromResult")]
         public async STT.Task<IActionResult> CreateFromResult([FromRoute] Guid resultId, [FromBody] NewLocation newLocation, CancellationToken ct)
         {
@@ -250,7 +250,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new Task with the attributes specified and executes it
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="task">The data to create the Task with</param>
         /// <param name="ct"></param>
         [HttpPost("Tasks/execute")]
@@ -289,7 +289,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates a Task with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Task
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="task">The updated Task values</param>
         /// <param name="ct"></param>
@@ -309,7 +309,7 @@ namespace Steamfitter.Api.Controllers
         /// Moves a Task to the location specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Task
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Task to move</param>
         /// <param name="newLocation">The Id and type of the new location</param>
         /// <param name="ct"></param>
@@ -329,7 +329,7 @@ namespace Steamfitter.Api.Controllers
         /// Deletes a Task with the specified id
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Task
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The id of the Task to delete</param>
         /// <param name="ct"></param>
         [HttpDelete("Tasks/{id}")]
@@ -346,7 +346,7 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <remarks>
         /// Returns a list of all of the Task commands.
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("Tasks/commands")]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
@@ -364,4 +364,3 @@ namespace Steamfitter.Api.Controllers
         public string LocationType { get; set; }
     }
 }
-
