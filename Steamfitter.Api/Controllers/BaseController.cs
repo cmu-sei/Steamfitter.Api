@@ -17,7 +17,6 @@ namespace Steamfitter.Api.Controllers
     [Authorize]
     [Route("api/")]
     [ApiController]
-    [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
     public abstract class BaseController : ControllerBase
     {
     }
