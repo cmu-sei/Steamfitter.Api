@@ -1,6 +1,6 @@
 # steamfitter.api
 
-This project provides a restful api for steamfitter functionality in the Sketch/Scenario Player ecosystem.
+This project provides a restful api for steamfitter functionality in the Crucible ecosystem.
 
 By default, steamfitter.api is available at localhost:4400, with the swagger page at localhost:4400/swagger/index.html.
 
