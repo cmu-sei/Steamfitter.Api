@@ -47,7 +47,7 @@ namespace Steamfitter.Api.Controllers
         {
             return Ok(await _filesService.GetAsync(ct));
         }
-        
+
         /// <summary>
         /// Gets a file that a user can dispatch to guest vms
         /// </summary>
@@ -61,7 +61,7 @@ namespace Steamfitter.Api.Controllers
         {
             return Ok(await _filesService.GetAsync(id, ct));
         }
-        
+
         /// <summary>
         /// Saves files and enables them to be dispatchable. If the file is not a zip file, it automatically gets zipped on upload
         /// </summary>
@@ -71,11 +71,13 @@ namespace Steamfitter.Api.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(IEnumerable<FileInfo>), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "saveFile")]
+        // TODO: fix api client generation and stop ignoring this endpoint
+        [ApiExplorerSettings(IgnoreApi = true)]
         public async STT.Task<IActionResult> Post(IEnumerable<IFormFile> files, CancellationToken ct)
         {
             return Ok(await _filesService.SaveAsync(files, ct));
         }
-        
+
         /// <summary>
         /// Deletes a file record and the actual file
         /// </summary>
@@ -93,4 +95,3 @@ namespace Steamfitter.Api.Controllers
         }
     }
 }
-

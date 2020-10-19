@@ -27,7 +27,9 @@ namespace Steamfitter.Api.Controllers
     /// <summary>
     /// TODO: we need to figure out authorization for this - but agents checking in won't have access to identity (so as to get a token)
     /// </summary>
-    public class BondAgentController : Controller
+    [ApiController]
+    [Route("api/")]
+    public class BondAgentController : ControllerBase
     {
         private readonly IBondAgentService _BondAgentService;
         private readonly IAuthorizationService _authorizationService;
@@ -45,7 +47,7 @@ namespace Steamfitter.Api.Controllers
         /// Returns a list of all of the BondAgents in the system.
         /// <para />
         /// Only accessible to a SuperUser
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("BondAgents")]
         [ProducesResponseType(typeof(IEnumerable<SAVM.BondAgent>), (int)HttpStatusCode.OK)]
@@ -87,7 +89,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new BondAgent with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="bondAgent">The data to create the BondAgent with</param>
         /// <param name="ct"></param>
         [HttpPost("BondAgents")]
@@ -95,9 +97,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createBondAgent")]
         public async STT.Task<IActionResult> Create([FromBody] SAVM.BondAgent bondAgent, CancellationToken ct)
         {
-            if(bondAgent.Id == Guid.Empty)
+            if (bondAgent.Id == Guid.Empty)
                 bondAgent.Id = Guid.NewGuid();
-            
+
             var createdBondAgent = await _BondAgentService.CreateAsync(bondAgent, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdBondAgent.VmWareUuid }, createdBondAgent);
         }
@@ -109,7 +111,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates a BondAgent with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified BondAgent
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="BondAgent">The updated BondAgent values</param>
         /// <param name="ct"></param>
@@ -129,7 +131,7 @@ namespace Steamfitter.Api.Controllers
         /// Deletes a BondAgent with the specified id
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified BondAgent
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The id of the BondAgent to delete</param>
         /// <param name="ct"></param>
         [HttpDelete("BondAgents/{id}")]
@@ -143,4 +145,3 @@ namespace Steamfitter.Api.Controllers
 
     }
 }
-

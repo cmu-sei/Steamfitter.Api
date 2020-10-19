@@ -10,14 +10,14 @@ DM20-0181
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Steamfitter.Api.ViewModels;
 using System.Net;
 
 namespace Steamfitter.Api.Controllers
 {
     [Authorize]
-    [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
-    public abstract class BaseController : Controller
+    [Route("api/")]
+    [ApiController]
+    public abstract class BaseController : ControllerBase
     {
     }
 }

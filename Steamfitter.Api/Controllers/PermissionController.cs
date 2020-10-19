@@ -41,7 +41,7 @@ namespace Steamfitter.Api.Controllers
         /// Returns a list of all of the Permissions in the system.
         /// <para />
         /// Only accessible to a SuperUser
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("permissions")]
         [ProducesResponseType(typeof(IEnumerable<SAVM.Permission>), (int)HttpStatusCode.OK)]
@@ -57,7 +57,7 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <remarks>
         /// Returns a list of the current user's Permissions.
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("permissions/mine")]
         [ProducesResponseType(typeof(IEnumerable<SAVM.Permission>), (int)HttpStatusCode.OK)]
@@ -75,9 +75,9 @@ namespace Steamfitter.Api.Controllers
         /// Returns a list of the specified user's Permissions.
         /// <para />
         /// Only accessible to a SuperUser
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
-        [HttpGet("/users/{userId}/permissions")]
+        [HttpGet("users/{userId}/permissions")]
         [ProducesResponseType(typeof(IEnumerable<SAVM.Permission>), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "getPermissionsByUser")]
         public async STT.Task<IActionResult> GetByUser([FromRoute] Guid userId, CancellationToken ct)
@@ -117,7 +117,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new Permission with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="permission">The data to create the Permission with</param>
         /// <param name="ct"></param>
         [HttpPost("permissions")]
@@ -137,7 +137,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates a Permission with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Permission
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="permission">The updated Permission values</param>
         /// <param name="ct"></param>
@@ -158,7 +158,7 @@ namespace Steamfitter.Api.Controllers
         /// Deletes a Permission with the specified id
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Permission
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The id of the Permission to delete</param>
         /// <param name="ct"></param>
         [HttpDelete("permissions/{id}")]
@@ -172,4 +172,3 @@ namespace Steamfitter.Api.Controllers
 
     }
 }
-
