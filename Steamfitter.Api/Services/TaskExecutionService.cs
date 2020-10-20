@@ -26,7 +26,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using S3.VM.Api;
+using Player.Vm.Api;
 
 namespace Steamfitter.Api.Services
 {
@@ -227,7 +227,7 @@ namespace Steamfitter.Api.Services
                     }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError($"Error processing Task {taskEntity.Id}", ex);
             }
@@ -250,7 +250,8 @@ namespace Steamfitter.Api.Services
                     _logger.LogDebug(message);
                     return false;
                 }
-                else{
+                else
+                {
                     return true;
                 }
             }
@@ -299,7 +300,7 @@ namespace Steamfitter.Api.Services
                 // at this point, the VmMask could contain an actual mask, or a comma separated list of VM ID's
                 var vmMaskList = taskToExecute.VmMask.Split(",").ToList();
                 var vmIdList = new List<Guid>();
-                var vmList = new List<S3.VM.Api.Models.Vm>();
+                var vmList = new List<Player.Vm.Api.Models.Vm>();
                 // create the ID list, if the mask is a list of Guid's. If not Guid's, vmIdList will end up empty.
                 foreach (var mask in vmMaskList)
                 {
@@ -316,7 +317,7 @@ namespace Steamfitter.Api.Services
                 {
                     using (var scope = _scopeFactory.CreateScope())
                     {
-                        S3VmApiClient vmApiClient = null;
+                        PlayerVmApiClient vmApiClient = null;
                         var tokenResponse = await ApiClientsExtensions.GetToken(scope);
                         vmApiClient = RefreshClient(vmApiClient, tokenResponse, ct);
                         var viewVms = await VmApiExtensions.GetViewVmsAsync(vmApiClient, (Guid)viewId, ct);
@@ -394,7 +395,7 @@ namespace Steamfitter.Api.Services
             }
             foreach (var bucket in AsCompletedBuckets(tasks))
             {
-                try 
+                try
                 {
                     var task = await bucket;
                     var resultEntity = xref[task.Id];
@@ -429,84 +430,84 @@ namespace Steamfitter.Api.Services
             switch (taskToExecute.ApiUrl)
             {
                 case "stackstorm": // _stackStormService
-                {
-                    switch (taskToExecute.Action)
                     {
-                        case TaskAction.guest_file_read:
+                        switch (taskToExecute.Action)
                         {
-                            task = STT.Task.Run(() => _stackStormService.GuestReadFile(resultEntity.InputString));
-                            break;
+                            case TaskAction.guest_file_read:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.GuestReadFile(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.guest_file_upload_content:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.GuestFileUploadContent(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.guest_process_run:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.GuestCommand(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.guest_process_run_fast:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.GuestCommandFast(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.vm_hw_power_on:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.VmPowerOn(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.vm_hw_power_off:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.VmPowerOff(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.vm_create_from_template:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.CreateVmFromTemplate(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.vm_hw_remove:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.VmRemove(resultEntity.InputString));
+                                    break;
+                                }
+                            default:
+                                {
+                                    var message = $"Stackstorm Action {taskToExecute.Action} has not been implemented.";
+                                    _logger.LogError(message);
+                                    resultEntity.Status = Data.TaskStatus.failed;
+                                    resultEntity.StatusDate = DateTime.UtcNow;
+                                    break;
+                                }
                         }
-                        case TaskAction.guest_file_upload_content:
-                        {
-                            task = STT.Task.Run(() => _stackStormService.GuestFileUploadContent(resultEntity.InputString));
-                            break;
-                        }
-                        case TaskAction.guest_process_run:
-                        {
-                            task = STT.Task.Run(() => _stackStormService.GuestCommand(resultEntity.InputString));
-                            break;
-                        }
-                        case TaskAction.guest_process_run_fast:
-                        {
-                            task = STT.Task.Run(() => _stackStormService.GuestCommandFast(resultEntity.InputString));
-                            break;
-                        }
-                        case TaskAction.vm_hw_power_on:
-                        {
-                            task = STT.Task.Run(() => _stackStormService.VmPowerOn(resultEntity.InputString));
-                            break;
-                        }
-                        case TaskAction.vm_hw_power_off:
-                        {
-                            task = STT.Task.Run(() => _stackStormService.VmPowerOff(resultEntity.InputString));
-                            break;
-                        }
-                        case TaskAction.vm_create_from_template:
-                        {
-                            task = STT.Task.Run(() => _stackStormService.CreateVmFromTemplate(resultEntity.InputString));
-                            break;
-                        }
-                        case TaskAction.vm_hw_remove:
-                        {
-                            task = STT.Task.Run(() => _stackStormService.VmRemove(resultEntity.InputString));
-                            break;
-                        }
-                        default:
-                        {
-                            var message = $"Stackstorm Action {taskToExecute.Action} has not been implemented.";
-                            _logger.LogError(message);
-                            resultEntity.Status = Data.TaskStatus.failed;
-                            resultEntity.StatusDate = DateTime.UtcNow;
-                            break;
-                        }
+                        break;
                     }
-                    break;
-                }
                 case "vm": // _playerVmService
-                {
-                    switch (taskToExecute.Action)
                     {
-                        case TaskAction.guest_file_write:
-                        default:
+                        switch (taskToExecute.Action)
                         {
-                            var message = $"Player VM API Action {taskToExecute.Action} has not been implemented.";
-                            _logger.LogError(message);
-                            resultEntity.Status = Data.TaskStatus.failed;
-                            resultEntity.StatusDate = DateTime.UtcNow;
-                            break;
+                            case TaskAction.guest_file_write:
+                            default:
+                                {
+                                    var message = $"Player VM API Action {taskToExecute.Action} has not been implemented.";
+                                    _logger.LogError(message);
+                                    resultEntity.Status = Data.TaskStatus.failed;
+                                    resultEntity.StatusDate = DateTime.UtcNow;
+                                    break;
+                                }
                         }
+                        break;
                     }
-                    break;
-                }
                 case "player":
                 case "caster":
                 default:
-                {
-                    var message = $"API ({taskToExecute.ApiUrl}) is not currently implemented";
-                    _logger.LogError(message);
-                    throw new NotImplementedException(message);
-                }
+                    {
+                        var message = $"API ({taskToExecute.ApiUrl}) is not currently implemented";
+                        _logger.LogError(message);
+                        throw new NotImplementedException(message);
+                    }
             }
 
             return task;
@@ -543,25 +544,25 @@ namespace Steamfitter.Api.Services
                 switch (executedTaskStatus)
                 {
                     case Data.TaskStatus.succeeded:
-                    {
-                        subtaskEntities = subtaskEntities.Where(s => s.TriggerCondition == TaskTrigger.Success || s.TriggerCondition == TaskTrigger.Completion);
-                        break;
-                    }
+                        {
+                            subtaskEntities = subtaskEntities.Where(s => s.TriggerCondition == TaskTrigger.Success || s.TriggerCondition == TaskTrigger.Completion);
+                            break;
+                        }
                     case Data.TaskStatus.failed:
-                    {
-                        subtaskEntities = subtaskEntities.Where(s => s.TriggerCondition == TaskTrigger.Failure || s.TriggerCondition == TaskTrigger.Completion);
-                        break;
-                    }
+                        {
+                            subtaskEntities = subtaskEntities.Where(s => s.TriggerCondition == TaskTrigger.Failure || s.TriggerCondition == TaskTrigger.Completion);
+                            break;
+                        }
                     case Data.TaskStatus.expired:
-                    {
-                        subtaskEntities = subtaskEntities.Where(s => s.TriggerCondition == TaskTrigger.Expiration);
-                        break;
-                    }
+                        {
+                            subtaskEntities = subtaskEntities.Where(s => s.TriggerCondition == TaskTrigger.Expiration);
+                            break;
+                        }
                     default:
-                    {
-                        // Any other status (cancellation in particular) should not launch subtasks
-                        return new List<TaskEntity>();
-                    }
+                        {
+                            // Any other status (cancellation in particular) should not launch subtasks
+                            return new List<TaskEntity>();
+                        }
                 }
             }
 
@@ -573,32 +574,32 @@ namespace Steamfitter.Api.Services
             var expirationSeconds = taskEntity.ExpirationSeconds;
             if (expirationSeconds <= 0) expirationSeconds = _vmTaskProcessingOptions.CurrentValue.TaskProcessMaxWaitSeconds;
             var resultEntity = new ResultEntity()
-                {
-                    TaskId = taskEntity.Id,
-                    ApiUrl = taskEntity.ApiUrl,
-                    Action = taskEntity.Action,
-                    InputString = taskEntity.InputString,
-                    ExpirationSeconds = expirationSeconds,
-                    Iterations = taskEntity.Iterations,
-                    CurrentIteration = taskEntity.CurrentIteration > 0 ? taskEntity.CurrentIteration : 1,
-                    IntervalSeconds = taskEntity.IntervalSeconds,
-                    Status = Data.TaskStatus.queued,
-                    ExpectedOutput = taskEntity.ExpectedOutput,
-                    SentDate = DateTime.UtcNow,
-                    StatusDate = DateTime.UtcNow,
-                    DateCreated = DateTime.UtcNow,
-                    CreatedBy = userId
-                };
+            {
+                TaskId = taskEntity.Id,
+                ApiUrl = taskEntity.ApiUrl,
+                Action = taskEntity.Action,
+                InputString = taskEntity.InputString,
+                ExpirationSeconds = expirationSeconds,
+                Iterations = taskEntity.Iterations,
+                CurrentIteration = taskEntity.CurrentIteration > 0 ? taskEntity.CurrentIteration : 1,
+                IntervalSeconds = taskEntity.IntervalSeconds,
+                Status = Data.TaskStatus.queued,
+                ExpectedOutput = taskEntity.ExpectedOutput,
+                SentDate = DateTime.UtcNow,
+                StatusDate = DateTime.UtcNow,
+                DateCreated = DateTime.UtcNow,
+                CreatedBy = userId
+            };
 
             return resultEntity;
         }
-        public static STT.Task<STT.Task<T>> [] AsCompletedBuckets<T>(IEnumerable<STT.Task<T>> tasks)
+        public static STT.Task<STT.Task<T>>[] AsCompletedBuckets<T>(IEnumerable<STT.Task<T>> tasks)
         {
             var inputTasks = tasks.ToList();
 
             var buckets = new STT.TaskCompletionSource<STT.Task<T>>[inputTasks.Count];
             var results = new STT.Task<STT.Task<T>>[buckets.Length];
-            for (int i = 0; i < buckets.Length; i++) 
+            for (int i = 0; i < buckets.Length; i++)
             {
                 buckets[i] = new STT.TaskCompletionSource<STT.Task<T>>();
                 results[i] = buckets[i].Task;
@@ -617,7 +618,7 @@ namespace Steamfitter.Api.Services
             return results;
         }
 
-        private S3VmApiClient RefreshClient(S3VmApiClient clientObject, TokenResponse tokenResponse, CancellationToken ct)
+        private PlayerVmApiClient RefreshClient(PlayerVmApiClient clientObject, TokenResponse tokenResponse, CancellationToken ct)
         {
             // TODO: check for token expiration also
             if (clientObject == null)

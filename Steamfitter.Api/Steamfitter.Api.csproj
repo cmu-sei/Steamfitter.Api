@@ -38,8 +38,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="5.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="5.1.0" />
     <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="3.0.32" />
-    <PackageReference Include="Player.Api.Client" Version="1.5.2" />
-    <PackageReference Include="vm.api.client" Version="1.4.0" />
+    <PackageReference Include="Player.Api.Client" Version="1.6.0" />
+    <PackageReference Include="Player.Vm.Api.Client" Version="1.5.0" />
     <PackageReference Include="IdentityServer4.AccessTokenValidation" Version="2.7.0" />
     <PackageReference Include="Stackstorm.Connector" Version="1.0.7" />
   </ItemGroup>

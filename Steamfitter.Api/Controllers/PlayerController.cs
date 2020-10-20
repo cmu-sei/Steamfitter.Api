@@ -17,8 +17,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Steamfitter.Api.Services;
 using Swashbuckle.AspNetCore.Annotations;
-using S3.Player.Api.Models;
-using S3.VM.Api.Models;
+using Player.Api.Models;
+using Player.Vm.Api.Models;
 
 namespace Steamfitter.Api.Controllers
 {
@@ -40,7 +40,7 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <remarks>
         /// Returns a list of all of the Views this user can dispatch.
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("views")]
         [ProducesResponseType(typeof(IEnumerable<View>), (int)HttpStatusCode.OK)]
@@ -56,7 +56,7 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <remarks>
         /// Returns a list of all of the VM's this user can dispatch to.
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("vms")]
         [ProducesResponseType(typeof(IEnumerable<Vm>), (int)HttpStatusCode.OK)]
@@ -69,4 +69,3 @@ namespace Steamfitter.Api.Controllers
     }
 
 }
-
