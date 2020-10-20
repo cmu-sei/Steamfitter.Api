@@ -26,7 +26,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using S3.VM.Api;
+using Player.Vm.Api;
 
 namespace Steamfitter.Api.Services
 {

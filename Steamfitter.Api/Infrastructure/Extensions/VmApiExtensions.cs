@@ -14,25 +14,27 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using IdentityModel.Client;
-using S3.VM.Api;
+using Player.Vm.Api;
 
 namespace Steamfitter.Api.Infrastructure.Extensions
 {
     public static class VmApiExtensions
     {
-        public static S3VmApiClient GetVmApiClient(IHttpClientFactory httpClientFactory, string apiUrl, TokenResponse tokenResponse)
+        public static PlayerVmApiClient GetVmApiClient(IHttpClientFactory httpClientFactory, string apiUrl, TokenResponse tokenResponse)
         {
             var client = ApiClientsExtensions.GetHttpClient(httpClientFactory, apiUrl, tokenResponse);
-            var apiClient = new S3VmApiClient(client, true);
-            apiClient.BaseUri = client.BaseAddress;
+            var apiClient = new PlayerVmApiClient(client, true)
+            {
+                BaseUri = client.BaseAddress
+            };
             return apiClient;
         }
 
-        public static async Task<IEnumerable<S3.VM.Api.Models.Vm>> GetViewVmsAsync(S3VmApiClient s3VmApiClient, Guid viewId, CancellationToken ct)
+        public static async Task<IEnumerable<Player.Vm.Api.Models.Vm>> GetViewVmsAsync(PlayerVmApiClient playerVmApiClient, Guid viewId, CancellationToken ct)
         {
             try
             {
-                var vms = (await s3VmApiClient.GetViewVmsAsync(viewId, null, true, false, ct)) as IEnumerable<S3.VM.Api.Models.Vm>;
+                var vms = (await playerVmApiClient.GetViewVmsAsync(viewId, null, true, false, ct)) as IEnumerable<Player.Vm.Api.Models.Vm>;
                 return vms;
             }
             catch (Exception ex)
@@ -43,5 +45,3 @@ namespace Steamfitter.Api.Infrastructure.Extensions
 
     }
 }
-
-

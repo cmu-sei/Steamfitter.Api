@@ -120,8 +120,8 @@ namespace Steamfitter.Api
             .SetCompatibilityVersion(CompatibilityVersion.Latest);
 
             services.AddSwagger(_authOptions);
-            services.AddS3PlayerApiClient();
-            services.AddS3VmApiClient();
+            services.AddPlayerApiClient();
+            services.AddPlayerVmApiClient();
 
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 

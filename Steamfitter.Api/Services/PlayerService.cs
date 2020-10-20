@@ -8,8 +8,8 @@ Carnegie Mellon(R) and CERT(R) are registered in the U.S. Patent and Trademark O
 DM20-0181
 */
 
-using S3.Player.Api;
-using S3.Player.Api.Models;
+using Player.Api;
+using Player.Api.Models;
 using System.Collections.Generic;
 using System.Threading;
 using STT = System.Threading.Tasks;
@@ -24,20 +24,19 @@ namespace Steamfitter.Api.Services
 
     public class PlayerService : IPlayerService
     {
-        private readonly IS3PlayerApiClient _s3PlayerApiClient;
+        private readonly IPlayerApiClient _playerApiClient;
 
         public PlayerService(
-            IS3PlayerApiClient s3PlayerApiClient)
+            IPlayerApiClient playerApiClient)
         {
-            _s3PlayerApiClient = s3PlayerApiClient;
-        }       
+            _playerApiClient = playerApiClient;
+        }
 
         public async STT.Task<IEnumerable<View>> GetViewsAsync(CancellationToken ct)
         {
-            var views = await _s3PlayerApiClient.GetMyViewsAsync(ct);
+            var views = await _playerApiClient.GetMyViewsAsync(ct);
             return (IEnumerable<View>)views;
         }
 
     }
 }
-

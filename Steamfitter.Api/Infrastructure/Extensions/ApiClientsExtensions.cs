@@ -14,7 +14,7 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using IdentityModel.Client;
-using S3.VM.Api;
+using Player.Vm.Api;
 
 namespace Steamfitter.Api.Infrastructure.Extensions
 {
@@ -56,5 +56,3 @@ namespace Steamfitter.Api.Infrastructure.Extensions
 
     }
 }
-
-
