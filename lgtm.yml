@@ -1,0 +1,25 @@
+path_classifiers:
+  docs: "generate_javadoc.py"
+
+queries:
+- exclude: "*"
+- include:
+    severity: "error"
+    tags:
+    - "security"
+    - "correctness"
+- exclude: "cpp/use-of-goto"
+- exclude: "java/equals-on-unrelated-types"
+- include: "java/command-line-injection"
+
+extraction:
+  csharp:
+    after_prepare: "export PATH=$LGTM_WORKSPACE/tools:$PATH"
+    index:
+      solution: "Steamfitter.Api.sln"
+      all_solutions: false
+      dotnet:
+        arguments: ""
+        version: "3.1.101"
+      buildless: false
+      build_command: "dotnet build Steamfitter.Api/Steamfitter.Api.csproj"
