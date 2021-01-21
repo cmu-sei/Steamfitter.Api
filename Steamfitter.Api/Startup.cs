@@ -37,12 +37,14 @@ namespace Steamfitter.Api
         public Infrastructure.Options.AuthorizationOptions _authOptions = new Infrastructure.Options.AuthorizationOptions();
         public Infrastructure.Options.VmTaskProcessingOptions _vmTaskProcessingOptions = new Infrastructure.Options.VmTaskProcessingOptions();
         public IConfiguration Configuration { get; }
+        private string _pathbase;
 
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
             Configuration.GetSection("Authorization").Bind(_authOptions);
             Configuration.GetSection("VmTaskProcessing").Bind(_vmTaskProcessingOptions);
+            _pathbase = Configuration["PathBase"];
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -182,6 +184,9 @@ namespace Steamfitter.Api
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UsePathBase(_pathbase);
+
             app.UseRouting();
             app.UseCors("default");
 
