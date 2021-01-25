@@ -228,8 +228,6 @@ namespace Steamfitter.Api
                     endpoints.MapHub<Hubs.EngineHub>("/hubs/engine");
                 }
             );
-
-            app.UseHttpContext();
         }
 
 
