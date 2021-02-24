@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Hosting;
 using Steamfitter.Api.Infrastructure.Exceptions;
-using Steamfitter.Api.ViewModels;
 using System;
 using System.Net;
 
@@ -23,10 +22,10 @@ namespace Steamfitter.Api.Infrastructure.Filters
 
         public void OnException(ExceptionContext context)
         {
-            var error = new ApiError();
+            var error = new ProblemDetails();
             error.Status = GetStatusCodeFromException(context.Exception);
 
-            if(error.Status == (int)HttpStatusCode.InternalServerError)
+            if (error.Status == (int)HttpStatusCode.InternalServerError)
             {
                 if (_env.IsDevelopment())
                 {
@@ -42,7 +41,7 @@ namespace Steamfitter.Api.Infrastructure.Filters
             else
             {
                 error.Title = context.Exception.Message;
-            }            
+            }
 
             context.Result = new JsonResult(error)
             {
