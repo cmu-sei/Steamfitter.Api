@@ -20,6 +20,7 @@ using System.Net.Http;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using Player.Vm.Api;
+using Steamfitter.Api.Infrastructure.HealthChecks;
 
 namespace Steamfitter.Api.Services
 {
@@ -37,6 +38,7 @@ namespace Steamfitter.Api.Services
         private readonly IHubContext<EngineHub> _engineHub;
         private readonly IStackStormService _stackStormService;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly StartupHealthCheck _startupHealthCheck;
         private readonly IOptionsMonitor<Infrastructure.Options.ClientOptions> _clientOptions;
 
         public TaskExecutionService(
@@ -48,7 +50,8 @@ namespace Steamfitter.Api.Services
             IStackStormService stackStormService,
             ITaskExecutionQueue taskExecutionQueue,
             IHttpClientFactory httpClientFactory,
-            IOptionsMonitor<Infrastructure.Options.ClientOptions> clientOptions)
+            IOptionsMonitor<Infrastructure.Options.ClientOptions> clientOptions,
+            StartupHealthCheck startupHealthCheck)
         {
             _logger = logger;
             _vmTaskProcessingOptions = vmTaskProcessingOptions;
@@ -59,6 +62,7 @@ namespace Steamfitter.Api.Services
             _taskExecutionQueue = taskExecutionQueue;
             _httpClientFactory = httpClientFactory;
             _clientOptions = clientOptions;
+            _startupHealthCheck = startupHealthCheck;
         }
 
         public STT.Task StartAsync(CancellationToken cancellationToken)
@@ -106,6 +110,7 @@ namespace Steamfitter.Api.Services
                         }
                     }
                     bootstrapComplete = true;
+                    _startupHealthCheck.StartupTaskCompleted = true;
                 }
                 catch (System.Exception ex)
                 {

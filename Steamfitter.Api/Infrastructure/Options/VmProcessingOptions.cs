@@ -14,6 +14,7 @@ namespace Steamfitter.Api.Infrastructure.Options
         public string ApiPassword { get; set; }
         public int VmListUpdateIntervalMinutes { get; set; }
         public int HealthCheckSeconds { get; set; }
+        public int HealthCheckTimeoutSeconds { get; set; }
         public int TaskProcessIntervalMilliseconds { get; set; }
         public int TaskProcessMaxWaitSeconds { get; set; }
         public int ExpirationCheckSeconds { get; set; }
