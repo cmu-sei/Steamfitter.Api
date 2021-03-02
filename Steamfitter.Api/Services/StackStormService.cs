@@ -13,6 +13,7 @@ using System.Threading;
 using STT = System.Threading.Tasks;
 using Steamfitter.Api.Infrastructure.Options;
 using Stackstorm.Connector;
+using Steamfitter.Api.Infrastructure.HealthChecks;
 
 namespace Steamfitter.Api.Services
 {
@@ -39,13 +40,18 @@ namespace Steamfitter.Api.Services
         private VmTaskProcessingOptions _options;
         private ConcurrentDictionary<Guid, VmIdentityStrings> _vmList = new ConcurrentDictionary<Guid, VmIdentityStrings>();
         private VSphere _vsphere;
+        
+        private readonly StackStormServiceHealthCheck _stackStormServiceHealthCheck;
 
         public StackStormService(
             IOptions<VmTaskProcessingOptions> options,
-            ILogger<StackStormService> logger)
+            ILogger<StackStormService> logger,
+            StackStormServiceHealthCheck stackStormServiceHealthCheck)
         {
             _options = options.Value;
             _logger = logger;
+            _stackStormServiceHealthCheck = stackStormServiceHealthCheck;
+            _stackStormServiceHealthCheck.HealthAllowance = _options.HealthCheckTimeoutSeconds;
         }
 
         public ConcurrentDictionary<Guid, VmIdentityStrings> GetVmList()
@@ -118,6 +124,7 @@ namespace Steamfitter.Api.Services
                     else
                     {
                         _logger.LogError("The StackStormService did not find any VM's.  This could mean that StackStorm is not running or the StackStorm configuration is incorrect.");
+                        _stackStormServiceHealthCheck.CompletedRun();
                         await STT.Task.Delay(new TimeSpan(0, 0, _options.HealthCheckSeconds));
                     }
                 }
