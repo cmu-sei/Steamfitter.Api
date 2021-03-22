@@ -8,28 +8,13 @@ Carnegie Mellon(R) and CERT(R) are registered in the U.S. Patent and Trademark O
 DM20-0181
 */
 
-using Microsoft.AspNetCore.Authorization;
-using System;
-using System.Security.Claims;
-using STT = System.Threading.Tasks;
+using System.Collections.Generic;
 
-namespace Steamfitter.Api.Infrastructure.Authorization
+namespace Steamfitter.Api.ViewModels
 {
-    public class BaseUserRequirement : IAuthorizationRequirement
+    public class TaskSubstitutions
     {
-    }
-
-    public class BaseUserHandler : AuthorizationHandler<BaseUserRequirement>, IAuthorizationHandler
-    {
-        protected override STT.Task HandleRequirementAsync(AuthorizationHandlerContext context, BaseUserRequirement requirement)
-        {
-            if (context.User.Identity.IsAuthenticated)
-            {
-                context.Succeed(requirement);
-            }                     
-
-            return STT.Task.CompletedTask;
-        }
+        public string Id { get; set; }
+        public Dictionary<string, string> Substitutions { get; set; }
     }
 }
-

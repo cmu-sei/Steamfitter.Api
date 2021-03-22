@@ -50,6 +50,7 @@ namespace Steamfitter.Api.Services
         STT.Task<SAVM.Task> CreateAsync(SAVM.Task Task, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.Task task, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> ExecuteAsync(Guid id, CancellationToken ct);
+        STT.Task<Guid?> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct);
         STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.Task Task, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct);
@@ -111,8 +112,8 @@ namespace Steamfitter.Api.Services
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
                 throw new ForbiddenException();
 
-            var items = await _context.Tasks.ToListAsync(ct);         
-            
+            var items = await _context.Tasks.ToListAsync(ct);
+
             return _mapper.Map<IEnumerable<SAVM.Task>>(items);
         }
 
@@ -138,7 +139,7 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
         }
-        
+
         public async STT.Task<IEnumerable<SAVM.Task>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -148,7 +149,7 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
         }
-        
+
         public async STT.Task<IEnumerable<SAVM.Task>> GetByViewIdAsync(Guid viewId, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -159,7 +160,7 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
         }
-        
+
         public async STT.Task<IEnumerable<SAVM.Task>> GetByUserIdAsync(Guid userId, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -169,7 +170,7 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
         }
-        
+
         public async STT.Task<IEnumerable<SAVM.Task>> GetByVmIdAsync(Guid vmId, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -180,7 +181,7 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
         }
-        
+
         public async STT.Task<IEnumerable<SAVM.Task>> GetSubtasksAsync(Guid triggerTaskId, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -190,7 +191,7 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
         }
-        
+
         public async STT.Task<SAVM.Task> CreateAsync(SAVM.Task task, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -249,6 +250,23 @@ namespace Steamfitter.Api.Services
             _taskExecutionQueue.Add(taskToExecute);
 
             return  new List<SAVM.Result>();
+        }
+
+        public async STT.Task<Guid?> ExecuteWithSubstitutionsAsync(Guid id,Dictionary<string, string> taskSubstitutions, CancellationToken ct)
+        {
+            // verify permissions
+            if (!(await _authorizationService.AuthorizeAsync(_user, null, new BaseUserRequirement())).Succeeded)
+                throw new ForbiddenException();
+            // verify the supplied Task ID is a Guid
+            var gradedTaskId = await MakeTaskSubstitutionsAsync(id, taskSubstitutions, ct);
+            // execute the task
+            var taskToExecute = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == id, ct);
+            taskToExecute.CurrentIteration = 0;
+            await _context.SaveChangesAsync();
+            taskToExecute.UserId = _user.GetId();
+            _taskExecutionQueue.Add(taskToExecute);
+
+            return  gradedTaskId;
         }
 
         public async STT.Task<SAVM.Task> UpdateAsync(Guid id, SAVM.Task task, CancellationToken ct)
@@ -529,6 +547,43 @@ namespace Steamfitter.Api.Services
                 parentId = (await _context.Tasks.SingleAsync(v => v.Id == parentId, ct)).TriggerTaskId;
             }
             return wouldAddToSelf;
+        }
+
+        private async STT.Task<Guid?> MakeTaskSubstitutionsAsync(Guid id, Dictionary<string, string> substitutions, CancellationToken ct)
+        {
+            var taskToModify = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == id, ct);
+            if (taskToModify.Action == TaskAction.guest_file_upload_content)
+            {
+                var actionParameters = JsonSerializer.Deserialize<Dictionary<string, string>>(taskToModify.InputString);
+                foreach (var param in substitutions)
+                {
+                    if (actionParameters["GuestFilePath"] == param.Key)
+                    {
+                        actionParameters["GuestFileContent"] = param.Value;
+                    }
+                }
+                taskToModify.InputString = JsonSerializer.Serialize(actionParameters);
+                await _context.SaveChangesAsync();
+            }
+            // set the evaluation task ID, if this is it
+            Guid? evaluationTaskId = null;
+            if (taskToModify.Name.EndsWith("(graded)"))
+            {
+                evaluationTaskId = id;
+            }
+            taskToModify = null;
+            // Modify the subtasks and get the evaluation task ID, if any
+            var subTaskEntityIds = _context.Tasks.Where(dt => dt.TriggerTaskId == id).Select(dt => dt.Id).ToList();
+            foreach (var subTaskEntityId in subTaskEntityIds)
+            {
+                var returnedId = await MakeTaskSubstitutionsAsync(subTaskEntityId, substitutions, ct);
+                if (returnedId != null)
+                {
+                    evaluationTaskId = returnedId;
+                }
+            }
+
+            return evaluationTaskId;
         }
 
     }

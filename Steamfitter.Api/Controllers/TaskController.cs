@@ -283,6 +283,34 @@ namespace Steamfitter.Api.Controllers
         }
 
         /// <summary>
+        /// Executes a specific Task by id and substitutes GuestFileContent for file upload tasks.
+        /// </summary>
+        /// <remarks>
+        /// Executes the Task with the id specified after substituting file content, if provided.
+        /// <para />
+        /// Accessible to an authenticated user.
+        /// The task will fail, if the user does not have access to the targeted VMs.
+        /// </remarks>
+        /// <param name="id">The Id of the Task to execute</param>
+        /// <param name="taskSubstitutions">The substitutions to make</param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpPost("tasks/{id}/execute/substitutions")]
+        [ProducesResponseType(typeof(SAVM.Result[]), (int)HttpStatusCode.OK)]
+        [SwaggerOperation(OperationId = "executeWithSubstitutions")]
+        public async STT.Task<IActionResult> Execute([FromRoute] Guid id, [FromBody] Dictionary<string, string> taskSubstitutions, CancellationToken ct)
+        {
+            var executionTime = DateTime.UtcNow;
+            var gradedTaskId = await _TaskService.ExecuteWithSubstitutionsAsync(id, taskSubstitutions, ct);
+            var result = new GradeCheckInfo ()
+                {
+                    GradedTaskId = (Guid)gradedTaskId,
+                    ExecutionStartTime = executionTime
+                };
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Updates a Task
         /// </summary>
         /// <remarks>
@@ -290,7 +318,7 @@ namespace Steamfitter.Api.Controllers
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Task
         /// </remarks>
-        /// <param name="id">The Id of the Exericse to update</param>
+        /// <param name="id">The Id of the Task to update</param>
         /// <param name="task">The updated Task values</param>
         /// <param name="ct"></param>
         [HttpPut("Tasks/{id}")]
@@ -362,5 +390,11 @@ namespace Steamfitter.Api.Controllers
     {
         public Guid? Id { get; set; }
         public string LocationType { get; set; }
+    }
+
+    public class GradeCheckInfo
+    {
+        public Guid GradedTaskId { get; set; }
+        public DateTime ExecutionStartTime { get; set; }
     }
 }
