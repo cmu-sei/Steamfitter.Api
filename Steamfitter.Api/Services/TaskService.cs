@@ -50,7 +50,7 @@ namespace Steamfitter.Api.Services
         STT.Task<SAVM.Task> CreateAsync(SAVM.Task Task, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.Task task, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> ExecuteAsync(Guid id, CancellationToken ct);
-        STT.Task<Guid?> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct);
+        STT.Task<Guid?> ExecuteForGradeAsync(Dictionary<string, string> taskSubstitutions, CancellationToken ct);
         STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.Task Task, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct);
@@ -252,15 +252,37 @@ namespace Steamfitter.Api.Services
             return  new List<SAVM.Result>();
         }
 
-        public async STT.Task<Guid?> ExecuteWithSubstitutionsAsync(Guid id,Dictionary<string, string> taskSubstitutions, CancellationToken ct)
+        public async STT.Task<Guid?> ExecuteForGradeAsync(Dictionary<string, string> taskSubstitutions, CancellationToken ct)
         {
-            // verify permissions
+            var userId = _user.GetId();
+            var scenarioTemplateId = Guid.Parse(taskSubstitutions["scenariotemplateid"]);
+            var scenarios = _context.Scenarios.Where(s =>
+                s.ScenarioTemplateId == scenarioTemplateId &&
+                s.CreatedBy == userId &&
+                s.Status == ScenarioStatus.active);
+            // verify permissions and scenario to be graded
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new BaseUserRequirement())).Succeeded)
                 throw new ForbiddenException();
+            else if (scenarios.Count() == 0)
+                throw new ApplicationException("No Scenario found for grading.");
+            else if (scenarios.Count() > 1)
+                throw new ApplicationException("Multiple Active Scenarios found for grading for this user.");
+            // verify task to be graded
+            var scenarioId = (await scenarios.ToListAsync())[0].Id;
+            var tasks = _context.Tasks.Where(t =>
+                t.ScenarioId == scenarioId &&
+                t.TriggerCondition == TaskTrigger.Manual &&
+                t.Name == taskSubstitutions["starttaskname"]);
+            // verify the task to execute
+            if (tasks.Count() == 0)
+                throw new ApplicationException("No Task found for grading.");
+            if (tasks.Count() > 1)
+                throw new ApplicationException("Multiple Tasks found for grading.");
             // verify the supplied Task ID is a Guid
-            var gradedTaskId = await MakeTaskSubstitutionsAsync(id, taskSubstitutions, ct);
+            var taskId = (await tasks.ToListAsync())[0].Id;
+            var gradedTaskId = await MakeTaskSubstitutionsAsync(taskId, taskSubstitutions, ct);
             // execute the task
-            var taskToExecute = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == id, ct);
+            var taskToExecute = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == taskId, ct);
             taskToExecute.CurrentIteration = 0;
             await _context.SaveChangesAsync();
             taskToExecute.UserId = _user.GetId();
@@ -567,6 +589,7 @@ namespace Steamfitter.Api.Services
             }
             // set the evaluation task ID, if this is it
             Guid? evaluationTaskId = null;
+            // TODO:  check for score > 0 when Andrew adds Score to TaskEntity
             if (taskToModify.Name.EndsWith("(graded)"))
             {
                 evaluationTaskId = id;

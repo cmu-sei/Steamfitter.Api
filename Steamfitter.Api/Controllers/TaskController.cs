@@ -295,13 +295,13 @@ namespace Steamfitter.Api.Controllers
         /// <param name="taskSubstitutions">The substitutions to make</param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        [HttpPost("tasks/{id}/execute/substitutions")]
+        [HttpPost("tasks/execute/graded")]
         [ProducesResponseType(typeof(SAVM.Result[]), (int)HttpStatusCode.OK)]
-        [SwaggerOperation(OperationId = "executeWithSubstitutions")]
-        public async STT.Task<IActionResult> Execute([FromRoute] Guid id, [FromBody] Dictionary<string, string> taskSubstitutions, CancellationToken ct)
+        [SwaggerOperation(OperationId = "executeForGrade")]
+        public async STT.Task<IActionResult> ExecuteForGrade([FromRoute] Guid id, [FromBody] Dictionary<string, string> taskSubstitutions, CancellationToken ct)
         {
             var executionTime = DateTime.UtcNow;
-            var gradedTaskId = await _TaskService.ExecuteWithSubstitutionsAsync(id, taskSubstitutions, ct);
+            var gradedTaskId = await _TaskService.ExecuteForGradeAsync(taskSubstitutions, ct);
             var result = new GradeCheckInfo ()
                 {
                     GradedTaskId = (Guid)gradedTaskId,
