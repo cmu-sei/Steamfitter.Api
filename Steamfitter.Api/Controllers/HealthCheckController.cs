@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Carnegie Mellon University. All Rights Reserved. 
+Copyright 2021 Carnegie Mellon University. All Rights Reserved.
  Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 */
 
@@ -12,7 +12,7 @@ using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Steamfitter.Api.Controllers
-{    
+{
     [AllowAnonymous]
     public class HealthController : BaseController
     {
@@ -31,16 +31,12 @@ namespace Steamfitter.Api.Controllers
         /// </remarks>
         /// <returns></returns>
         [HttpGet("health/live")]
-        [ProducesResponseType(typeof(HealthReport), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(HealthStatus), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "Health_GetLiveliness")]
         public async Task<IActionResult> GetLiveliness(CancellationToken ct)
         {
             HealthReport report = await this.healthCheckService.CheckHealthAsync((check) => check.Tags.Contains("live"));
-            var result = new
-            {
-                status = report.Status.ToString()
-            };
-            return report.Status == HealthStatus.Healthy ? this.Ok(result) : this.StatusCode((int)HttpStatusCode.ServiceUnavailable, result);
+            return report.Status == HealthStatus.Healthy ? this.Ok(report.Status) : this.StatusCode((int)HttpStatusCode.ServiceUnavailable, report.Status);
         }
 
         /// <summary>
@@ -51,16 +47,12 @@ namespace Steamfitter.Api.Controllers
         /// </remarks>
         /// <returns></returns>
         [HttpGet("health/ready")]
-        [ProducesResponseType(typeof(HealthReport), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(HealthStatus), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "Health_GetReadiness")]
         public async Task<IActionResult> GetReadiness(CancellationToken ct)
         {
             HealthReport report = await this.healthCheckService.CheckHealthAsync((check) => check.Tags.Contains("ready"));
-            var result = new
-            {
-                status = report.Status.ToString()
-            };
-            return report.Status == HealthStatus.Healthy ? this.Ok(result) : this.StatusCode((int)HttpStatusCode.ServiceUnavailable, result);
+            return report.Status == HealthStatus.Healthy ? this.Ok(report.Status) : this.StatusCode((int)HttpStatusCode.ServiceUnavailable, report.Status);
         }
     }
-}  
+}
