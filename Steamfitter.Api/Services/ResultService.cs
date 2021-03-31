@@ -59,8 +59,8 @@ namespace Steamfitter.Api.Services
                 throw new ForbiddenException();
 
             var items = await _context.Results
-                .ToListAsync(ct);         
-            
+                .ToListAsync(ct);
+
             return _mapper.Map<IEnumerable<SAVM.Result>>(items);
         }
 
@@ -85,7 +85,7 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
         }
-        
+
         public async STT.Task<IEnumerable<ViewModels.Result>> GetByViewIdAsync(Guid viewId, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -97,7 +97,7 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
         }
-        
+
         public async STT.Task<IEnumerable<ViewModels.Result>> GetByUserIdAsync(Guid userId, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -107,7 +107,7 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<ViewModels.Result>>(results.OrderByDescending(r => r.StatusDate));
         }
-        
+
         public async STT.Task<IEnumerable<ViewModels.Result>> GetByVmIdAsync(Guid vmId, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -117,17 +117,35 @@ namespace Steamfitter.Api.Services
 
             return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
         }
-        
-        public async STT.Task<IEnumerable<ViewModels.Result>> GetByTaskIdAsync(Guid taskId, CancellationToken ct)
+
+        public async STT.Task<IEnumerable<SAVM.Result>> GetByTaskIdAsync(Guid taskId, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
+            if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
+            {
+                var results = await _context.Results.Where(dt => dt.TaskId == taskId).ToListAsync(ct);
+                return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
+            }
+            else
+            {
+                var task = await _context.Tasks
+                    .Include(x => x.Results)
+                    .Include(x => x.Scenario)
+                        .ThenInclude(y => y.Users)
+                    .Where(x => x.Id == taskId && x.UserExecutable)
+                    .FirstOrDefaultAsync();
 
-            var results = _context.Results.Where(dt => dt.TaskId == taskId);
-
-            return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
+                // TODO: use auth service
+                if (task != null && task.Scenario.Users.Any(x => x.UserId == _user.GetId()))
+                {
+                    return _mapper.Map<IEnumerable<SAVM.Result>>(_mapper.Map<IEnumerable<SAVM.ResultSummary>>(task.Results));
+                }
+                else
+                {
+                    throw new ForbiddenException();
+                }
+            }
         }
-        
+
         public async STT.Task<ViewModels.Result> CreateAsync(ViewModels.Result result, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -191,4 +209,3 @@ namespace Steamfitter.Api.Services
 
     }
 }
-

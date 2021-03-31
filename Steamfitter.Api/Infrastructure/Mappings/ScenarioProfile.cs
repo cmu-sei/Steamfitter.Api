@@ -8,6 +8,7 @@ using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Services;
 using Steamfitter.Api.ViewModels;
+using System.Linq;
 using System.Security.Claims;
 
 namespace Steamfitter.Api.Infrastructure.Mappings
@@ -16,9 +17,13 @@ namespace Steamfitter.Api.Infrastructure.Mappings
     {
         public ScenarioProfile()
         {
-            CreateMap<ScenarioEntity, Scenario>();
+            CreateMap<ScenarioSummary, Scenario>();
+            CreateMap<ScenarioEntity, ScenarioSummary>();
+            CreateMap<ScenarioEntity, Scenario>()
+                .ForMember(m => m.Users, opt => opt.MapFrom(x => x.Users.Select(y => y.UserId)));
 
-            CreateMap<Scenario, ScenarioEntity>();
+            CreateMap<Scenario, ScenarioEntity>()
+                .ForMember(m => m.Users, opt => opt.Ignore());
 
             CreateMap<ScenarioEntity, ScenarioEntity>()
                 .ForMember(e => e.Id, opt => opt.Ignore());
@@ -26,5 +31,3 @@ namespace Steamfitter.Api.Infrastructure.Mappings
         }
     }
 }
-
-

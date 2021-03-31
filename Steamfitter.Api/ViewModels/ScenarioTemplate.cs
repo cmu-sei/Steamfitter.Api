@@ -14,5 +14,7 @@ namespace Steamfitter.Api.ViewModels
         public int? DurationHours { get; set; }
         public Guid? DefaultVmCredentialId { get; set; }
         public List<VmCredential> VmCredentials { get; set; }
+        public int Score { get; set; }
+        public int ScoreEarned { get; set; }
     }
 }

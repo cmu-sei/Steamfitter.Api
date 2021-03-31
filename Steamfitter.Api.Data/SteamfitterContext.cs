@@ -2,21 +2,29 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Data.Extensions;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
+using System.Threading;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
+using System.Data;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Steamfitter.Api.Data
 {
     public class SteamfitterContext : DbContext
     {
+        public List<Entry> Entries { get; set; } = new List<Entry>();
+
         private DbContextOptions<SteamfitterContext> _options;
 
-        public SteamfitterContext(DbContextOptions<SteamfitterContext> options) : base(options) {
+        public SteamfitterContext(DbContextOptions<SteamfitterContext> options) : base(options)
+        {
             _options = options;
         }
-        
+
         public DbSet<TaskEntity> Tasks { get; set; }
         public DbSet<ResultEntity> Results { get; set; }
         public DbSet<ScenarioTemplateEntity> ScenarioTemplates { get; set; }
@@ -30,7 +38,7 @@ namespace Steamfitter.Api.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.ApplyConfigurations();             
+            modelBuilder.ApplyConfigurations();
 
             // Apply PostgreSQL specific options
             if (Database.IsNpgsql())
@@ -40,6 +48,142 @@ namespace Steamfitter.Api.Data
             }
 
         }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
+        {
+            var addedEntries = ChangeTracker.Entries().Where(x => x.State == EntityState.Added).ToList();
+            var modifiedEntries = ChangeTracker.Entries().Where(x => x.State == EntityState.Modified).ToList();
+            var deletedEntries = ChangeTracker.Entries().Where(x => x.State == EntityState.Deleted).ToList();
+
+            // new tasks with score > 0
+            var addedTasks = addedEntries.Where(x => x.Entity is TaskEntity entity && entity.Score > 0).Select(x => x.Entity as TaskEntity).ToList();
+
+            // modified tasks where score affecting properties changed
+            var propertiesToFind = new List<string>
+            {
+                nameof(TaskEntity.Score),
+                nameof(TaskEntity.ScenarioId),
+                nameof(TaskEntity.ScenarioTemplateId),
+                nameof(TaskEntity.TriggerCondition)
+            };
+
+            var modifiedTasks = modifiedEntries
+                .Where(x => x.Entity is TaskEntity &&
+                            x.Properties
+                                .Any(y => y.IsModified && propertiesToFind.Contains(y.Metadata.Name)))
+                .ToList();
+
+            // deleted tasks with score > 0
+            var deletedTasks = deletedEntries.Where(x => x.Entity is TaskEntity entity && entity.Score > 0).Select(x => x.Entity as TaskEntity).ToList();
+            foreach (var deletedTask in deletedTasks)
+            {
+                deletedTask.Score = 0;
+            }
+
+            // get scenarioId and scenarioTemplateId from all tasks
+            var scenarioIds = new List<Guid?>();
+            var scenarioTemplateIds = new List<Guid?>();
+
+            foreach (var task in addedTasks)
+            {
+                scenarioIds.Add(task.ScenarioId);
+                scenarioTemplateIds.Add(task.ScenarioTemplateId);
+            }
+
+            foreach (var task in modifiedTasks)
+            {
+                scenarioIds.AddRange(task.Properties.Where(x => x.Metadata.Name == nameof(TaskEntity.ScenarioId)).Select(y => y.CurrentValue).Cast<Guid?>());
+                scenarioIds.AddRange(task.Properties.Where(x => x.Metadata.Name == nameof(TaskEntity.ScenarioId)).Select(y => y.OriginalValue).Cast<Guid?>());
+
+                scenarioTemplateIds.AddRange(task.Properties.Where(x => x.Metadata.Name == nameof(TaskEntity.ScenarioTemplateId)).Select(y => y.CurrentValue).Cast<Guid?>());
+                scenarioTemplateIds.AddRange(task.Properties.Where(x => x.Metadata.Name == nameof(TaskEntity.ScenarioTemplateId)).Select(y => y.OriginalValue).Cast<Guid?>());
+            }
+
+            foreach (var task in deletedTasks)
+            {
+                scenarioIds.Add(task.ScenarioId);
+                scenarioTemplateIds.Add(task.ScenarioTemplateId);
+            }
+
+            scenarioIds = scenarioIds.Where(x => x.HasValue).Distinct().ToList();
+            scenarioTemplateIds = scenarioTemplateIds.Where(x => x.HasValue).Distinct().ToList();
+
+            // set update flag on scenarios and scenario templates
+            if (scenarioIds.Any() || scenarioTemplateIds.Any())
+            {
+                var scenarios = await Scenarios
+                    .Where(x => scenarioIds.Contains(x.Id))
+                    .ToListAsync(ct);
+
+                foreach (var scenario in scenarios)
+                {
+                    scenario.UpdateScores = true;
+                }
+            }
+
+            if (scenarioTemplateIds.Any())
+            {
+                var scenarioTemplates = await ScenarioTemplates
+                    .Where(x => scenarioTemplateIds.Contains(x.Id))
+                    .ToListAsync(ct);
+
+                foreach (var scenarioTemplate in scenarioTemplates)
+                {
+                    scenarioTemplate.UpdateScores = true;
+                }
+            }
+
+            // keep track of changes across multiple savechanges in a transaction
+            Entries.AddRange(ChangeTracker.Entries().Select(x => new Entry(x)).ToList());
+            return await base.SaveChangesAsync(ct);
+        }
+
+        private async Task<int> UpdateTotalScore(IEnumerable<Guid?> scenarioIds, IEnumerable<Guid?> scenarioTemplateIds, CancellationToken ct, int attempt = 0)
+        {
+            var affectedRows = 0;
+
+            try
+            {
+                // create serializable transaction to prevent multiple scores from being changed concurrently,
+                // causing incorrect total score calculations
+                using var transaction = await Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+                // get all tasks in scenario or scenario template
+                var tasks = await Tasks
+                    .Where(x => scenarioIds.Contains(x.ScenarioId) ||
+                                scenarioTemplateIds.Contains(x.ScenarioTemplateId))
+                    .ToListAsync(ct);
+
+                // calculate total score for all tasks, starting from the root nodes
+                foreach (var task in tasks.Where(x => !x.TriggerTaskId.HasValue))
+                {
+                    task.CalculateTotalScore();
+                    task.CalculateTotalScoreEarned();
+                    task.CalculateTotalStatus();
+                }
+
+                Entries.AddRange(ChangeTracker.Entries().Select(x => new Entry(x)).ToList());
+                affectedRows += await base.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+            }
+            catch (DbUpdateException ex)
+            {
+                if (ex.IsTransientDatabaseException())
+                {
+                    attempt = 0;
+                }
+
+                if (attempt <= 10)
+                {
+                    affectedRows += await UpdateTotalScore(scenarioIds, scenarioTemplateIds, ct, attempt + 1);
+                }
+                else
+                {
+                    throw ex;
+                }
+            }
+
+            return affectedRows;
+        }
     }
 }
-

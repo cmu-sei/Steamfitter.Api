@@ -7,16 +7,71 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading;
 using STT = System.Threading.Tasks;
+using Steamfitter.Api.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Security.Principal;
+using System.Linq;
+using Steamfitter.Api.Infrastructure.Authorization;
+using Steamfitter.Api.Infrastructure.Extensions;
 
 namespace Steamfitter.Api.Hubs
 {
     [Authorize(AuthenticationSchemes = "Bearer")]
     public class EngineHub : Hub
     {
-        public EngineHub()
+        private readonly SteamfitterContext _db;
+        private readonly IAuthorizationService _authorizationService;
+        private readonly ClaimsPrincipal _user;
+
+        public EngineHub(
+            SteamfitterContext db,
+            IAuthorizationService authorizationService,
+            IPrincipal user)
         {
+            _db = db;
+            _authorizationService = authorizationService;
+            _user = user as ClaimsPrincipal;
         }
 
+        public async STT.Task JoinScenario(Guid scenarioId)
+        {
+            if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"{EngineGroups.GetSystemGroup(scenarioId)}");
+            }
+            else
+            {
+                var scenario = await _db.Scenarios
+                    .Include(x => x.Users)
+                    .Where(x => x.Id == scenarioId)
+                    .SingleOrDefaultAsync();
+
+                if (scenario.Users.Any(x => x.UserId == _user.GetId()))
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"{scenario.Id}");
+                }
+            }
+        }
+
+        public async STT.Task LeaveScenario(Guid scenarioId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{EngineGroups.GetSystemGroup(scenarioId)}");
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, scenarioId.ToString());
+        }
+
+        public async STT.Task JoinSystem()
+        {
+            if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, EngineGroups.SystemGroup);
+            }
+        }
+
+        public async STT.Task LeaveSystem()
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, EngineGroups.SystemGroup);
+        }
     }
 
     public static class EngineMethods
@@ -34,6 +89,15 @@ namespace Steamfitter.Api.Hubs
         public const string ResultUpdated = "ResultUpdated";
         public const string ResultsUpdated = "ResultsUpdated";
         public const string ResultDeleted = "ResultDeleted";
-    } 
-}
+    }
 
+    public static class EngineGroups
+    {
+        public const string SystemGroup = "System";
+
+        public static string GetSystemGroup(Guid groupId)
+        {
+            return $"{groupId}-{SystemGroup}";
+        }
+    }
+}

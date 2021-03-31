@@ -1,0 +1,22 @@
+{
+  "runtime": "NetCore31",
+  "swaggerGenerator":{
+    "fromSwagger":{
+      "json":"swagger.json"
+    }
+  },
+  "codeGenerators": {
+    "openApiToCSharpClient": {
+      "className": "SteamfitterApiClient",
+      "namespace": "Steamfitter.Api.Client",
+      "output": "Steamfitter.Api.Client.cs",
+      "generateClientInterfaces": true,
+      "generateContractsOutput": true,
+      "contractsNamespace": "Steamfitter.Api.Client",
+      "contractsOutputFilePath": "Steamfitter.Api.Contracts.cs",
+      "jsonLibrary": "SystemTextJson",
+      "operationGenerationMode": "SingleClientFromOperationId",
+      "useBaseUrl": false
+    }
+  }
+}
