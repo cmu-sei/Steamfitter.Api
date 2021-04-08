@@ -255,20 +255,14 @@ namespace Steamfitter.Api.Services
         public async STT.Task<Guid?> ExecuteForGradeAsync(Dictionary<string, string> taskSubstitutions, CancellationToken ct)
         {
             var userId = _user.GetId();
-            var scenarioTemplateId = Guid.Parse(taskSubstitutions["scenariotemplateid"]);
-            var scenarios = _context.Scenarios.Where(s =>
-                s.ScenarioTemplateId == scenarioTemplateId &&
-                s.CreatedBy == userId &&
-                s.Status == ScenarioStatus.active);
+            var scenarioId = Guid.Parse(taskSubstitutions["scenarioid"]);
+            var scenario = _context.Scenarios.Find(scenarioId);
             // verify permissions and scenario to be graded
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new BaseUserRequirement())).Succeeded)
                 throw new ForbiddenException();
-            else if (scenarios.Count() == 0)
+            else if (scenario == null)
                 throw new ApplicationException("No Scenario found for grading.");
-            else if (scenarios.Count() > 1)
-                throw new ApplicationException("Multiple Active Scenarios found for grading for this user.");
             // verify task to be graded
-            var scenarioId = (await scenarios.ToListAsync())[0].Id;
             var tasks = _context.Tasks.Where(t =>
                 t.ScenarioId == scenarioId &&
                 t.TriggerCondition == TaskTrigger.Manual &&
