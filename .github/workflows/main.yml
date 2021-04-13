@@ -1,6 +1,9 @@
-name: Publish Docker Iamges
+name: Publish Docker Images
 
 on:
+  pull_request:
+    branches:
+      - development
   push:
     branches: [ development, staging ]
   release:
@@ -35,6 +38,13 @@ jobs:
           VERSION=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
           TAGS="${DOCKER_IMAGE}:${VERSION}"
         fi
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo ::set-output name=push::false
+          echo "event is pull_request, not pushing image"
+        else        
+          echo ::set-output name=push::true
+          echo "event is not pull_request, pushing image"
+        fi
         echo ::set-output name=version::${VERSION}
         echo ::set-output name=tags::${TAGS}
         echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -54,7 +64,8 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        push: true
+        push: ${{ steps.prep.outputs.push }}
+        pull: true
         tags: ${{ steps.prep.outputs.tags }}
         labels: |
           org.opencontainers.image.source=${{ github.event.repository.clone_url }}

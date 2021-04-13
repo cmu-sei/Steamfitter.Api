@@ -1,12 +1,5 @@
-/*
-Crucible
-Copyright 2020 Carnegie Mellon University.
-NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS" BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
-Released under a MIT (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
-[DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see Copyright notice for non-US Government use and distribution.
-Carnegie Mellon(R) and CERT(R) are registered in the U.S. Patent and Trademark Office by Carnegie Mellon University.
-DM20-0181
-*/
+// Copyright 2021 Carnegie Mellon University. All Rights Reserved.
+// Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -28,7 +21,6 @@ using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Services;
 using System;
 using AutoMapper;
-using Steamfitter.Api.Infrastructure;
 using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Filters;
 using System.IdentityModel.Tokens.Jwt;
@@ -36,6 +28,9 @@ using System.Security.Principal;
 using System.Linq;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Steamfitter.Api.Infrastructure.HealthChecks;
 
 namespace Steamfitter.Api
 {
@@ -43,18 +38,38 @@ namespace Steamfitter.Api
     {
         public Infrastructure.Options.AuthorizationOptions _authOptions = new Infrastructure.Options.AuthorizationOptions();
         public Infrastructure.Options.VmTaskProcessingOptions _vmTaskProcessingOptions = new Infrastructure.Options.VmTaskProcessingOptions();
+        private const string _routePrefix = "api";
         public IConfiguration Configuration { get; }
+        private string _pathbase;
 
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
             Configuration.GetSection("Authorization").Bind(_authOptions);
             Configuration.GetSection("VmTaskProcessing").Bind(_vmTaskProcessingOptions);
+            _pathbase = Configuration["PathBase"];
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton<TaskMaintenanceServiceHealthCheck>();
+            services.AddSingleton<StackStormServiceHealthCheck>();
+            services.AddSingleton<StartupHealthCheck>();
+            services.AddHealthChecks()
+                .AddCheck<TaskMaintenanceServiceHealthCheck>(
+                    "task_service_responsive", 
+                    failureStatus: HealthStatus.Unhealthy, 
+                    tags: new[] { "live" })
+                .AddCheck<StackStormServiceHealthCheck>(
+                    "stackstorm_service_responsive", 
+                    failureStatus: HealthStatus.Unhealthy, 
+                    tags: new[] { "live" })
+                .AddCheck<StartupHealthCheck>(
+                    "startup", 
+                    failureStatus: HealthStatus.Degraded, 
+                    tags: new[] { "ready" });
+
             var provider = Configuration["Database:Provider"];
             switch (provider)
             {
@@ -65,6 +80,20 @@ namespace Steamfitter.Api
                 case "SqlServer":
                 case "PostgreSQL":
                     services.AddDbContextPool<SteamfitterContext>(builder => builder.UseConfiguredDatabase(Configuration));
+                    break;
+            }
+
+            var connectionString = Configuration.GetConnectionString(DatabaseExtensions.DbProvider(Configuration));
+            switch (provider)
+            {
+                case "Sqlite":
+                    services.AddHealthChecks().AddSqlite(connectionString, tags: new[] { "ready", "live"});
+                    break;
+                case "SqlServer":
+                    services.AddHealthChecks().AddSqlServer(connectionString, tags: new[] { "ready", "live"});
+                    break;
+                case "PostgreSQL":
+                    services.AddHealthChecks().AddNpgSql(connectionString, tags: new[] { "ready", "live"});
                     break;
             }
 
@@ -189,6 +218,9 @@ namespace Steamfitter.Api
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UsePathBase(_pathbase);
+
             app.UseRouting();
             app.UseCors("default");
 
@@ -214,7 +246,7 @@ namespace Steamfitter.Api
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
-                c.RoutePrefix = "api";
+                c.RoutePrefix = _routePrefix;
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Steamfitter v1");
                 c.OAuthClientId(_authOptions.ClientId);
                 c.OAuthClientSecret(_authOptions.ClientSecret);
@@ -227,11 +259,18 @@ namespace Steamfitter.Api
             app.UseEndpoints(endpoints =>
                 {
                     endpoints.MapControllers();
+                    endpoints.MapHealthChecks($"/{_routePrefix}/health/ready", new HealthCheckOptions()
+                    {
+                        Predicate = (check) => check.Tags.Contains("ready"),
+                    });
+
+                    endpoints.MapHealthChecks($"/{_routePrefix}/health/live", new HealthCheckOptions()
+                    {
+                        Predicate = (check) => check.Tags.Contains("live"),
+                    });
                     endpoints.MapHub<Hubs.EngineHub>("/hubs/engine");
                 }
             );
-
-            app.UseHttpContext();
         }
 
 
