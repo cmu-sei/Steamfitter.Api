@@ -249,7 +249,7 @@ namespace Steamfitter.Api.Services
         {
             var userId = _user.GetId();
             var scenarioId = Guid.Parse(taskSubstitutions["scenarioid"]);
-            var scenario = _context.Scenarios.Find(scenarioId);
+            var scenario = await _context.Scenarios.FindAsync(scenarioId);
             // verify permissions and scenario to be graded
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new BaseUserRequirement())).Succeeded)
                 throw new ForbiddenException();
@@ -261,12 +261,12 @@ namespace Steamfitter.Api.Services
                 t.TriggerCondition == TaskTrigger.Manual &&
                 t.Name == taskSubstitutions["starttaskname"]);
             // verify the task to execute
-            if (tasks.Count() == 0)
+            if ((await tasks.CountAsync()) == 0)
                 throw new ApplicationException("No Task found for grading.");
-            if (tasks.Count() > 1)
+            if ((await tasks.CountAsync()) > 1)
                 throw new ApplicationException("Multiple Tasks found for grading.");
             // verify the supplied Task ID is a Guid
-            var taskId = (await tasks.ToListAsync())[0].Id;
+            var taskId = (await tasks.FirstOrDefaultAsync()).Id;
             var gradedTaskId = await MakeTaskSubstitutionsAsync(taskId, taskSubstitutions, ct);
             // execute the task
             var taskToExecute = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == taskId, ct);
@@ -583,7 +583,7 @@ namespace Steamfitter.Api.Services
             }
             taskToModify = null;
             // Modify the subtasks and get the evaluation task ID, if any
-            var subTaskEntityIds = _context.Tasks.Where(dt => dt.TriggerTaskId == id).Select(dt => dt.Id).ToList();
+            var subTaskEntityIds = await _context.Tasks.Where(dt => dt.TriggerTaskId == id).Select(dt => dt.Id).ToListAsync();
             foreach (var subTaskEntityId in subTaskEntityIds)
             {
                 var returnedId = await MakeTaskSubstitutionsAsync(subTaskEntityId, substitutions, ct);
