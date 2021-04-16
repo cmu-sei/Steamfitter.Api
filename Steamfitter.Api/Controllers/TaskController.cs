@@ -285,16 +285,16 @@ namespace Steamfitter.Api.Controllers
         /// The task will fail, if the user does not have access to the targeted VMs.
         /// </remarks>
         /// <param name="id">The Id of the Task to execute</param>
-        /// <param name="taskSubstitutions">The substitutions to make</param>
+        /// <param name="gradedExecutionInfo">The scenario ID, start task name and task substitutions to make</param>
         /// <param name="ct"></param>
         /// <returns></returns>
         [HttpPost("tasks/execute/graded")]
         [ProducesResponseType(typeof(SAVM.Result[]), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "executeForGrade")]
-        public async STT.Task<IActionResult> ExecuteForGrade([FromRoute] Guid id, [FromBody] Dictionary<string, string> taskSubstitutions, CancellationToken ct)
+        public async STT.Task<IActionResult> ExecuteForGrade([FromRoute] Guid id, [FromBody] GradedExecutionInfo gradedExecutionInfo, CancellationToken ct)
         {
             var executionTime = DateTime.UtcNow;
-            var gradedTaskId = await _TaskService.ExecuteForGradeAsync(taskSubstitutions, ct);
+            var gradedTaskId = await _TaskService.ExecuteForGradeAsync(gradedExecutionInfo, ct);
             var result = new GradeCheckInfo ()
                 {
                     GradedTaskId = (Guid)gradedTaskId,
