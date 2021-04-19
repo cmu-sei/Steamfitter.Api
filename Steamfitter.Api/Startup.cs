@@ -251,6 +251,7 @@ namespace Steamfitter.Api
                 c.OAuthClientId(_authOptions.ClientId);
                 c.OAuthClientSecret(_authOptions.ClientSecret);
                 c.OAuthAppName(_authOptions.ClientName);
+                c.OAuthUsePkce();
             });
 
             app.UseAuthentication();
