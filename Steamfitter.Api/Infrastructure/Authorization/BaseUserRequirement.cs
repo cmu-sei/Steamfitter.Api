@@ -16,13 +16,10 @@ namespace Steamfitter.Api.Infrastructure.Authorization
     {
         protected override STT.Task HandleRequirementAsync(AuthorizationHandlerContext context, BaseUserRequirement requirement)
         {
-            if (context.User.HasClaim(c => c.Type == SteamfitterClaimTypes.SystemAdmin.ToString()) ||
-                context.User.HasClaim(c => c.Type == SteamfitterClaimTypes.ContentDeveloper.ToString()) ||
-                context.User.HasClaim(c => c.Type == SteamfitterClaimTypes.Operator.ToString()) ||
-                context.User.HasClaim(c => c.Type == SteamfitterClaimTypes.BaseUser.ToString()))
+            if (context.User.Identity.IsAuthenticated)
             {
                 context.Succeed(requirement);
-            }                     
+            }
 
             return STT.Task.CompletedTask;
         }

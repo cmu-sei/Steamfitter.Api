@@ -276,6 +276,34 @@ namespace Steamfitter.Api.Controllers
         }
 
         /// <summary>
+        /// Executes a specific Task by id and substitutes GuestFileContent for file upload tasks.
+        /// </summary>
+        /// <remarks>
+        /// Executes the Task with the id specified after substituting file content, if provided.
+        /// <para />
+        /// Accessible to an authenticated user.
+        /// The task will fail, if the user does not have access to the targeted VMs.
+        /// </remarks>
+        /// <param name="id">The Id of the Task to execute</param>
+        /// <param name="gradedExecutionInfo">The scenario ID, start task name and task substitutions to make</param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpPost("tasks/execute/graded")]
+        [ProducesResponseType(typeof(SAVM.Result[]), (int)HttpStatusCode.OK)]
+        [SwaggerOperation(OperationId = "executeForGrade")]
+        public async STT.Task<IActionResult> ExecuteForGrade([FromRoute] Guid id, [FromBody] GradedExecutionInfo gradedExecutionInfo, CancellationToken ct)
+        {
+            var executionTime = DateTime.UtcNow;
+            var gradedTaskId = await _TaskService.ExecuteForGradeAsync(gradedExecutionInfo, ct);
+            var result = new GradeCheckInfo ()
+                {
+                    GradedTaskId = (Guid)gradedTaskId,
+                    ExecutionStartTime = executionTime
+                };
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Updates a Task
         /// </summary>
         /// <remarks>
@@ -355,5 +383,11 @@ namespace Steamfitter.Api.Controllers
     {
         public Guid? Id { get; set; }
         public string LocationType { get; set; }
+    }
+
+    public class GradeCheckInfo
+    {
+        public Guid GradedTaskId { get; set; }
+        public DateTime ExecutionStartTime { get; set; }
     }
 }
