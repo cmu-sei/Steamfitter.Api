@@ -137,53 +137,5 @@ namespace Steamfitter.Api.Data
             Entries.AddRange(ChangeTracker.Entries().Select(x => new Entry(x)).ToList());
             return await base.SaveChangesAsync(ct);
         }
-
-        private async Task<int> UpdateTotalScore(IEnumerable<Guid?> scenarioIds, IEnumerable<Guid?> scenarioTemplateIds, CancellationToken ct, int attempt = 0)
-        {
-            var affectedRows = 0;
-
-            try
-            {
-                // create serializable transaction to prevent multiple scores from being changed concurrently,
-                // causing incorrect total score calculations
-                using var transaction = await Database.BeginTransactionAsync(IsolationLevel.Serializable);
-
-                // get all tasks in scenario or scenario template
-                var tasks = await Tasks
-                    .Where(x => scenarioIds.Contains(x.ScenarioId) ||
-                                scenarioTemplateIds.Contains(x.ScenarioTemplateId))
-                    .ToListAsync(ct);
-
-                // calculate total score for all tasks, starting from the root nodes
-                foreach (var task in tasks.Where(x => !x.TriggerTaskId.HasValue))
-                {
-                    task.CalculateTotalScore();
-                    task.CalculateTotalScoreEarned();
-                    task.CalculateTotalStatus();
-                }
-
-                Entries.AddRange(ChangeTracker.Entries().Select(x => new Entry(x)).ToList());
-                affectedRows += await base.SaveChangesAsync(ct);
-                await transaction.CommitAsync(ct);
-            }
-            catch (DbUpdateException ex)
-            {
-                if (ex.IsTransientDatabaseException())
-                {
-                    attempt = 0;
-                }
-
-                if (attempt <= 10)
-                {
-                    affectedRows += await UpdateTotalScore(scenarioIds, scenarioTemplateIds, ct, attempt + 1);
-                }
-                else
-                {
-                    throw ex;
-                }
-            }
-
-            return affectedRows;
-        }
     }
 }
