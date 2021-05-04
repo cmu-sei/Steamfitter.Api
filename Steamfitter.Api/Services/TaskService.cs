@@ -24,6 +24,7 @@ using SAVM = Steamfitter.Api.ViewModels;
 using System.Data;
 using Steamfitter.Api.Data.Extensions;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 
 namespace Steamfitter.Api.Services
 {
@@ -372,7 +373,7 @@ namespace Steamfitter.Api.Services
             taskToExecute.UserId = _user.GetId();
             _taskExecutionQueue.Add(taskToExecute);
 
-            return  gradedTaskId;
+            return gradedTaskId;
         }
 
         public async STT.Task<SAVM.Task> UpdateAsync(Guid id, SAVM.Task task, CancellationToken ct)
