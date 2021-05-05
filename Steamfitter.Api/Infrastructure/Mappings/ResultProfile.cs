@@ -13,11 +13,13 @@ namespace Steamfitter.Api.Infrastructure.Mappings
     {
         public ResultProfile()
         {
+            CreateMap<ResultSummary, Result>();
+            CreateMap<ResultEntity, ResultSummary>();
             CreateMap<ResultEntity, Result>()
                 .ForMember(dest => dest.ActionParameters, m => m.MapFrom(src => ConvertToActionParameters(src)));
 
             CreateMap<Result, ResultEntity>()
-                .ForMember(dest => dest.InputString, m => m.MapFrom(src => ConvertToInputString(src.ActionParameters)));;
+                .ForMember(dest => dest.InputString, m => m.MapFrom(src => ConvertToInputString(src.ActionParameters)));
         }
 
         private Dictionary<string, string> ConvertToActionParameters(ResultEntity src)
@@ -45,5 +47,3 @@ namespace Steamfitter.Api.Infrastructure.Mappings
 
     }
 }
-
-

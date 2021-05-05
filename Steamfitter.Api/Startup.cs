@@ -31,6 +31,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Steamfitter.Api.Infrastructure.HealthChecks;
+using MediatR;
+using Steamfitter.Api.Infrastructure.DbInterceptors;
 
 namespace Steamfitter.Api
 {
@@ -58,28 +60,32 @@ namespace Steamfitter.Api
             services.AddSingleton<StartupHealthCheck>();
             services.AddHealthChecks()
                 .AddCheck<TaskMaintenanceServiceHealthCheck>(
-                    "task_service_responsive", 
-                    failureStatus: HealthStatus.Unhealthy, 
+                    "task_service_responsive",
+                    failureStatus: HealthStatus.Unhealthy,
                     tags: new[] { "live" })
                 .AddCheck<StackStormServiceHealthCheck>(
-                    "stackstorm_service_responsive", 
-                    failureStatus: HealthStatus.Unhealthy, 
+                    "stackstorm_service_responsive",
+                    failureStatus: HealthStatus.Unhealthy,
                     tags: new[] { "live" })
                 .AddCheck<StartupHealthCheck>(
-                    "startup", 
-                    failureStatus: HealthStatus.Degraded, 
+                    "startup",
+                    failureStatus: HealthStatus.Degraded,
                     tags: new[] { "ready" });
 
             var provider = Configuration["Database:Provider"];
             switch (provider)
             {
                 case "InMemory":
-                    services.AddDbContextPool<SteamfitterContext>(opt => opt.UseInMemoryDatabase("api"));
+                    services.AddDbContextPool<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
+                            .AddInterceptors(serviceProvider.GetRequiredService<EventTransactionInterceptor>())
+                            .UseInMemoryDatabase("api"));
                     break;
                 case "Sqlite":
                 case "SqlServer":
                 case "PostgreSQL":
-                    services.AddDbContextPool<SteamfitterContext>(builder => builder.UseConfiguredDatabase(Configuration));
+                    services.AddDbContextPool<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
+                            .AddInterceptors(serviceProvider.GetRequiredService<EventTransactionInterceptor>())
+                            .UseConfiguredDatabase(Configuration));
                     break;
             }
 
@@ -87,13 +93,13 @@ namespace Steamfitter.Api
             switch (provider)
             {
                 case "Sqlite":
-                    services.AddHealthChecks().AddSqlite(connectionString, tags: new[] { "ready", "live"});
+                    services.AddHealthChecks().AddSqlite(connectionString, tags: new[] { "ready", "live" });
                     break;
                 case "SqlServer":
-                    services.AddHealthChecks().AddSqlServer(connectionString, tags: new[] { "ready", "live"});
+                    services.AddHealthChecks().AddSqlServer(connectionString, tags: new[] { "ready", "live" });
                     break;
                 case "PostgreSQL":
-                    services.AddHealthChecks().AddNpgSql(connectionString, tags: new[] { "ready", "live"});
+                    services.AddHealthChecks().AddNpgSql(connectionString, tags: new[] { "ready", "live" });
                     break;
             }
 
@@ -194,6 +200,7 @@ namespace Steamfitter.Api
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>().HttpContext.User);
             services.AddHttpClient();
+            services.AddScoped<IScoringService, ScoringService>();
 
             ApplyPolicies(services);
 
@@ -209,6 +216,8 @@ namespace Steamfitter.Api
                 .Configure<ResourceOwnerAuthorizationOptions>(Configuration.GetSection("ResourceOwnerAuthorization"))
                 .AddScoped(config => config.GetService<IOptionsMonitor<ResourceOwnerAuthorizationOptions>>().CurrentValue);
 
+            services.AddTransient<EventTransactionInterceptor>();
+            services.AddMediatR(typeof(Startup));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

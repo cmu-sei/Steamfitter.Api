@@ -7,7 +7,31 @@ using System.Collections.Generic;
 
 namespace Steamfitter.Api.ViewModels
 {
-    public class Result : Base
+    public interface IResult
+    {
+        Guid Id { get; set; }
+        Guid? TaskId { get; set; }
+        Guid? VmId { get; set; }
+        string VmName { get; set; }
+        TaskStatus Status { get; set; }
+        string ActualOutput { get; set; }
+        DateTime SentDate { get; set; }
+        DateTime StatusDate { get; set; }
+    }
+
+    public class ResultSummary : Base, IResult
+    {
+        public Guid Id { get; set; }
+        public Guid? TaskId { get; set; }
+        public Guid? VmId { get; set; }
+        public string VmName { get; set; }
+        public TaskStatus Status { get; set; }
+        public string ActualOutput { get; set; }
+        public DateTime SentDate { get; set; }
+        public DateTime StatusDate { get; set; }
+    }
+
+    public class Result : Base, IResult
     {
         public Guid Id { get; set; }
         public Guid? TaskId { get; set; }

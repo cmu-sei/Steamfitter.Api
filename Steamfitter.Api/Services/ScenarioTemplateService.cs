@@ -65,8 +65,8 @@ namespace Steamfitter.Api.Services
                 throw new ForbiddenException();
 
             var items = await _context.ScenarioTemplates.Include(st => st.VmCredentials)
-                .ToListAsync(ct);         
-            
+                .ToListAsync(ct);
+
             return _mapper.Map<IEnumerable<SAVM.ScenarioTemplate>>(items);
         }
 
@@ -100,7 +100,6 @@ namespace Steamfitter.Api.Services
             _context.ScenarioTemplates.Add(scenarioTemplateEntity);
             await _context.SaveChangesAsync(ct);
             scenarioTemplate = await GetAsync(scenarioTemplateEntity.Id, ct);
-            _engineHub.Clients.All.SendAsync(EngineMethods.ScenarioTemplateCreated, scenarioTemplate);
 
             return scenarioTemplate;
         }
@@ -135,7 +134,6 @@ namespace Steamfitter.Api.Services
             }
 
             var newScenarioTemplate = await GetAsync(newScenarioTemplateEntity.Id, ct);
-            _engineHub.Clients.All.SendAsync(EngineMethods.ScenarioTemplateCreated, newScenarioTemplate);
 
             return newScenarioTemplate;
         }
@@ -159,7 +157,6 @@ namespace Steamfitter.Api.Services
             await _context.SaveChangesAsync(ct);
 
             scenarioTemplate = await GetAsync(scenarioTemplateToUpdate.Id, ct);
-            _engineHub.Clients.All.SendAsync(EngineMethods.ScenarioTemplateUpdated, scenarioTemplate);
 
             return scenarioTemplate;
         }
@@ -176,7 +173,6 @@ namespace Steamfitter.Api.Services
 
             _context.ScenarioTemplates.Remove(scenarioTemplateToDelete);
             await _context.SaveChangesAsync(ct);
-            _engineHub.Clients.All.SendAsync(EngineMethods.ScenarioTemplateDeleted, id);
 
             return true;
         }
@@ -207,4 +203,3 @@ namespace Steamfitter.Api.Services
 
     }
 }
-

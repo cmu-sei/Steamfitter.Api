@@ -103,7 +103,7 @@ namespace Steamfitter.Api.Services
                             resultEntity.Status = TaskStatus.expired;
                             resultEntity.StatusDate = now;
                             await steamfitterContext.SaveChangesAsync();
-                            _engineHub.Clients.All.SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
+                            _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
                             _logger.LogDebug($"TaskMaintenanceService expired Result {resultEntity.Id}.");
                         }
                     }
@@ -127,7 +127,6 @@ namespace Steamfitter.Api.Services
                         {
                             scenarioEntity.Status = ScenarioStatus.ended;
                             await steamfitterContext.SaveChangesAsync();
-                            _engineHub.Clients.All.SendAsync(EngineMethods.ScenarioUpdated, _mapper.Map<ViewModels.Scenario>(scenarioEntity));
                             _logger.LogDebug($"TaskMaintenanceService ended Scenario {scenarioEntity.Id}.");
                         }
                     }

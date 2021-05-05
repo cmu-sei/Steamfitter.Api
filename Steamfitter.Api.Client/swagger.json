@@ -1,0 +1,5771 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Steamfitter API",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/bondagents": {
+      "get": {
+        "tags": [
+          "BondAgent"
+        ],
+        "summary": "Gets all BondAgent in the system",
+        "description": "Returns a list of all of the BondAgents in the system.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getBondAgents",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BondAgent"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BondAgent"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BondAgent"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "BondAgent"
+        ],
+        "summary": "Creates a new BondAgent",
+        "description": "Creates a new BondAgent with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "createBondAgent",
+        "requestBody": {
+          "description": "The data to create the BondAgent with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BondAgent"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BondAgent"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BondAgent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondAgent"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondAgent"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondAgent"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bondagents/{id}": {
+      "get": {
+        "tags": [
+          "BondAgent"
+        ],
+        "summary": "Gets a specific BondAgent by id",
+        "description": "Returns the BondAgent with the id specified\r\n<para />\r\nAccessible to a SuperUser or a User that is a member of a Team within the specified BondAgent",
+        "operationId": "getBondAgent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the BondAgent",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the BondAgent",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondAgent"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondAgent"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondAgent"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "BondAgent"
+        ],
+        "summary": "Updates a BondAgent",
+        "description": "Updates a BondAgent with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified BondAgent",
+        "operationId": "updateBondAgent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Exericse to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Exericse to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The updated BondAgent values",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BondAgent"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BondAgent"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BondAgent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondAgent"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondAgent"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondAgent"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "BondAgent"
+        ],
+        "summary": "Deletes a BondAgent",
+        "description": "Deletes a BondAgent with the specified id\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified BondAgent",
+        "operationId": "deleteBondAgent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the BondAgent to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the BondAgent to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Gets all files that a user can dispatch to guest vms",
+        "operationId": "getAllFiles",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileInfo"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileInfo"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileInfo"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/{id}": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Gets a file that a user can dispatch to guest vms",
+        "operationId": "getFileById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Id of the file",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Id of the file",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileInfo"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileInfo"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileInfo"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Deletes a file record and the actual file",
+        "operationId": "deleteFile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "File to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "File to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileInfo"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileInfo"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileInfo"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/live": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Checks the liveliness health endpoint",
+        "description": "Returns a HealthReport of the liveliness health check",
+        "operationId": "Health_GetLiveliness",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/ready": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Checks the readiness health endpoint",
+        "description": "Returns a HealthReport of the readiness health check",
+        "operationId": "Health_GetReadiness",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions": {
+      "get": {
+        "tags": [
+          "Permission"
+        ],
+        "summary": "Gets all Permission in the system",
+        "description": "Returns a list of all of the Permissions in the system.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getPermissions",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Permission"
+        ],
+        "summary": "Creates a new Permission",
+        "description": "Creates a new Permission with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "createPermission",
+        "requestBody": {
+          "description": "The data to create the Permission with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Permission"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Permission"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Permission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions/mine": {
+      "get": {
+        "tags": [
+          "Permission"
+        ],
+        "summary": "Gets Permissions for the current user",
+        "description": "Returns a list of the current user's Permissions.",
+        "operationId": "getMyPermissions",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{userId}/permissions": {
+      "get": {
+        "tags": [
+          "Permission"
+        ],
+        "summary": "Gets Permissions for the specified user",
+        "description": "Returns a list of the specified user's Permissions.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getPermissionsByUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions/{id}": {
+      "get": {
+        "tags": [
+          "Permission"
+        ],
+        "summary": "Gets a specific Permission by id",
+        "description": "Returns the Permission with the id specified\r\n<para />\r\nAccessible to a SuperUser or a User that is a member of a Team within the specified Permission",
+        "operationId": "getPermission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the Permission",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the Permission",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Permission"
+        ],
+        "summary": "Updates a Permission",
+        "description": "Updates a Permission with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Permission",
+        "operationId": "updatePermission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Exericse to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Exericse to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The updated Permission values",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Permission"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Permission"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Permission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Permission"
+        ],
+        "summary": "Deletes a Permission",
+        "description": "Deletes a Permission with the specified id\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Permission",
+        "operationId": "deletePermission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the Permission to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the Permission to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/views": {
+      "get": {
+        "tags": [
+          "Player"
+        ],
+        "summary": "Gets all Views this user can dispatch",
+        "description": "Returns a list of all of the Views this user can dispatch.",
+        "operationId": "getViews",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/View"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/View"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/View"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vms": {
+      "get": {
+        "tags": [
+          "Player"
+        ],
+        "summary": "Gets all VM's this user can dispatch to",
+        "description": "Returns a list of all of the VM's this user can dispatch to.",
+        "operationId": "getVms",
+        "parameters": [
+          {
+            "name": "viewId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Vm"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Vm"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Vm"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results": {
+      "get": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Gets all Result in the system",
+        "description": "Returns a list of all of the Results in the system.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getResults",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Result"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Result"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Result"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Creates a new Result",
+        "description": "Creates a new Result with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "createResult",
+        "requestBody": {
+          "description": "The data to create the Result with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Result"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Result"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Result"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}/results": {
+      "get": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Gets all Results for a Scenario",
+        "description": "Returns all Results for the specified Scenario",
+        "operationId": "getScenarioResults",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/results": {
+      "get": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Gets all Results for a Task",
+        "description": "Returns all Results for the specified Task",
+        "operationId": "getTaskResults",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/views/{id}/results": {
+      "get": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Gets all Results for an View",
+        "description": "Returns all Results for the specified View",
+        "operationId": "getViewResults",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}/results": {
+      "get": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Gets all manual Results for a User",
+        "description": "Returns all manual Results for the specified User",
+        "operationId": "getUserResults",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/results": {
+      "get": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Gets all manual Results for the current User",
+        "description": "Returns all manual Results for the current User",
+        "operationId": "getMyResults",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vms/{id}/results": {
+      "get": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Gets all Results for a VM",
+        "description": "Returns all Results for the specified VM",
+        "operationId": "getVmResults",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/results/{id}": {
+      "get": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Gets a specific Result by id",
+        "description": "Returns the Result with the id specified\r\n<para />\r\nAccessible to a SuperUser or a User that is a member of a Team within the specified Result",
+        "operationId": "getResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the Result",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the Result",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Updates an Result",
+        "description": "Updates an Result with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Result",
+        "operationId": "updateResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Exericse to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Exericse to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The updated Result values",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Result"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Result"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Result"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Result"
+        ],
+        "summary": "Deletes an Result",
+        "description": "Deletes an Result with the specified id\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Result",
+        "operationId": "deleteResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the Result to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the Result to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios": {
+      "get": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Gets all Scenario in the system",
+        "description": "Returns a list of all of the Scenarios in the system.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getScenarios",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Scenario"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Scenario"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Scenario"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Creates a new Scenario",
+        "description": "Creates a new Scenario with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "createScenario",
+        "requestBody": {
+          "description": "The data to create the Scenario with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Scenario"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Scenario"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Scenario"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}": {
+      "get": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Gets a specific Scenario by id",
+        "description": "Returns the Scenario with the id specified\r\n<para />\r\nAccessible to a SuperUser or a User that is a member of a Team within the specified Scenario",
+        "operationId": "getScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the Scenario",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the Scenario",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Updates a Scenario",
+        "description": "Updates an Scenario with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Scenario",
+        "operationId": "updateScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Exericse to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Exericse to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The updated Scenario values",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Scenario"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Scenario"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Scenario"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Deletes an Scenario",
+        "description": "Deletes an Scenario with the specified id\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Scenario",
+        "operationId": "deleteScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the Scenario to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the Scenario to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/me": {
+      "get": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Gets the personal Scenario for the current user",
+        "description": "Returns the current user's personal Scenario\r\n<para />\r\nAccessible to an authenticated User",
+        "operationId": "getMyScenario",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenariotemplates/{id}/scenarios": {
+      "post": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Creates a new Scenario from a ScenarioTemplate",
+        "description": "Creates a new Scenario from the specified ScenarioTemplate\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "createScenarioFromScenarioTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ScenarioTemplate ID to create the Scenario with",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The ScenarioTemplate ID to create the Scenario with",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}/copy": {
+      "post": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Creates a new Scenario from a Scenario",
+        "description": "Creates a new Scenario from the specified Scenario\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "copyScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Scenario ID to copy into a new Scenario",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Scenario ID to copy into a new Scenario",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}/users/add": {
+      "put": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Adds Users to a Scenario",
+        "description": "Adds one or more Users to the Scenario specified\r\n<para />\r\nAccessible only to a SuperUser ContentDeveloper",
+        "operationId": "addUsersToScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "",
+                "nullable": true
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "",
+                "nullable": true
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "",
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}/start": {
+      "put": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Start a Scenario",
+        "description": "Updates a Scenario to active and executes initial Tasks\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Scenario",
+        "operationId": "startScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Scenario to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Scenario to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}/pause": {
+      "put": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Pause a Scenario",
+        "description": "Updates a Scenario to paused\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Scenario",
+        "operationId": "pauseScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Scenario to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Scenario to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}/continue": {
+      "put": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "Continue a Scenario",
+        "description": "Updates a Scenario to active\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Scenario",
+        "operationId": "continueScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Scenario to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Scenario to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}/end": {
+      "put": {
+        "tags": [
+          "Scenario"
+        ],
+        "summary": "End a Scenario",
+        "description": "Updates a Scenario to ended\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Scenario",
+        "operationId": "endScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Scenario to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Scenario to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scenario"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenariotemplates": {
+      "get": {
+        "tags": [
+          "ScenarioTemplate"
+        ],
+        "summary": "Gets all ScenarioTemplate in the system",
+        "description": "Returns a list of all of the ScenarioTemplates in the system.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getScenarioTemplates",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScenarioTemplate"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScenarioTemplate"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScenarioTemplate"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ScenarioTemplate"
+        ],
+        "summary": "Creates a new ScenarioTemplate",
+        "description": "Creates a new ScenarioTemplate with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "createScenarioTemplate",
+        "requestBody": {
+          "description": "The data to create the ScenarioTemplate with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioTemplate"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioTemplate"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioTemplate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenariotemplates/{id}": {
+      "get": {
+        "tags": [
+          "ScenarioTemplate"
+        ],
+        "summary": "Gets a specific ScenarioTemplate by id",
+        "description": "Returns the ScenarioTemplate with the id specified\r\n<para />\r\nAccessible to a SuperUser or a User that is a member of a Team within the specified ScenarioTemplate",
+        "operationId": "getScenarioTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the ScenarioTemplate",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the ScenarioTemplate",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ScenarioTemplate"
+        ],
+        "summary": "Updates an ScenarioTemplate",
+        "description": "Updates an ScenarioTemplate with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified ScenarioTemplate",
+        "operationId": "updateScenarioTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Exericse to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Exericse to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The updated ScenarioTemplate values",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioTemplate"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioTemplate"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioTemplate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ScenarioTemplate"
+        ],
+        "summary": "Deletes an ScenarioTemplate",
+        "description": "Deletes an ScenarioTemplate with the specified id\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified ScenarioTemplate",
+        "operationId": "deleteScenarioTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the ScenarioTemplate to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the ScenarioTemplate to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenariotemplates/{id}/copy": {
+      "post": {
+        "tags": [
+          "ScenarioTemplate"
+        ],
+        "summary": "Copies a new ScenarioTemplate",
+        "description": "Copies a new ScenarioTemplate with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "copyScenarioTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of scenarioTemplate to copy",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The ID of scenarioTemplate to copy",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioTemplate"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets all Task in the system",
+        "description": "Returns a list of all of the Tasks in the system.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getTasks",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Creates a new Task",
+        "description": "Creates a new Task with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "createTask",
+        "requestBody": {
+          "description": "The data to create the Task with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenariotemplates/{id}/tasks": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets all Tasks for a ScenarioTemplate",
+        "description": "Returns all Tasks for the specified ScenarioTemplate",
+        "operationId": "getScenarioTemplateTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}/tasks": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets all Tasks for a Scenario",
+        "description": "Returns all Tasks for the specified Scenario",
+        "operationId": "getScenarioTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/views/{id}/tasks": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets all Tasks for an View",
+        "description": "Returns all Tasks for the specified View",
+        "operationId": "getViewTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}/tasks": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets all manual Tasks for a User",
+        "description": "Returns all manual Tasks for the specified User",
+        "operationId": "getUserTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vms/{id}/tasks": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets all Tasks for a VM",
+        "description": "Returns all Tasks for the specified VM",
+        "operationId": "getVmTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/subtasks": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets all Tasks for a Trigger Task (Parent)",
+        "description": "Returns all Tasks for the specified TriggerTask",
+        "operationId": "getSubtasks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/tasks": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets all manual Tasks for the current User",
+        "description": "Returns all manual Tasks for the current User",
+        "operationId": "getMyTasks",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets a specific Task by id",
+        "description": "Returns the Task with the id specified\r\n<para />\r\nAccessible to a SuperUser or a User that is a member of a Team within the specified Task",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the STT.Task",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the STT.Task",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Updates a Task",
+        "description": "Updates a Task with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Task",
+        "operationId": "updateTask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Exericse to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Exericse to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The updated Task values",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Deletes a Task",
+        "description": "Deletes a Task with the specified id\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Task",
+        "operationId": "deleteTask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the Task to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the Task to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/copy": {
+      "post": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Copies a Task",
+        "description": "Copies a Task to the location specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Task",
+        "operationId": "copyTask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Task to copy",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Task to copy",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The Id and type of the new location",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLocation"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLocation"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLocation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/copyfromresult/{resultId}": {
+      "post": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Creates a Task from a Result",
+        "description": "Creates a Task in the location specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Task",
+        "operationId": "createTaskFromResult",
+        "parameters": [
+          {
+            "name": "resultId",
+            "in": "path",
+            "description": "The Id of the Result",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Result",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The Id and type of the new location",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLocation"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLocation"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLocation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/execute": {
+      "post": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Creates a new Task and executes it",
+        "description": "Creates a new Task with the attributes specified and executes it\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "createAndExecuteTask",
+        "requestBody": {
+          "description": "The data to create the Task with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Task"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Result"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Result"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Result"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/execute": {
+      "post": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Executes a specific Task by id",
+        "description": "Executes the Task with the id specified\r\n<para />\r\nAccessible to a SuperUser or administrator",
+        "operationId": "executeTask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the STT.Task",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the STT.Task",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Result"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Result"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Result"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/move": {
+      "put": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Moves a Task",
+        "description": "Moves a Task to the location specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified Task",
+        "operationId": "moveTask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Task to move",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Task to move",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The Id and type of the new location",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLocation"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLocation"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLocation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/commands": {
+      "get": {
+        "tags": [
+          "Task"
+        ],
+        "summary": "Gets all possible Task commands",
+        "description": "Returns a list of all of the Task commands.",
+        "operationId": "getAvailableCommands",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Gets all Users in the system",
+        "description": "Returns a list of all of the Users in the system.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getUsers",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Creates a new User",
+        "description": "Creates a new User with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser",
+        "operationId": "createUser",
+        "requestBody": {
+          "description": "The data to create the User with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Gets a specific User by id",
+        "description": "Returns the User with the id specified\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the User",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the User",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Deletes a User",
+        "description": "Deletes a User with the specified id\r\n<para />\r\nAccessible only to a SuperUser",
+        "operationId": "deleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the User to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the User to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/userpermissions": {
+      "get": {
+        "tags": [
+          "UserPermission"
+        ],
+        "summary": "Gets all UserPermissions in the system",
+        "description": "Returns a list of all of the UserPermissions in the system.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getUserPermissions",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserPermission"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserPermission"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserPermission"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "UserPermission"
+        ],
+        "summary": "Creates a new UserPermission",
+        "description": "Creates a new UserPermission with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser",
+        "operationId": "createUserPermission",
+        "requestBody": {
+          "description": "The data to create the UserPermission with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPermission"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPermission"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPermission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPermission"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPermission"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPermission"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/userpermissions/{id}": {
+      "get": {
+        "tags": [
+          "UserPermission"
+        ],
+        "summary": "Gets a specific UserPermission by id",
+        "description": "Returns the UserPermission with the id specified\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getUserPermission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the UserPermission",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the UserPermission",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPermission"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPermission"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPermission"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "UserPermission"
+        ],
+        "summary": "Deletes a UserPermission",
+        "description": "Deletes a UserPermission with the specified id\r\n<para />\r\nAccessible only to a SuperUser",
+        "operationId": "deleteUserPermission",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the UserPermission to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the UserPermission to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{userId}/permissions/{permissionId}": {
+      "delete": {
+        "tags": [
+          "UserPermission"
+        ],
+        "summary": "Deletes a UserPermission by user ID and permission ID",
+        "description": "Deletes a UserPermission with the specified user ID and permission ID\r\n<para />\r\nAccessible only to a SuperUser",
+        "operationId": "deleteUserPermissionByIds",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "ID of a user.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "ID of a user.",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "permissionId",
+            "in": "path",
+            "description": "ID of a permission.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "ID of a permission.",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vmcredentials": {
+      "get": {
+        "tags": [
+          "VmCredential"
+        ],
+        "summary": "Gets all VmCredentials in the system",
+        "description": "Returns a list of all of the VmCredentials in the system.\r\n<para />\r\nOnly accessible to a SuperUser",
+        "operationId": "getVmCredentials",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VmCredential"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VmCredential"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VmCredential"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "VmCredential"
+        ],
+        "summary": "Creates a new VmCredential",
+        "description": "Creates a new VmCredential with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or an Administrator",
+        "operationId": "createVmCredential",
+        "requestBody": {
+          "description": "The data to create the VmCredential with",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VmCredential"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VmCredential"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VmCredential"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/VmCredential"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VmCredential"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VmCredential"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenariotemplates/{id}/vmcredentials": {
+      "get": {
+        "tags": [
+          "VmCredential"
+        ],
+        "summary": "Gets all VmCredentials for a ScenarioTemplate",
+        "description": "Returns all VmCredentials for the specified ScenarioTemplate",
+        "operationId": "getScenarioTemplateVmCredentials",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VmCredential"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VmCredential"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VmCredential"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scenarios/{id}/vmcredentials": {
+      "get": {
+        "tags": [
+          "VmCredential"
+        ],
+        "summary": "Gets all VmCredentials for a Scenario",
+        "description": "Returns all VmCredentials for the specified Scenario",
+        "operationId": "getScenarioVmCredentials",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VmCredential"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VmCredential"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VmCredential"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vmcredentials/{id}": {
+      "get": {
+        "tags": [
+          "VmCredential"
+        ],
+        "summary": "Gets a specific VmCredential by id",
+        "description": "Returns the VmCredential with the id specified\r\n<para />\r\nAccessible to a SuperUser or a User that is a member of a Team within the specified VmCredential",
+        "operationId": "getVmCredential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the STT.Task",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the STT.Task",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/VmCredential"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VmCredential"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VmCredential"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "VmCredential"
+        ],
+        "summary": "Updates a VmCredential",
+        "description": "Updates a VmCredential with the attributes specified\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified VmCredential",
+        "operationId": "updateVmCredential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The Id of the Exericse to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The Id of the Exericse to update",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The updated VmCredential values",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VmCredential"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VmCredential"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VmCredential"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/VmCredential"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VmCredential"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VmCredential"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "VmCredential"
+        ],
+        "summary": "Deletes a VmCredential",
+        "description": "Deletes a VmCredential with the specified id\r\n<para />\r\nAccessible only to a SuperUser or a User on an Admin Team within the specified VmCredential",
+        "operationId": "deleteVmCredential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the VmCredential to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The id of the VmCredential to delete",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Problem response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "LocalUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true
+          },
+          "isCurrent": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OS": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "platform": {
+            "type": "string",
+            "nullable": true
+          },
+          "servicePack": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "versionString": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SshPort": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "server": {
+            "type": "string",
+            "nullable": true
+          },
+          "serverPort": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guest": {
+            "type": "string",
+            "nullable": true
+          },
+          "guestPort": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MonitoredTool": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRunning": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "location": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "BondAgent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "machineName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fqdn": {
+            "type": "string",
+            "nullable": true
+          },
+          "guestIp": {
+            "type": "string",
+            "nullable": true
+          },
+          "vmWareUuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vmWareName": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "agentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "agentVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "agentInstalledPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "localUsers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocalUser"
+            },
+            "nullable": true
+          },
+          "operatingSystem": {
+            "$ref": "#/components/schemas/OS"
+          },
+          "sshPorts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SshPort"
+            },
+            "nullable": true
+          },
+          "checkinTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "monitoredTools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitoredTool"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {
+          "type": "object"
+        }
+      },
+      "FileAttributes": {
+        "enum": [
+          "ReadOnly",
+          "Hidden",
+          "System",
+          "Directory",
+          "Archive",
+          "Device",
+          "Normal",
+          "Temporary",
+          "SparseFile",
+          "ReparsePoint",
+          "Compressed",
+          "Offline",
+          "NotContentIndexed",
+          "Encrypted",
+          "IntegrityStream",
+          "NoScrubData"
+        ],
+        "type": "string"
+      },
+      "DirectoryInfo": {
+        "type": "object",
+        "properties": {
+          "parent": {
+            "$ref": "#/components/schemas/DirectoryInfo"
+          },
+          "root": {
+            "$ref": "#/components/schemas/DirectoryInfo"
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "extension": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "exists": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "creationTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creationTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastAccessTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastAccessTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastWriteTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastWriteTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/FileAttributes"
+          }
+        }
+      },
+      "FileInfo": {
+        "type": "object",
+        "properties": {
+          "length": {
+            "type": "integer",
+            "format": "int64",
+            "readOnly": true
+          },
+          "directoryName": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "directory": {
+            "$ref": "#/components/schemas/DirectoryInfo"
+          },
+          "isReadOnly": {
+            "type": "boolean"
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "extension": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "exists": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "creationTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creationTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastAccessTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastAccessTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastWriteTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastWriteTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/FileAttributes"
+          }
+        }
+      },
+      "HealthStatus": {
+        "enum": [
+          "Unhealthy",
+          "Degraded",
+          "Healthy"
+        ],
+        "type": "string"
+      },
+      "Permission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "nullable": true
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "readOnly": {
+            "type": "boolean"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateModified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "View": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "canManage": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "ConsoleConnectionInfo": {
+        "type": "object",
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "nullable": true
+          },
+          "port": {
+            "type": "string",
+            "nullable": true
+          },
+          "protocol": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Vm": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "allowedNetworks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "powerState": {
+            "type": "string",
+            "nullable": true
+          },
+          "ipAddresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "teamIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "hasPendingTasks": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "consoleConnectionInfo": {
+            "$ref": "#/components/schemas/ConsoleConnectionInfo"
+          }
+        }
+      },
+      "TaskAction": {
+        "enum": [
+          "guest_process_run",
+          "guest_file_read",
+          "guest_file_write",
+          "vm_hw_power_off",
+          "vm_hw_power_on",
+          "vm_create_from_template",
+          "vm_hw_remove",
+          "guest_process_run_fast",
+          "guest_file_upload_content"
+        ],
+        "type": "string"
+      },
+      "TaskStatus": {
+        "enum": [
+          "pending",
+          "queued",
+          "sent",
+          "cancelled",
+          "expired",
+          "failed",
+          "succeeded",
+          "error"
+        ],
+        "type": "string"
+      },
+      "Result": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "vmId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "vmName": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "action": {
+            "$ref": "#/components/schemas/TaskAction"
+          },
+          "actionParameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "expirationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iterations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentIteration": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "intervalSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "expectedOutput": {
+            "type": "string",
+            "nullable": true
+          },
+          "actualOutput": {
+            "type": "string",
+            "nullable": true
+          },
+          "sentDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statusDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateModified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "TaskIterationTermination": {
+        "enum": [
+          "IterationCount",
+          "UntilSuccess",
+          "UntilFailure"
+        ],
+        "type": "string"
+      },
+      "TaskTrigger": {
+        "enum": [
+          "Time",
+          "Success",
+          "Failure",
+          "Completion",
+          "Expiration",
+          "Manual"
+        ],
+        "type": "string"
+      },
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "scenarioTemplateId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "scenarioId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "action": {
+            "$ref": "#/components/schemas/TaskAction"
+          },
+          "vmMask": {
+            "type": "string",
+            "nullable": true
+          },
+          "vmList": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "actionParameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "expectedOutput": {
+            "type": "string",
+            "nullable": true
+          },
+          "expirationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "delaySeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "intervalSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iterations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "iterationTermination": {
+            "$ref": "#/components/schemas/TaskIterationTermination"
+          },
+          "currentIteration": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "triggerTaskId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "triggerCondition": {
+            "$ref": "#/components/schemas/TaskTrigger"
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "scoreEarned": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userExecutable": {
+            "type": "boolean"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateModified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "ScenarioStatus": {
+        "enum": [
+          "ready",
+          "active",
+          "paused",
+          "ended",
+          "archived",
+          "error"
+        ],
+        "type": "string"
+      },
+      "VmCredential": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scenarioTemplateId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "scenarioId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateModified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "Scenario": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScenarioStatus"
+          },
+          "onDemand": {
+            "type": "boolean"
+          },
+          "scenarioTemplateId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "viewId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "view": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultVmCredentialId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "vmCredentials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VmCredential"
+            },
+            "nullable": true
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateModified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "ScenarioTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "durationHours": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "defaultVmCredentialId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "vmCredentials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VmCredential"
+            },
+            "nullable": true
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateModified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "NewLocation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "locationType": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            },
+            "nullable": true
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateModified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "UserPermission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "permissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateModified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifiedBy": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "implicit": {
+            "authorizationUrl": "http://localhost:5000/connect/authorize",
+            "scopes": {
+              "steamfitter player player-vm": "public api access"
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "oauth2": [
+        "steamfitter player player-vm"
+      ]
+    }
+  ]
+}

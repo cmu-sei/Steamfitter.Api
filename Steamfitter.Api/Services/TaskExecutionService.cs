@@ -21,6 +21,8 @@ using System.Threading;
 using STT = System.Threading.Tasks;
 using Player.Vm.Api;
 using Steamfitter.Api.Infrastructure.HealthChecks;
+using System.Data;
+using Steamfitter.Api.Data.Extensions;
 
 namespace Steamfitter.Api.Services
 {
@@ -90,6 +92,9 @@ namespace Steamfitter.Api.Services
                 {
                     using (var scope = _scopeFactory.CreateScope())
                     {
+                        var scoringService = scope.ServiceProvider.GetRequiredService<IScoringService>();
+                        await scoringService.UpdateAllScores();
+
                         using (var steamfitterContext = scope.ServiceProvider.GetRequiredService<SteamfitterContext>())
                         {
                             // get tasks that are currently "in process"
@@ -161,7 +166,9 @@ namespace Steamfitter.Api.Services
                 // using (var engineHub = scope.ServiceProvider.GetRequiredService<EngineHub>())
                 {
                     {
-                        var taskToExecute = await steamfitterContext.Tasks.SingleOrDefaultAsync(v => v.Id == taskEntity.Id, ct);
+                        var taskToExecute = await steamfitterContext.Tasks
+                            .Include(x => x.Scenario)
+                            .SingleOrDefaultAsync(v => v.Id == taskEntity.Id, ct);
                         await VerifyTaskToExecuteAsync(taskToExecute, steamfitterContext, ct);
                         // get any queued results (means this task was going to execute, but the API crashed before it could)
                         var resultEntityList = steamfitterContext.Results.Where(dtr => dtr.TaskId == taskToExecute.Id && dtr.Status == Data.TaskStatus.queued).ToList();
@@ -193,7 +200,7 @@ namespace Steamfitter.Api.Services
                             await steamfitterContext.Results.AddRangeAsync(resultEntityList);
                             taskToExecute.CurrentIteration++;
                             await steamfitterContext.SaveChangesAsync(ct);
-                            _engineHub.Clients.All.SendAsync(EngineMethods.ResultsUpdated, _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
+                            _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultsUpdated, _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
                         }
                         // make sure there were no errors creating the results before continuing
                         if (resultEntityList.Where(r => r.Status == Data.TaskStatus.error).Count() == 0)
@@ -205,6 +212,10 @@ namespace Steamfitter.Api.Services
                             }
                             // ACTUALLY execute the task and process results
                             var overallStatus = await ProcessTaskAsync(taskToExecute, resultEntityList, steamfitterContext, ct);
+
+                            // Update the status of the Task
+                            taskToExecute.Status = overallStatus;
+                            await steamfitterContext.SaveChangesAsync(ct);
 
                             // Start the next Task (iteration or subtask)
                             if (IsAnotherIteration(taskToExecute, overallStatus))
@@ -218,8 +229,12 @@ namespace Steamfitter.Api.Services
                                 var subtaskEntityList = GetSubtasksToExecute(taskToExecute.Id, steamfitterContext, overallStatus);
                                 foreach (var subtaskEntity in subtaskEntityList)
                                 {
+                                    subtaskEntity.Status = TaskStatus.pending;
                                     _taskExecutionQueue.Add(subtaskEntity);
                                 }
+
+                                taskToExecute.Scenario.UpdateScores = true;
+                                await steamfitterContext.SaveChangesAsync(ct);
                             }
                         }
                     }
@@ -389,7 +404,7 @@ namespace Steamfitter.Api.Services
                 tasks.Add(task);
                 xref[task.Id] = resultEntity;
                 await steamfitterContext.SaveChangesAsync();
-                _engineHub.Clients.All.SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
+                _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
             }
             foreach (var bucket in AsCompletedBuckets(tasks))
             {
@@ -408,7 +423,7 @@ namespace Steamfitter.Api.Services
                         }
                     }
                     await steamfitterContext.SaveChangesAsync();
-                    _engineHub.Clients.All.SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
+                    _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
                 }
                 catch (OperationCanceledException)
                 {

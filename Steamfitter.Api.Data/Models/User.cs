@@ -14,9 +14,10 @@ namespace Steamfitter.Api.Data.Models
         [Key]
         public Guid Id { get; set; }
 
-        public string Name { get; set; }        
+        public string Name { get; set; }
 
         public ICollection<UserPermissionEntity> UserPermissions { get; set; } = new List<UserPermissionEntity>();
+        public ICollection<UserScenarioEntity> UserScenarios { get; set; } = new List<UserScenarioEntity>();
     }
 
     public class UserConfiguration : IEntityTypeConfiguration<UserEntity>

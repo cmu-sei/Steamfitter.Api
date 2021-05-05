@@ -18,6 +18,7 @@ namespace Steamfitter.Api.Data
 
     public enum TaskStatus
     {
+        none = 0,
         pending = 10,
         queued = 20,
         sent = 30,
@@ -56,4 +57,3 @@ namespace Steamfitter.Api.Data
     }
 
 }
-

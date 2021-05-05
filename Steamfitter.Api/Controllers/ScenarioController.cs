@@ -33,7 +33,7 @@ namespace Steamfitter.Api.Controllers
         /// Returns a list of all of the Scenarios in the system.
         /// <para />
         /// Only accessible to a SuperUser
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("Scenarios")]
         [ProducesResponseType(typeof(IEnumerable<SAVM.Scenario>), (int)HttpStatusCode.OK)]
@@ -41,6 +41,24 @@ namespace Steamfitter.Api.Controllers
         public async STT.Task<IActionResult> Get(CancellationToken ct)
         {
             var list = await _ScenarioService.GetAsync(ct);
+            return Ok(list);
+        }
+
+        /// <summary>
+        /// Gets all Scenarios with the specified ViewId
+        /// </summary>
+        /// <remarks>
+        /// Returns a list of all of the Scenarios in the system.
+        /// <para />
+        /// Only accessible to a SuperUser
+        /// </remarks>
+        /// <returns></returns>
+        [HttpGet("Scenarios/view/{viewId}")]
+        [ProducesResponseType(typeof(IEnumerable<SAVM.Scenario>), (int)HttpStatusCode.OK)]
+        [SwaggerOperation(OperationId = "getScenariosByViewId")]
+        public async STT.Task<IActionResult> GetByViewId(Guid viewId, CancellationToken ct)
+        {
+            var list = await _ScenarioService.GetByViewIdAsync(viewId, ct);
             return Ok(list);
         }
 
@@ -70,7 +88,7 @@ namespace Steamfitter.Api.Controllers
         // /// <para />
         // /// Accessible only to the current User.
         // /// <para/>
-        // /// This is a convenience endpoint and simply returns a 302 redirect to the fully qualified users/{id}/Scenarios endpoint 
+        // /// This is a convenience endpoint and simply returns a 302 redirect to the fully qualified users/{id}/Scenarios endpoint
         // /// </remarks>
         // [HttpGet("me/Scenarios")]
         // [ProducesResponseType(typeof(IEnumerable<Scenario>), (int)HttpStatusCode.OK)]
@@ -134,7 +152,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new Scenario with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="scenario">The data to create the Scenario with</param>
         /// <param name="ct"></param>
         [HttpPost("Scenarios")]
@@ -153,7 +171,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new Scenario from the specified ScenarioTemplate
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The ScenarioTemplate ID to create the Scenario with</param>
         /// <param name="ct"></param>
         [HttpPost("ScenarioTemplates/{id}/Scenarios")]
@@ -172,7 +190,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new Scenario from the specified Scenario
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The Scenario ID to copy into a new Scenario</param>
         /// <param name="ct"></param>
         [HttpPost("Scenarios/{id}/Copy")]
@@ -185,13 +203,13 @@ namespace Steamfitter.Api.Controllers
         }
 
         /// <summary>
-        /// Updates an Scenario
+        /// Updates a Scenario
         /// </summary>
         /// <remarks>
         /// Updates an Scenario with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Scenario
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="scenario">The updated Scenario values</param>
         /// <param name="ct"></param>
@@ -205,13 +223,33 @@ namespace Steamfitter.Api.Controllers
         }
 
         /// <summary>
+        /// Adds Users to a Scenario
+        /// </summary>
+        /// <remarks>
+        /// Adds one or more Users to the Scenario specified
+        /// <para />
+        /// Accessible only to a SuperUser ContentDeveloper
+        /// </remarks>
+        /// <param name="id"></param>
+        /// <param name="userIds"></param>
+        /// <param name="ct"></param>
+        [HttpPut("Scenarios/{id}/users/add")]
+        [ProducesResponseType(typeof(SAVM.Scenario), (int)HttpStatusCode.OK)]
+        [SwaggerOperation(OperationId = "addUsersToScenario")]
+        public async STT.Task<IActionResult> AddUsers([FromRoute] Guid id, [FromBody] IEnumerable<Guid> userIds, CancellationToken ct)
+        {
+            var updatedScenario = await _ScenarioService.AddUsersAsync(id, userIds, ct);
+            return Ok(updatedScenario);
+        }
+
+        /// <summary>
         /// Start a Scenario
         /// </summary>
         /// <remarks>
         /// Updates a Scenario to active and executes initial Tasks
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Scenario
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Scenario to update</param>
         /// <param name="ct"></param>
         [HttpPut("Scenarios/{id}/start")]
@@ -230,7 +268,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates a Scenario to paused
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Scenario
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Scenario to update</param>
         /// <param name="ct"></param>
         [HttpPut("Scenarios/{id}/pause")]
@@ -249,7 +287,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates a Scenario to active
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Scenario
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Scenario to update</param>
         /// <param name="ct"></param>
         [HttpPut("Scenarios/{id}/continue")]
@@ -268,7 +306,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates a Scenario to ended
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Scenario
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Scenario to update</param>
         /// <param name="ct"></param>
         [HttpPut("Scenarios/{id}/end")]
@@ -287,7 +325,7 @@ namespace Steamfitter.Api.Controllers
         /// Deletes an Scenario with the specified id
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Scenario
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The id of the Scenario to delete</param>
         /// <param name="ct"></param>
         [HttpDelete("Scenarios/{id}")]
@@ -301,4 +339,3 @@ namespace Steamfitter.Api.Controllers
 
     }
 }
-
