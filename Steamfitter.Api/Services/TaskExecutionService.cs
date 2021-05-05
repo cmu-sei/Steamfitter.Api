@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using Player.Vm.Api;
@@ -396,11 +397,15 @@ namespace Steamfitter.Api.Services
             {
                 resultEntity.InputString = resultEntity.InputString.Replace("{moid}", resultEntity.VmId.ToString());
                 resultEntity.VmName = _stackStormService.GetVmName((Guid)resultEntity.VmId);
+                if (taskToExecute.ApiUrl != "http")
+                {
+                    resultEntity.VmName = _stackStormService.GetVmName((Guid)resultEntity.VmId);
+                }
                 resultEntity.Status = TaskStatus.pending;
                 resultEntity.StatusDate = DateTime.UtcNow;
                 // if no expiration is set, us the maximum allowed by the TaskProcessMaxWaitSeconds setting
                 resultEntity.ExpirationSeconds = resultEntity.ExpirationSeconds <= 0 ? _vmTaskProcessingOptions.CurrentValue.TaskProcessMaxWaitSeconds : resultEntity.ExpirationSeconds;
-                var task = RunTask(taskToExecute, resultEntity, ct);
+                var task = await RunTask(taskToExecute, resultEntity, ct);
                 tasks.Add(task);
                 xref[task.Id] = resultEntity;
                 await steamfitterContext.SaveChangesAsync();
@@ -437,7 +442,7 @@ namespace Steamfitter.Api.Services
             return overallStatus;
         }
 
-        private STT.Task<string> RunTask(TaskEntity taskToExecute, ResultEntity resultEntity, CancellationToken ct)
+         private async STT.Task<STT.Task<string>> RunTask(TaskEntity taskToExecute, ResultEntity resultEntity, CancellationToken ct)
         {
             STT.Task<string> task = null;
             switch (taskToExecute.ApiUrl)
@@ -513,8 +518,11 @@ namespace Steamfitter.Api.Services
                         }
                         break;
                     }
-                case "player":
-                case "caster":
+                case "http":
+                    {
+                        task = STT.Task.Run(() => HttpTaskTask(taskToExecute));
+                        break;
+                    }
                 default:
                     {
                         var message = $"API ({taskToExecute.ApiUrl}) is not currently implemented";
@@ -524,6 +532,65 @@ namespace Steamfitter.Api.Services
             }
 
             return task;
+        }
+
+        private async STT.Task<string> HttpTaskTask(TaskEntity taskToExecute)
+        {
+            HttpResponseMessage response;
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var tokenResponse = await ApiClientsExtensions.GetToken(scope);
+                var actionParameters = JsonSerializer.Deserialize<HttpInputString>(taskToExecute.InputString);
+                var url = actionParameters.Url;
+                if (url.Contains("?"))
+                {
+                    url += $"&asuser={taskToExecute.UserId.ToString()}" ;
+                }
+                else
+                {
+                    url += $"?asuser={taskToExecute.UserId.ToString()}" ;
+                }
+                var client = ApiClientsExtensions.GetHttpClient(_httpClientFactory, url, tokenResponse);
+                switch (taskToExecute.Action)
+                {
+                    case TaskAction.http_get:
+                        {
+                            response = await client.GetAsync(url);
+                            break;
+                        }
+                    case TaskAction.http_post:
+                        {
+                            StringContent content = new StringContent(actionParameters.Body);
+                            response = await client.PostAsync(taskToExecute.VmMask, content);
+                            break;
+                        }
+                    case TaskAction.http_put:
+                        {
+                            StringContent content = new StringContent(actionParameters.Body);
+                            response = await client.PutAsync(taskToExecute.VmMask, content);
+                            break;
+                        }
+                    case TaskAction.http_delete:
+                        {
+                            response = await client.DeleteAsync("http://www.google.com");
+                            break;
+                        }
+                    default:
+                        {
+                            return $"Action '{taskToExecute.Action.ToString()}' is not a valid action for http tasks";
+                        }
+                }
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseString = await response.Content.ReadAsStringAsync();
+                    return responseString;
+                }
+                else
+                {
+                    return $"'{taskToExecute.Action.ToString()}' returned a status code of {response.StatusCode}.";
+                }
+            }
+
         }
 
         private Data.TaskStatus ProcessResult(ResultEntity resultEntity, CancellationToken ct)
@@ -642,6 +709,12 @@ namespace Steamfitter.Api.Services
             return clientObject;
         }
 
+    }
+
+    class HttpInputString
+    {
+        public string Url { get; set; }
+        public string Body { get; set; }
     }
 
 }
