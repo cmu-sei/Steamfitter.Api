@@ -41,6 +41,7 @@ namespace Steamfitter.Api.Services
         STT.Task<SAVM.Task> CreateAsync(SAVM.Task Task, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.Task task, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> ExecuteAsync(Guid id, CancellationToken ct);
+        STT.Task<IEnumerable<SAVM.Result>> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct);
         STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct);
         STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.Task Task, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
@@ -343,6 +344,14 @@ namespace Steamfitter.Api.Services
             return taskToExecute;
         }
 
+        public async STT.Task<IEnumerable<SAVM.Result>> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct)
+        {
+            var taskToExecute = await PrepareTaskToExecute(id, ct);
+            // TODO: Make substitutions on result(s)
+            _taskExecutionQueue.Add(taskToExecute);
+            return new List<SAVM.Result>();
+        }
+
         public async STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct)
         {
             var userId = _user.GetId();
@@ -365,6 +374,7 @@ namespace Steamfitter.Api.Services
                 throw new ApplicationException("Multiple Tasks found for grading.");
             // verify the supplied Task ID is a Guid
             var taskId = (await tasks.FirstOrDefaultAsync()).Id;
+            // TODO: make substitutions on the Result, NOT the Task!  The task should NOT change!
             var gradedTaskId = await MakeTaskSubstitutionsAsync(taskId, gradedExecutionInfo.TaskSubstitutions, ct);
             // execute the task
             var taskToExecute = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == taskId, ct);
@@ -656,23 +666,26 @@ namespace Steamfitter.Api.Services
         private async STT.Task<Guid?> MakeTaskSubstitutionsAsync(Guid id, Dictionary<string, string> substitutions, CancellationToken ct)
         {
             var taskToModify = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == id, ct);
+            var actionParameters = JsonSerializer.Deserialize<Dictionary<string, string>>(taskToModify.InputString);
+            foreach (var substitution in substitutions)
+            {
+                if (actionParameters.Keys.Contains(substitution.Key))
+                {
+                    actionParameters[substitution.Key] = substitution.Value;
+                }
+            }
             if (taskToModify.Action == TaskAction.guest_file_upload_content)
             {
-                var actionParameters = JsonSerializer.Deserialize<Dictionary<string, string>>(taskToModify.InputString);
-                foreach (var param in substitutions)
+                if (substitutions.Keys.Contains(actionParameters["GuestFilePath"]))
                 {
-                    if (actionParameters["GuestFilePath"] == param.Key)
-                    {
-                        actionParameters["GuestFileContent"] = param.Value;
-                    }
+                    actionParameters["GuestFileContent"] = substitutions[actionParameters["GuestFilePath"]];
                 }
-                taskToModify.InputString = JsonSerializer.Serialize(actionParameters);
-                await _context.SaveChangesAsync();
             }
+            taskToModify.InputString = JsonSerializer.Serialize(actionParameters);
+            await _context.SaveChangesAsync();
             // set the evaluation task ID, if this is it
             Guid? evaluationTaskId = null;
-            // TODO:  check for score > 0 when Andrew adds Score to TaskEntity
-            if (taskToModify.Name.EndsWith("(graded)"))
+            if (taskToModify.Score > 0)
             {
                 evaluationTaskId = id;
             }

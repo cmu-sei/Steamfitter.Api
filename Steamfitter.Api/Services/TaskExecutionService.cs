@@ -396,7 +396,6 @@ namespace Steamfitter.Api.Services
             foreach (var resultEntity in resultEntityList)
             {
                 resultEntity.InputString = resultEntity.InputString.Replace("{moid}", resultEntity.VmId.ToString());
-                resultEntity.VmName = _stackStormService.GetVmName((Guid)resultEntity.VmId);
                 if (taskToExecute.ApiUrl != "http")
                 {
                     resultEntity.VmName = _stackStormService.GetVmName((Guid)resultEntity.VmId);

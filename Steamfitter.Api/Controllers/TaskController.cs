@@ -260,8 +260,6 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <remarks>
         /// Executes the Task with the id specified
-        /// <para />
-        /// Accessible to a SuperUser or administrator
         /// </remarks>
         /// <param name="id">The id of the STT.Task</param>
         /// <param name="ct"></param>
@@ -272,6 +270,25 @@ namespace Steamfitter.Api.Controllers
         public async STT.Task<IActionResult> Execute(Guid id, CancellationToken ct)
         {
             var resultList = await _TaskService.ExecuteAsync(id, ct);
+            return Ok(resultList);
+        }
+
+        /// <summary>
+        /// Executes a specific Task by id and makes substitutions in task parameters
+        /// </summary>
+        /// <remarks>
+        /// Executes the Task with the id specified and makes substitutions in task parameters
+        /// </remarks>
+        /// <param name="id">The id of the STT.Task</param>
+        /// <param name="taskSubstitutions">The task substitutions to make</param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [HttpPost("Tasks/{id}/execute/substitutions")]
+        [ProducesResponseType(typeof(SAVM.Result[]), (int)HttpStatusCode.OK)]
+        [SwaggerOperation(OperationId = "executeTaskWithSubstitutions")]
+        public async STT.Task<IActionResult> Execute([FromRoute] Guid id, [FromBody] Dictionary<string, string> taskSubstitutions, CancellationToken ct)
+        {
+            var resultList = await _TaskService.ExecuteWithSubstitutionsAsync(id, taskSubstitutions, ct);
             return Ok(resultList);
         }
 
