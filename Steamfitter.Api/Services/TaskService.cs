@@ -404,17 +404,6 @@ namespace Steamfitter.Api.Services
             task.DateModified = DateTime.UtcNow;
             task.ModifiedBy = _user.GetId();
 
-            // if (task.Score != taskToUpdate.Score)
-            // {
-            //     _mapper.Map(task, taskToUpdate);
-            //     await UpdateTotalScore(taskToUpdate, ct);
-            // }
-            // else
-            // {
-            //     _mapper.Map(task, taskToUpdate);
-            //     await _context.SaveChangesAsync(ct);
-            // }
-
             _mapper.Map(task, taskToUpdate);
             await _context.SaveChangesAsync(ct);
 
