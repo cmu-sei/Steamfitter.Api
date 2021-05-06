@@ -170,7 +170,11 @@ namespace Steamfitter.Api.Services
                         var taskToExecute = await steamfitterContext.Tasks
                             .Include(x => x.Scenario)
                             .SingleOrDefaultAsync(v => v.Id == taskEntity.Id, ct);
-                        await VerifyTaskToExecuteAsync(taskToExecute, steamfitterContext, ct);
+                        // don't process the task, if it fails verification
+                        if (!(await VerifyTaskToExecuteAsync(taskToExecute, steamfitterContext, ct)))
+                        {
+                            return;
+                        }
                         // get any queued results (means this task was going to execute, but the API crashed before it could)
                         var resultEntityList = steamfitterContext.Results.Where(dtr => dtr.TaskId == taskToExecute.Id && dtr.Status == Data.TaskStatus.queued).ToList();
                         // determine the delay required for this task execution
@@ -249,9 +253,16 @@ namespace Steamfitter.Api.Services
 
         private async STT.Task<bool> VerifyTaskToExecuteAsync(TaskEntity taskToExecute, SteamfitterContext steamfitterContext, CancellationToken ct)
         {
+            var message = $"Task '{taskToExecute.Name}' ({taskToExecute.Id}) was not executed.  ";
             if (taskToExecute == null || taskToExecute.ScenarioTemplateId != null)
             {
-                var message = $"Task {taskToExecute.Id} is part of scenario template, so it cannot be executed.";
+                message = message + $"It is a scenario template task.";
+                _logger.LogDebug(message);
+                return false;
+            }
+            else if (taskToExecute.Status == TaskStatus.cancelled)
+            {
+                message = message + $"It has been cancelled.";
                 _logger.LogDebug(message);
                 return false;
             }
@@ -260,7 +271,7 @@ namespace Steamfitter.Api.Services
                 var scenario = await steamfitterContext.Scenarios.FindAsync(taskToExecute.ScenarioId);
                 if (scenario.Status != ScenarioStatus.active)
                 {
-                    var message = $"Task {taskToExecute.Id} is part of scenario {scenario.Id}, which is not currently active.  A Scenario must be active in order to execute its Task.";
+                    message = message + $"Its scenario {scenario.Id}, is not active.";
                     _logger.LogDebug(message);
                     return false;
                 }

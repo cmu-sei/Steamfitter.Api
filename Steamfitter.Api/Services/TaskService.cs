@@ -651,10 +651,11 @@ namespace Steamfitter.Api.Services
 
         private async STT.Task<bool> PreventAddingToSelfAsync(Guid existingId, TaskEntity newLocationEntity, CancellationToken ct)
         {
+            // make sure the existing task is not the same as the new location task
+            var wouldAddToSelf = (newLocationEntity.Id == existingId);
             // walk up the dispatch task family tree to make sure the existing task is not on it
             // a null parentId means we hit the top
             var parentId = newLocationEntity.TriggerTaskId;
-            var wouldAddToSelf = false;
             while (!wouldAddToSelf && parentId != null)
             {
                 wouldAddToSelf = (parentId == existingId);
