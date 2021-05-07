@@ -308,7 +308,7 @@ namespace Steamfitter.Api.Controllers
         [HttpPost("tasks/execute/graded")]
         [ProducesResponseType(typeof(SAVM.Result[]), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "executeForGrade")]
-        public async STT.Task<IActionResult> ExecuteForGrade([FromRoute] Guid id, [FromBody] GradedExecutionInfo gradedExecutionInfo, CancellationToken ct)
+        public async STT.Task<IActionResult> ExecuteForGrade([FromBody] GradedExecutionInfo gradedExecutionInfo, CancellationToken ct)
         {
             var executionTime = DateTime.UtcNow;
             var gradedTaskId = await _TaskService.ExecuteForGradeAsync(gradedExecutionInfo, ct);

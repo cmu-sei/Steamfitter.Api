@@ -156,20 +156,23 @@ namespace Steamfitter.Api.Services
         private async void ProcessTheTask(Object taskEntityAsObject)
         {
             var ct = new CancellationToken();
-            var taskEntity = taskEntityAsObject == null ? (TaskEntity)null : (TaskEntity)taskEntityAsObject;
-            _logger.LogDebug($"Processing Task '{taskEntity.Name}' ({taskEntity.Id}).");
+            // taskToExecute is not tracked by the DB context and may have substitutions in its InputString.
+            // Therefore we also use taskToSave to make updates to the DB context.
+            var taskToExecute = taskEntityAsObject == null ? (TaskEntity)null : (TaskEntity)taskEntityAsObject;
+            _logger.LogDebug($"Processing Task '{taskToExecute.Name}' ({taskToExecute.Id}).");
             // When adding a Task to the TaskExecutionQueue, the UserId MUST be changed to the current UserId, so that all results can be assigned to the correct user
-            var userId = taskEntity.UserId != null ? (Guid)taskEntity.UserId : new Guid();
+            var userId = taskToExecute.UserId != null ? (Guid)taskToExecute.UserId : new Guid();
             try
             {
                 using (var scope = _scopeFactory.CreateScope())
                 using (var steamfitterContext = scope.ServiceProvider.GetRequiredService<SteamfitterContext>())
-                // using (var engineHub = scope.ServiceProvider.GetRequiredService<EngineHub>())
                 {
                     {
-                        var taskToExecute = await steamfitterContext.Tasks
+                        // taskToExecute is not tracked by the DB context and may have substitutions in its InputString.
+                        // Therefore we also use taskToSave to make updates to the DB context.
+                        var taskToSave = await steamfitterContext.Tasks
                             .Include(x => x.Scenario)
-                            .SingleOrDefaultAsync(v => v.Id == taskEntity.Id, ct);
+                            .SingleOrDefaultAsync(v => v.Id == taskToExecute.Id, ct);
                         // don't process the task, if it fails verification
                         if (!(await VerifyTaskToExecuteAsync(taskToExecute, steamfitterContext, ct)))
                         {
@@ -204,6 +207,8 @@ namespace Steamfitter.Api.Services
                             resultEntityList = await CreateResultsAsync(taskToExecute, scenarioEntity, userId, ct);
                             await steamfitterContext.Results.AddRangeAsync(resultEntityList);
                             taskToExecute.CurrentIteration++;
+                            // save the current iteration
+                            taskToSave.CurrentIteration = taskToExecute.CurrentIteration;
                             await steamfitterContext.SaveChangesAsync(ct);
                             _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultsUpdated, _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
                         }
@@ -216,14 +221,14 @@ namespace Steamfitter.Api.Services
                                 await STT.Task.Delay(new TimeSpan(0, 0, delaySeconds));
                             }
                             // ACTUALLY execute the task and process results
-                            var overallStatus = await ProcessTaskAsync(taskToExecute, resultEntityList, steamfitterContext, ct);
+                            taskToExecute.Status = await ProcessTaskAsync(taskToExecute, resultEntityList, steamfitterContext, ct);
 
-                            // Update the status of the Task
-                            taskToExecute.Status = overallStatus;
+                            // Save the status of the Task
+                            taskToSave.Status = taskToExecute.Status;
                             await steamfitterContext.SaveChangesAsync(ct);
 
                             // Start the next Task (iteration or subtask)
-                            if (IsAnotherIteration(taskToExecute, overallStatus))
+                            if (IsAnotherIteration(taskToExecute))
                             {
                                 // Process the next Iteration
                                 _taskExecutionQueue.Add(taskToExecute);
@@ -231,14 +236,14 @@ namespace Steamfitter.Api.Services
                             else
                             {
                                 // Process the subtasks
-                                var subtaskEntityList = GetSubtasksToExecute(taskToExecute.Id, steamfitterContext, overallStatus);
+                                var subtaskEntityList = GetSubtasksToExecute(taskToExecute.Id, steamfitterContext, taskToExecute.Status);
                                 foreach (var subtaskEntity in subtaskEntityList)
                                 {
                                     subtaskEntity.Status = TaskStatus.pending;
                                     _taskExecutionQueue.Add(subtaskEntity);
                                 }
-
-                                taskToExecute.Scenario.UpdateScores = true;
+                                // save the flag to update scores
+                                taskToSave.Scenario.UpdateScores = true;
                                 await steamfitterContext.SaveChangesAsync(ct);
                             }
                         }
@@ -247,7 +252,7 @@ namespace Steamfitter.Api.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error processing Task {taskEntity.Id}", ex);
+                _logger.LogError($"Error processing Task {taskToExecute.Id}", ex);
             }
         }
 
@@ -286,7 +291,7 @@ namespace Steamfitter.Api.Services
             }
         }
 
-        private bool IsAnotherIteration(TaskEntity task, Data.TaskStatus taskStatus)
+        private bool IsAnotherIteration(TaskEntity task)
         {
             // task.Iterations is always the hard stop
             var isAnotherIteration = task.CurrentIteration < task.Iterations;
@@ -296,10 +301,10 @@ namespace Steamfitter.Api.Services
                 switch (task.IterationTermination)
                 {
                     case Data.TaskIterationTermination.UntilSuccess:
-                        isAnotherIteration = taskStatus != Data.TaskStatus.succeeded;
+                        isAnotherIteration = task.Status != Data.TaskStatus.succeeded;
                         break;
                     case Data.TaskIterationTermination.UntilFailure:
-                        isAnotherIteration = taskStatus != Data.TaskStatus.failed;
+                        isAnotherIteration = task.Status != Data.TaskStatus.failed;
                         break;
                     default:
                         break;

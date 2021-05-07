@@ -41,7 +41,7 @@ namespace Steamfitter.Api.Services
         STT.Task<SAVM.Task> CreateAsync(SAVM.Task Task, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.Task task, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> ExecuteAsync(Guid id, CancellationToken ct);
-        STT.Task<IEnumerable<SAVM.Result>> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct);
+        STT.Task<Guid?>  ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct);
         STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct);
         STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.Task Task, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
@@ -344,17 +344,19 @@ namespace Steamfitter.Api.Services
             return taskToExecute;
         }
 
-        public async STT.Task<IEnumerable<SAVM.Result>> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct)
+        public async STT.Task<Guid?> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct)
         {
             var taskToExecute = await PrepareTaskToExecute(id, ct);
-            // TODO: Make substitutions on result(s)
+            // make substitutions
+            taskToExecute = MakeSubstitutions(taskToExecute, taskSubstitutions, ct);
+            // add the task to the execution queue
             _taskExecutionQueue.Add(taskToExecute);
-            return new List<SAVM.Result>();
+
+            return id;
         }
 
         public async STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct)
         {
-            var userId = _user.GetId();
             var scenarioId = gradedExecutionInfo.ScenarioId;
             var scenario = await _context.Scenarios.FindAsync(scenarioId);
             // verify permissions and scenario to be graded
@@ -362,25 +364,38 @@ namespace Steamfitter.Api.Services
                 throw new ForbiddenException();
             else if (scenario == null)
                 throw new ApplicationException("No Scenario found for grading.");
-            // verify task to be graded
-            var tasks = _context.Tasks.Where(t =>
+            // get the start task to be executed
+            var tasks = await _context.Tasks.Where(t =>
                 t.ScenarioId == scenarioId &&
                 t.TriggerCondition == TaskTrigger.Manual &&
-                t.Name == gradedExecutionInfo.StartTaskName);
-            // verify the task to execute
-            if ((await tasks.CountAsync()) == 0)
-                throw new ApplicationException("No Task found for grading.");
-            if ((await tasks.CountAsync()) > 1)
-                throw new ApplicationException("Multiple Tasks found for grading.");
-            // verify the supplied Task ID is a Guid
-            var taskId = (await tasks.FirstOrDefaultAsync()).Id;
-            // TODO: make substitutions on the Result, NOT the Task!  The task should NOT change!
-            var gradedTaskId = await MakeTaskSubstitutionsAsync(taskId, gradedExecutionInfo.TaskSubstitutions, ct);
-            // execute the task
-            var taskToExecute = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == taskId, ct);
-            taskToExecute.CurrentIteration = 0;
-            await _context.SaveChangesAsync();
-            taskToExecute.UserId = _user.GetId();
+                t.Name == gradedExecutionInfo.StartTaskName)
+                .Select(x => x.Id)
+                .ToListAsync();
+            // verify the start task to execute exists and is unique
+            if (tasks.Count() == 0)
+                throw new ApplicationException("No Start Task found for grading.");
+            if (tasks.Count() > 1)
+                throw new ApplicationException("Multiple Start Tasks found for grading.");
+            // get the start Task ID
+            var startTaskId = tasks[0];
+            // get the graded task to be executed
+            tasks = await _context.Tasks.Where(t =>
+                t.ScenarioId == scenarioId &&
+                t.Name == gradedExecutionInfo.GradedTaskName)
+                .Select(x => x.Id)
+                .ToListAsync();
+            // verify the graded task to execute exists and is unique
+            if (tasks.Count() == 0)
+                throw new ApplicationException("No Graded Task found for grading.");
+            if (tasks.Count() > 1)
+                throw new ApplicationException("Multiple Graded Tasks found for grading.");
+            // get the graded Task ID
+            var gradedTaskId = tasks[0];
+            // prepare the task to execute
+            var taskToExecute = await PrepareTaskToExecute(startTaskId, ct);
+            // make substitutions
+            taskToExecute = MakeSubstitutions(taskToExecute, gradedExecutionInfo.TaskSubstitutions, ct);
+            // add the task to the execution queue
             _taskExecutionQueue.Add(taskToExecute);
 
             return gradedTaskId;
@@ -664,45 +679,28 @@ namespace Steamfitter.Api.Services
             return wouldAddToSelf;
         }
 
-        private async STT.Task<Guid?> MakeTaskSubstitutionsAsync(Guid id, Dictionary<string, string> substitutions, CancellationToken ct)
+        private TaskEntity MakeSubstitutions(TaskEntity taskToExecute, Dictionary<string, string> substitutions, CancellationToken ct)
         {
-            var taskToModify = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == id, ct);
-            var actionParameters = JsonSerializer.Deserialize<Dictionary<string, string>>(taskToModify.InputString);
+            var actionParameters = JsonSerializer.Deserialize<Dictionary<string, string>>(taskToExecute.InputString);
+            var modifications = new Dictionary<string, string>();
             foreach (var substitution in substitutions)
             {
-                if (actionParameters.Keys.Contains(substitution.Key))
+                foreach (var actionParameter in actionParameters)
                 {
-                    actionParameters[substitution.Key] = substitution.Value;
+                    var replacementMarker = "{" + substitution.Key + "}";
+                    if (actionParameter.Value.Contains(replacementMarker))
+                    {
+                        modifications[actionParameter.Key] = actionParameter.Value.Replace(replacementMarker, substitution.Value);
+                    }
                 }
             }
-            if (taskToModify.Action == TaskAction.guest_file_upload_content)
+            foreach (var modification in modifications)
             {
-                if (substitutions.Keys.Contains(actionParameters["GuestFilePath"]))
-                {
-                    actionParameters["GuestFileContent"] = substitutions[actionParameters["GuestFilePath"]];
-                }
+                actionParameters[modification.Key] = modification.Value;
             }
-            taskToModify.InputString = JsonSerializer.Serialize(actionParameters);
-            await _context.SaveChangesAsync();
-            // set the evaluation task ID, if this is it
-            Guid? evaluationTaskId = null;
-            if (taskToModify.Score > 0)
-            {
-                evaluationTaskId = id;
-            }
-            taskToModify = null;
-            // Modify the subtasks and get the evaluation task ID, if any
-            var subTaskEntityIds = await _context.Tasks.Where(dt => dt.TriggerTaskId == id).Select(dt => dt.Id).ToListAsync();
-            foreach (var subTaskEntityId in subTaskEntityIds)
-            {
-                var returnedId = await MakeTaskSubstitutionsAsync(subTaskEntityId, substitutions, ct);
-                if (returnedId != null)
-                {
-                    evaluationTaskId = returnedId;
-                }
-            }
+            taskToExecute.InputString = JsonSerializer.Serialize(actionParameters);
 
-            return evaluationTaskId;
+            return taskToExecute;
         }
 
     }
@@ -710,6 +708,7 @@ namespace Steamfitter.Api.Services
     {
         public Guid ScenarioId { get; set; }
         public string StartTaskName { get; set; }
+        public string GradedTaskName { get; set; }
         public Dictionary<string, string> TaskSubstitutions { get; set; }
     }
 
