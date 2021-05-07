@@ -145,6 +145,11 @@ namespace Steamfitter.Api.Data.Models
                 var allStatuses = new List<TaskStatus>() { Status };
                 allStatuses.AddRange(Children.Select(x => x.CalculateTotalStatus()));
 
+                var successTriggerStatuses = new List<TaskStatus>() { Status };
+                successTriggerStatuses.AddRange(
+                    Children.Where(x => x.TriggerCondition == TaskTrigger.Success)
+                    .Select(x => x.CalculateTotalStatus()));
+
                 if (allStatuses.Contains(TaskStatus.pending))
                 {
                     TotalStatus = TaskStatus.pending;
@@ -175,7 +180,14 @@ namespace Steamfitter.Api.Data.Models
                 }
                 else if (allStatuses.Contains(TaskStatus.none))
                 {
-                    TotalStatus = TaskStatus.none;
+                    if (successTriggerStatuses.Any(x => x != TaskStatus.succeeded))
+                    {
+                        TotalStatus = TaskStatus.none;
+                    }
+                    else
+                    {
+                        TotalStatus = TaskStatus.succeeded;
+                    }
                 }
                 else
                 {
