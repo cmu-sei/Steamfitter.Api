@@ -185,14 +185,14 @@ namespace Steamfitter.Api.Controllers
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
         /// </remarks>
-        /// <param name="task">The data to create the Task with</param>
+        /// <param name="taskForm">The data to create the Task with</param>
         /// <param name="ct"></param>
         [HttpPost("Tasks")]
         [ProducesResponseType(typeof(SAVM.Task), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createTask")]
-        public async STT.Task<IActionResult> Create([FromBody] SAVM.Task task, CancellationToken ct)
+        public async STT.Task<IActionResult> Create([FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
         {
-            var createdTask = await _TaskService.CreateAsync(task, ct);
+            var createdTask = await _TaskService.CreateAsync(taskForm, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdTask.Id }, createdTask);
         }
 
@@ -244,14 +244,14 @@ namespace Steamfitter.Api.Controllers
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
         /// </remarks>
-        /// <param name="task">The data to create the Task with</param>
+        /// <param name="taskForm">The data to create the Task with</param>
         /// <param name="ct"></param>
         [HttpPost("Tasks/execute")]
         [ProducesResponseType(typeof(SAVM.Result[]), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createAndExecuteTask")]
-        public async STT.Task<IActionResult> CreateAndExecute([FromBody] SAVM.Task task, CancellationToken ct)
+        public async STT.Task<IActionResult> CreateAndExecute([FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
         {
-            var resultList = await _TaskService.CreateAndExecuteAsync(task, ct);
+            var resultList = await _TaskService.CreateAndExecuteAsync(taskForm, ct);
             return Ok(resultList);
         }
 
@@ -295,11 +295,11 @@ namespace Steamfitter.Api.Controllers
         {
             var executionTime = DateTime.UtcNow;
             var gradedTaskId = await _TaskService.ExecuteForGradeAsync(gradedExecutionInfo, ct);
-            var result = new GradeCheckInfo ()
-                {
-                    GradedTaskId = (Guid)gradedTaskId,
-                    ExecutionStartTime = executionTime
-                };
+            var result = new GradeCheckInfo()
+            {
+                GradedTaskId = (Guid)gradedTaskId,
+                ExecutionStartTime = executionTime
+            };
             return Ok(result);
         }
 
@@ -312,14 +312,14 @@ namespace Steamfitter.Api.Controllers
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Task
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
-        /// <param name="task">The updated Task values</param>
+        /// <param name="taskForm">The updated Task values</param>
         /// <param name="ct"></param>
         [HttpPut("Tasks/{id}")]
         [ProducesResponseType(typeof(SAVM.Task), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "updateTask")]
-        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.Task task, CancellationToken ct)
+        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
         {
-            var updatedTask = await _TaskService.UpdateAsync(id, task, ct);
+            var updatedTask = await _TaskService.UpdateAsync(id, taskForm, ct);
             return Ok(updatedTask);
         }
 

@@ -38,11 +38,11 @@ namespace Steamfitter.Api.Services
         STT.Task<IEnumerable<SAVM.Task>> GetByUserIdAsync(Guid userId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> GetByVmIdAsync(Guid vmId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> GetSubtasksAsync(Guid triggerTaskId, CancellationToken ct);
-        STT.Task<SAVM.Task> CreateAsync(SAVM.Task Task, CancellationToken ct);
-        STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.Task task, CancellationToken ct);
+        STT.Task<SAVM.Task> CreateAsync(SAVM.TaskForm taskForm, CancellationToken ct);
+        STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskForm taskForm, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> ExecuteAsync(Guid id, CancellationToken ct);
         STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct);
-        STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.Task Task, CancellationToken ct);
+        STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.TaskForm taskForm, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct);
         STT.Task<SAVM.Task> CreateFromResultAsync(Guid resultId, Guid? newLocationId, string newLocationType, CancellationToken ct);
@@ -227,45 +227,46 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
         }
 
-        public async STT.Task<SAVM.Task> CreateAsync(SAVM.Task task, CancellationToken ct)
+        public async STT.Task<SAVM.Task> CreateAsync(SAVM.TaskForm taskForm, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
                 throw new ForbiddenException();
-            var vmListCount = task.VmList != null ? task.VmList.Count : 0;
+            var vmListCount = taskForm.VmList != null ? taskForm.VmList.Count : 0;
             if (vmListCount > 0)
             {
-                if (task.VmMask != "")
+                if (taskForm.VmMask != "")
                     throw new InvalidOperationException("A Task cannot have BOTH a VmMask and a VmList!");
                 // convert the list of vm guids into a comma separated string and save it in VmMask
                 var vmIdString = "";
-                foreach (var vmId in task.VmList)
+                foreach (var vmId in taskForm.VmList)
                 {
                     vmIdString = vmIdString + vmId + ",";
                 }
-                task.VmMask = vmIdString.Remove(vmIdString.Count() - 1);
+                taskForm.VmMask = vmIdString.Remove(vmIdString.Count() - 1);
             }
-            if (task.ActionParameters.Keys.Any(key => key == "Moid"))
+            if (taskForm.ActionParameters.Keys.Any(key => key == "Moid"))
             {
-                task.ActionParameters["Moid"] = "{moid}";
+                taskForm.ActionParameters["Moid"] = "{moid}";
             }
-            task.DateCreated = DateTime.UtcNow;
-            task.CreatedBy = _user.GetId();
-            task.UserId = _user.GetId();
-            task.Iterations = task.Iterations > 0 ? task.Iterations : 1;
-            task.CurrentIteration = 0;
-            var taskEntity = _mapper.Map<TaskEntity>(task);
+
+            var taskEntity = _mapper.Map<TaskEntity>(taskForm);
+            taskEntity.DateCreated = DateTime.UtcNow;
+            taskEntity.CreatedBy = _user.GetId();
+            taskEntity.UserId = _user.GetId();
+            taskEntity.Iterations = taskForm.Iterations > 0 ? taskForm.Iterations : 1;
+            taskEntity.CurrentIteration = 0;
 
             _context.Tasks.Add(taskEntity);
             await _context.SaveChangesAsync(ct);
-            task = await GetAsync(taskEntity.Id, ct);
+            var task = await GetAsync(taskEntity.Id, ct);
 
             return task;
         }
 
-        public async STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.Task task, CancellationToken ct)
+        public async STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskForm taskForm, CancellationToken ct)
         {
             // create the TaskEntity
-            task = await CreateAsync(task, ct);
+            var task = await CreateAsync(taskForm, ct);
             // execute the TaskEntity.  Authorization is null, because there can't be any subtasks on a CreateAndExecute.
             var resultList = await ExecuteAsync(task.Id, ct);
 
@@ -376,7 +377,7 @@ namespace Steamfitter.Api.Services
             return gradedTaskId;
         }
 
-        public async STT.Task<SAVM.Task> UpdateAsync(Guid id, SAVM.Task task, CancellationToken ct)
+        public async STT.Task<SAVM.Task> UpdateAsync(Guid id, SAVM.TaskForm taskForm, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
                 throw new ForbiddenException();
@@ -386,28 +387,26 @@ namespace Steamfitter.Api.Services
             if (taskToUpdate == null)
                 throw new EntityNotFoundException<SAVM.Task>();
 
-            var vmListCount = task.VmList != null ? task.VmList.Count : 0;
+            var vmListCount = taskForm.VmList != null ? taskForm.VmList.Count : 0;
             if (vmListCount > 0)
             {
-                if (task.VmMask != "")
+                if (taskForm.VmMask != "")
                     throw new InvalidOperationException("A Task cannot have BOTH a VmMask and a VmList!");
                 // convert the list of vm guids into a comma separated string and save it in VmMask
                 var vmIdString = "";
-                foreach (var vmId in task.VmList)
+                foreach (var vmId in taskForm.VmList)
                 {
                     vmIdString = vmIdString + vmId + ",";
                 }
-                task.VmMask = vmIdString.Remove(vmIdString.Count() - 1);
+                taskForm.VmMask = vmIdString.Remove(vmIdString.Count() - 1);
             }
-            task.CreatedBy = taskToUpdate.CreatedBy;
-            task.DateCreated = taskToUpdate.DateCreated;
-            task.DateModified = DateTime.UtcNow;
-            task.ModifiedBy = _user.GetId();
 
-            _mapper.Map(task, taskToUpdate);
+            _mapper.Map(taskForm, taskToUpdate);
+            taskToUpdate.DateModified = DateTime.UtcNow;
+            taskToUpdate.ModifiedBy = _user.GetId();
             await _context.SaveChangesAsync(ct);
 
-            var updatedTask = _mapper.Map(taskToUpdate, task);
+            var updatedTask = _mapper.Map<SAVM.Task>(taskToUpdate);
             updatedTask.VmList = null;
 
             return updatedTask;

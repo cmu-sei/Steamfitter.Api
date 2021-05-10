@@ -22,12 +22,12 @@ namespace Steamfitter.Api.Infrastructure.Mappings
             CreateMap<ScenarioEntity, Scenario>()
                 .ForMember(m => m.Users, opt => opt.MapFrom(x => x.Users.Select(y => y.UserId)));
 
-            CreateMap<Scenario, ScenarioEntity>()
-                .ForMember(m => m.Users, opt => opt.Ignore());
+            CreateMap<Scenario, ScenarioEntity>();
 
             CreateMap<ScenarioEntity, ScenarioEntity>()
                 .ForMember(e => e.Id, opt => opt.Ignore());
 
+            CreateMap<ScenarioForm, ScenarioEntity>();
         }
     }
 }
