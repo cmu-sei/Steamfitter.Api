@@ -175,6 +175,10 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, CancellationToken ct)
         {
+            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
+                throw new ForbiddenException();
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
             var scenarioTemplateEntity = _context.ScenarioTemplates.Find(scenarioTemplateId);
             if (scenarioTemplateEntity == null)
                 throw new EntityNotFoundException<SAVM.ScenarioTemplate>($"ScenarioTemplate {scenarioTemplateId} was not found.");
@@ -206,6 +210,7 @@ namespace Steamfitter.Api.Services
                 await _taskService.CopyAsync(oldTaskEntity.Id, scenarioEntity.Id, "scenario", ct);
             }
 
+            await transaction.CommitAsync(ct);
             var scenario = _mapper.Map<SAVM.Scenario>(scenarioEntity);
 
             return scenario;
@@ -216,6 +221,7 @@ namespace Steamfitter.Api.Services
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
                 throw new ForbiddenException();
 
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
             var oldScenarioEntity = _context.Scenarios.Find(oldScenarioId);
             if (oldScenarioEntity == null)
                 throw new EntityNotFoundException<SAVM.Scenario>($"Scenario {oldScenarioId} was not found.");
@@ -242,6 +248,7 @@ namespace Steamfitter.Api.Services
                 await _taskService.CopyAsync(oldTaskEntity.Id, newScenarioEntity.Id, "scenario", ct);
             }
 
+            await transaction.CommitAsync(ct);
             var scenario = await GetAsync(newScenarioEntity.Id, ct);
 
             return scenario;

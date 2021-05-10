@@ -297,7 +297,7 @@ namespace Steamfitter.Api.Services
 
                 // create serializable transaction to prevent multiple scores from being changed concurrently,
                 // causing incorrect total score calculations
-                using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
                 taskToExecute = await dbContext.Tasks
                     .Include(x => x.Scenario)
@@ -432,6 +432,7 @@ namespace Steamfitter.Api.Services
             // check user authorization
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
                 throw new ForbiddenException();
+
             var items = await CopyTaskAsync(id, newLocationId, newLocationType, ct);
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(items);
@@ -442,6 +443,7 @@ namespace Steamfitter.Api.Services
             // check user authorization
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
                 throw new ForbiddenException();
+
             var items = await MoveTaskAsync(id, newLocationId, newLocationType, ct);
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(items);

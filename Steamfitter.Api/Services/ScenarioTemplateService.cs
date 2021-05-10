@@ -110,6 +110,7 @@ namespace Steamfitter.Api.Services
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
                 throw new ForbiddenException();
 
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
             var oldScenarioTemplateEntity = _context.ScenarioTemplates.Find(oldScenarioTemplateId);
             if (oldScenarioTemplateEntity == null)
                 throw new EntityNotFoundException<SAVM.ScenarioTemplate>($"ScenarioTemplate {oldScenarioTemplateId} was not found.");
@@ -134,6 +135,7 @@ namespace Steamfitter.Api.Services
                 await _taskService.CopyAsync(oldTaskEntityId, newScenarioTemplateEntity.Id, "scenarioTemplate", ct);
             }
 
+            await transaction.CommitAsync(ct);
             var newScenarioTemplate = await GetAsync(newScenarioTemplateEntity.Id, ct);
 
             return newScenarioTemplate;

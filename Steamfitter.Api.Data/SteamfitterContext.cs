@@ -159,11 +159,11 @@ namespace Steamfitter.Api.Data
                 // find value of id property
                 var id = entry.Properties
                     .FirstOrDefault(x =>
-                        x.Metadata.ValueGenerated == Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAdd).CurrentValue;
+                        x.Metadata.ValueGenerated == Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAdd)?.CurrentValue;
 
                 // find matching existing entry, if any
                 var e = Entries.FirstOrDefault(x => x.Properties.FirstOrDefault(y =>
-                    y.Metadata.ValueGenerated == Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAdd).CurrentValue == id);
+                    y.Metadata.ValueGenerated == Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAdd)?.CurrentValue == id);
 
                 if (e != null)
                 {
