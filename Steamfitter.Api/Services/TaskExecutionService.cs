@@ -23,7 +23,7 @@ using STT = System.Threading.Tasks;
 using Player.Vm.Api;
 using Steamfitter.Api.Infrastructure.HealthChecks;
 using System.Data;
-using Steamfitter.Api.Data.Extensions;
+using System.Text;
 
 namespace Steamfitter.Api.Services
 {
@@ -575,7 +575,8 @@ namespace Steamfitter.Api.Services
                         }
                     case TaskAction.http_post:
                         {
-                            StringContent content = new StringContent(actionParameters.Body);
+                            StringContent content = new StringContent(actionParameters.Body, Encoding.UTF8, "application/json");
+                            client.DefaultRequestHeaders.Add("Accept", "application/json");
                             response = await client.PostAsync(taskToExecute.VmMask, content);
                             break;
                         }
