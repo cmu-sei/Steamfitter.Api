@@ -412,7 +412,7 @@ namespace Steamfitter.Api.Services
             foreach (var resultEntity in resultEntityList)
             {
                 resultEntity.InputString = resultEntity.InputString.Replace("{moid}", resultEntity.VmId.ToString());
-                if (taskToExecute.ApiUrl != "http")
+                if (resultEntity.VmId != null)
                 {
                     resultEntity.VmName = _stackStormService.GetVmName((Guid)resultEntity.VmId);
                 }
@@ -554,17 +554,10 @@ namespace Steamfitter.Api.Services
             HttpResponseMessage response;
             using (var scope = _scopeFactory.CreateScope())
             {
+                // TODO: re-use tokens
                 var tokenResponse = await ApiClientsExtensions.GetToken(scope);
                 var actionParameters = JsonSerializer.Deserialize<HttpInputString>(taskToExecute.InputString);
                 var url = actionParameters.Url;
-                if (url.Contains("?"))
-                {
-                    url += $"&asuser={taskToExecute.UserId.ToString()}" ;
-                }
-                else
-                {
-                    url += $"?asuser={taskToExecute.UserId.ToString()}" ;
-                }
                 var client = ApiClientsExtensions.GetHttpClient(_httpClientFactory, url, tokenResponse);
                 switch (taskToExecute.Action)
                 {
@@ -577,18 +570,19 @@ namespace Steamfitter.Api.Services
                         {
                             StringContent content = new StringContent(actionParameters.Body, Encoding.UTF8, "application/json");
                             client.DefaultRequestHeaders.Add("Accept", "application/json");
-                            response = await client.PostAsync(taskToExecute.VmMask, content);
+                            response = await client.PostAsync(url, content);
                             break;
                         }
                     case TaskAction.http_put:
                         {
-                            StringContent content = new StringContent(actionParameters.Body);
-                            response = await client.PutAsync(taskToExecute.VmMask, content);
+                            StringContent content = new StringContent(actionParameters.Body, Encoding.UTF8, "application/json");
+                            client.DefaultRequestHeaders.Add("Accept", "application/json");
+                            response = await client.PutAsync(url, content);
                             break;
                         }
                     case TaskAction.http_delete:
                         {
-                            response = await client.DeleteAsync("http://www.google.com");
+                            response = await client.DeleteAsync(url);
                             break;
                         }
                     default:
@@ -598,6 +592,7 @@ namespace Steamfitter.Api.Services
                 }
                 if (response.IsSuccessStatusCode)
                 {
+                    // TODO:  possibly return the response code, as well
                     var responseString = await response.Content.ReadAsStringAsync();
                     return responseString;
                 }
