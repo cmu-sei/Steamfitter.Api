@@ -60,7 +60,7 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.User> GetAsync(Guid id, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new FullRightsRequirement())).Succeeded)
+            if (!(await _authorizationService.AuthorizeAsync(_user, null, new UserAccessRequirement(id))).Succeeded)
                 throw new ForbiddenException();
 
             var item = await _context.Users

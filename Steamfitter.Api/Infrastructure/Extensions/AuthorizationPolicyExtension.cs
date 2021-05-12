@@ -15,6 +15,7 @@ namespace Steamfitter.Api.Infrastructure.Extensions
             services.AddSingleton<IAuthorizationHandler, FullRightsHandler>();
             services.AddSingleton<IAuthorizationHandler, ContentDeveloperHandler>();
             services.AddSingleton<IAuthorizationHandler, OperatorHandler>();
+            services.AddSingleton<IAuthorizationHandler, UserAccessHandler>();
             services.AddSingleton<IAuthorizationHandler, BaseUserHandler>();
         }
 
