@@ -54,7 +54,7 @@ namespace Steamfitter.Api.Services
 
                 // create serializable transaction to prevent multiple scores from being changed concurrently,
                 // causing incorrect total score calculations
-                using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
                 // get all tasks in scenario or scenario template
                 if (type == typeof(ScenarioEntity))

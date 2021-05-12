@@ -51,6 +51,13 @@ namespace Steamfitter.Api.Data
 
         public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
         {
+            await CheckForScoreUpdates(ct);
+            SaveEntries();
+            return await base.SaveChangesAsync(ct);
+        }
+
+        private async Task CheckForScoreUpdates(CancellationToken ct)
+        {
             var addedEntries = ChangeTracker.Entries().Where(x => x.State == EntityState.Added).ToList();
             var modifiedEntries = ChangeTracker.Entries().Where(x => x.State == EntityState.Modified).ToList();
             var deletedEntries = ChangeTracker.Entries().Where(x => x.State == EntityState.Deleted).ToList();
@@ -118,6 +125,10 @@ namespace Steamfitter.Api.Data
                 foreach (var scenario in scenarios)
                 {
                     scenario.UpdateScores = true;
+                    Entry(scenario).Properties
+                        .Where(x => x.Metadata.Name == nameof(ScenarioEntity.UpdateScores))
+                        .FirstOrDefault()
+                    .IsModified = true;
                 }
             }
 
@@ -130,12 +141,57 @@ namespace Steamfitter.Api.Data
                 foreach (var scenarioTemplate in scenarioTemplates)
                 {
                     scenarioTemplate.UpdateScores = true;
+                    Entry(scenarioTemplate).Properties
+                        .Where(x => x.Metadata.Name == nameof(ScenarioTemplateEntity.UpdateScores))
+                        .FirstOrDefault()
+                    .IsModified = true;
                 }
             }
+        }
 
-            // keep track of changes across multiple savechanges in a transaction
-            Entries.AddRange(ChangeTracker.Entries().Select(x => new Entry(x)).ToList());
-            return await base.SaveChangesAsync(ct);
+        /// <summary>
+        /// keep track of changes across multiple savechanges in a transaction, without duplicates
+        /// </summary>
+        private void SaveEntries()
+        {
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                // find value of id property
+                var id = entry.Properties
+                    .FirstOrDefault(x =>
+                        x.Metadata.ValueGenerated == Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAdd)?.CurrentValue;
+
+                // find matching existing entry, if any
+                var e = Entries.FirstOrDefault(x => x.Properties.FirstOrDefault(y =>
+                    y.Metadata.ValueGenerated == Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAdd)?.CurrentValue == id);
+
+                if (e != null)
+                {
+                    // if entry already exists, mark which properties were previously modified,
+                    // remove old entry and add new one, to avoid duplicates
+                    var modifiedProperties = e.Properties
+                        .Where(x => x.IsModified)
+                        .Select(x => x.Metadata.Name)
+                        .ToArray();
+
+                    var newEntry = new Entry(entry);
+
+                    foreach (var property in newEntry.Properties)
+                    {
+                        if (modifiedProperties.Contains(property.Metadata.Name))
+                        {
+                            property.IsModified = true;
+                        }
+                    }
+
+                    Entries.Remove(e);
+                    Entries.Add(newEntry);
+                }
+                else
+                {
+                    Entries.Add(new Entry(entry));
+                }
+            }
         }
     }
 }

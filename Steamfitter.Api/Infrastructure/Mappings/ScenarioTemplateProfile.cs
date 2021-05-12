@@ -23,8 +23,7 @@ namespace Steamfitter.Api.Infrastructure.Mappings
             CreateMap<ScenarioTemplateEntity, ScenarioTemplateEntity>()
                 .ForMember(e => e.Id, opt => opt.Ignore());
 
+            CreateMap<ScenarioTemplateForm, ScenarioTemplateEntity>();
         }
     }
 }
-
-

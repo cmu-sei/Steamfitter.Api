@@ -34,7 +34,7 @@ namespace Steamfitter.Api.Controllers
         /// Returns a list of all of the ScenarioTemplates in the system.
         /// <para />
         /// Only accessible to a SuperUser
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("scenarioTemplates")]
         [ProducesResponseType(typeof(IEnumerable<SAVM.ScenarioTemplate>), (int)HttpStatusCode.OK)]
@@ -71,7 +71,7 @@ namespace Steamfitter.Api.Controllers
         // /// <para />
         // /// Accessible only to the current User.
         // /// <para/>
-        // /// This is a convenience endpoint and simply returns a 302 redirect to the fully qualified users/{id}/scenarioTemplates endpoint 
+        // /// This is a convenience endpoint and simply returns a 302 redirect to the fully qualified users/{id}/scenarioTemplates endpoint
         // /// </remarks>
         // [HttpGet("me/scenarioTemplates")]
         // [ProducesResponseType(typeof(IEnumerable<ScenarioTemplate>), (int)HttpStatusCode.OK)]
@@ -112,16 +112,15 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new ScenarioTemplate with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
-        /// <param name="scenarioTemplate">The data to create the ScenarioTemplate with</param>
+        /// </remarks>
+        /// <param name="scenarioTemplateForm">The data to create the ScenarioTemplate with</param>
         /// <param name="ct"></param>
         [HttpPost("scenarioTemplates")]
         [ProducesResponseType(typeof(SAVM.ScenarioTemplate), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createScenarioTemplate")]
-        public async STT.Task<IActionResult> Create([FromBody] SAVM.ScenarioTemplate scenarioTemplate, CancellationToken ct)
+        public async STT.Task<IActionResult> Create([FromBody] SAVM.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct)
         {
-            scenarioTemplate.CreatedBy = User.GetId();
-            var createdScenarioTemplate = await _scenarioTemplateService.CreateAsync(scenarioTemplate, ct);
+            var createdScenarioTemplate = await _scenarioTemplateService.CreateAsync(scenarioTemplateForm, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdScenarioTemplate.Id }, createdScenarioTemplate);
         }
 
@@ -132,7 +131,7 @@ namespace Steamfitter.Api.Controllers
         /// Copies a new ScenarioTemplate with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The ID of scenarioTemplate to copy</param>
         /// <param name="ct"></param>
         [HttpPost("scenarioTemplates/{id}/copy")]
@@ -151,17 +150,16 @@ namespace Steamfitter.Api.Controllers
         /// Updates an ScenarioTemplate with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified ScenarioTemplate
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
-        /// <param name="scenarioTemplate">The updated ScenarioTemplate values</param>
+        /// <param name="scenarioTemplateForm">The updated ScenarioTemplate values</param>
         /// <param name="ct"></param>
         [HttpPut("scenarioTemplates/{id}")]
         [ProducesResponseType(typeof(SAVM.ScenarioTemplate), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "updateScenarioTemplate")]
-        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.ScenarioTemplate scenarioTemplate, CancellationToken ct)
+        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct)
         {
-            scenarioTemplate.ModifiedBy = User.GetId();
-            var updatedScenarioTemplate = await _scenarioTemplateService.UpdateAsync(id, scenarioTemplate, ct);
+            var updatedScenarioTemplate = await _scenarioTemplateService.UpdateAsync(id, scenarioTemplateForm, ct);
             return Ok(updatedScenarioTemplate);
         }
 
@@ -172,7 +170,7 @@ namespace Steamfitter.Api.Controllers
         /// Deletes an ScenarioTemplate with the specified id
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified ScenarioTemplate
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The id of the ScenarioTemplate to delete</param>
         /// <param name="ct"></param>
         [HttpDelete("scenarioTemplates/{id}")]
@@ -186,4 +184,3 @@ namespace Steamfitter.Api.Controllers
 
     }
 }
-

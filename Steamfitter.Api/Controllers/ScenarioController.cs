@@ -153,14 +153,14 @@ namespace Steamfitter.Api.Controllers
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
         /// </remarks>
-        /// <param name="scenario">The data to create the Scenario with</param>
+        /// <param name="scenarioForm">The data to create the Scenario with</param>
         /// <param name="ct"></param>
         [HttpPost("Scenarios")]
         [ProducesResponseType(typeof(SAVM.Scenario), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createScenario")]
-        public async STT.Task<IActionResult> Create([FromBody] SAVM.Scenario scenario, CancellationToken ct)
+        public async STT.Task<IActionResult> Create([FromBody] SAVM.ScenarioForm scenarioForm, CancellationToken ct)
         {
-            var createdScenario = await _ScenarioService.CreateAsync(scenario, ct);
+            var createdScenario = await _ScenarioService.CreateAsync(scenarioForm, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdScenario.Id }, createdScenario);
         }
 
@@ -211,14 +211,14 @@ namespace Steamfitter.Api.Controllers
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Scenario
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
-        /// <param name="scenario">The updated Scenario values</param>
+        /// <param name="scenarioForm">The updated Scenario values</param>
         /// <param name="ct"></param>
         [HttpPut("Scenarios/{id}")]
         [ProducesResponseType(typeof(SAVM.Scenario), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "updateScenario")]
-        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.Scenario scenario, CancellationToken ct)
+        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.ScenarioForm scenarioForm, CancellationToken ct)
         {
-            var updatedScenario = await _ScenarioService.UpdateAsync(id, scenario, ct);
+            var updatedScenario = await _ScenarioService.UpdateAsync(id, scenarioForm, ct);
             return Ok(updatedScenario);
         }
 
