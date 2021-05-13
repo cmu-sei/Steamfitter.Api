@@ -5,6 +5,12 @@ namespace Steamfitter.Api.Data
 {
     public enum TaskAction
     {
+        // http actions
+        http_get = 11,
+        http_post = 12,
+        http_put = 13,
+        http_delete = 14,
+        // stackstorm actions
         guest_process_run = 100,
         guest_file_read = 101,
         guest_file_write = 102,

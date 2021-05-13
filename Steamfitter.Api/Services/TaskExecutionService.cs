@@ -17,12 +17,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using Player.Vm.Api;
 using Steamfitter.Api.Infrastructure.HealthChecks;
 using System.Data;
-using Steamfitter.Api.Data.Extensions;
+using System.Text;
 
 namespace Steamfitter.Api.Services
 {
@@ -155,20 +156,23 @@ namespace Steamfitter.Api.Services
         private async void ProcessTheTask(Object taskEntityAsObject)
         {
             var ct = new CancellationToken();
-            var taskEntity = taskEntityAsObject == null ? (TaskEntity)null : (TaskEntity)taskEntityAsObject;
-            _logger.LogDebug($"Processing Task '{taskEntity.Name}' ({taskEntity.Id}).");
+            // taskToExecute is not tracked by the DB context and may have substitutions in its InputString.
+            // Therefore we also use taskToSave to make updates to the DB context.
+            var taskToExecute = taskEntityAsObject == null ? (TaskEntity)null : (TaskEntity)taskEntityAsObject;
+            _logger.LogDebug($"Processing Task '{taskToExecute.Name}' ({taskToExecute.Id}).");
             // When adding a Task to the TaskExecutionQueue, the UserId MUST be changed to the current UserId, so that all results can be assigned to the correct user
-            var userId = taskEntity.UserId != null ? (Guid)taskEntity.UserId : new Guid();
+            var userId = taskToExecute.UserId != null ? (Guid)taskToExecute.UserId : new Guid();
             try
             {
                 using (var scope = _scopeFactory.CreateScope())
                 using (var steamfitterContext = scope.ServiceProvider.GetRequiredService<SteamfitterContext>())
-                // using (var engineHub = scope.ServiceProvider.GetRequiredService<EngineHub>())
                 {
                     {
-                        var taskToExecute = await steamfitterContext.Tasks
+                        // taskToExecute is not tracked by the DB context and may have substitutions in its InputString.
+                        // Therefore we also use taskToSave to make updates to the DB context.
+                        var taskToSave = await steamfitterContext.Tasks
                             .Include(x => x.Scenario)
-                            .SingleOrDefaultAsync(v => v.Id == taskEntity.Id, ct);
+                            .SingleOrDefaultAsync(v => v.Id == taskToExecute.Id, ct);
                         // don't process the task, if it fails verification
                         if (!(await VerifyTaskToExecuteAsync(taskToExecute, steamfitterContext, ct)))
                         {
@@ -203,6 +207,8 @@ namespace Steamfitter.Api.Services
                             resultEntityList = await CreateResultsAsync(taskToExecute, scenarioEntity, userId, ct);
                             await steamfitterContext.Results.AddRangeAsync(resultEntityList);
                             taskToExecute.CurrentIteration++;
+                            // save the current iteration
+                            taskToSave.CurrentIteration = taskToExecute.CurrentIteration;
                             await steamfitterContext.SaveChangesAsync(ct);
                             _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultsUpdated, _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
                         }
@@ -215,14 +221,14 @@ namespace Steamfitter.Api.Services
                                 await STT.Task.Delay(new TimeSpan(0, 0, delaySeconds));
                             }
                             // ACTUALLY execute the task and process results
-                            var overallStatus = await ProcessTaskAsync(taskToExecute, resultEntityList, steamfitterContext, ct);
+                            taskToExecute.Status = await ProcessTaskAsync(taskToExecute, resultEntityList, steamfitterContext, ct);
 
-                            // Update the status of the Task
-                            taskToExecute.Status = overallStatus;
+                            // Save the status of the Task
+                            taskToSave.Status = taskToExecute.Status;
                             await steamfitterContext.SaveChangesAsync(ct);
 
                             // Start the next Task (iteration or subtask)
-                            if (IsAnotherIteration(taskToExecute, overallStatus))
+                            if (IsAnotherIteration(taskToExecute))
                             {
                                 // Process the next Iteration
                                 _taskExecutionQueue.Add(taskToExecute);
@@ -230,14 +236,14 @@ namespace Steamfitter.Api.Services
                             else
                             {
                                 // Process the subtasks
-                                var subtaskEntityList = GetSubtasksToExecute(taskToExecute.Id, steamfitterContext, overallStatus);
+                                var subtaskEntityList = GetSubtasksToExecute(taskToExecute.Id, steamfitterContext, taskToExecute.Status);
                                 foreach (var subtaskEntity in subtaskEntityList)
                                 {
                                     subtaskEntity.Status = TaskStatus.pending;
                                     _taskExecutionQueue.Add(subtaskEntity);
                                 }
-
-                                taskToExecute.Scenario.UpdateScores = true;
+                                // save the flag to update scores
+                                taskToSave.Scenario.UpdateScores = true;
                                 await steamfitterContext.SaveChangesAsync(ct);
                             }
                         }
@@ -246,7 +252,7 @@ namespace Steamfitter.Api.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error processing Task {taskEntity.Id}", ex);
+                _logger.LogError($"Error processing Task {taskToExecute.Id}", ex);
             }
         }
 
@@ -285,7 +291,7 @@ namespace Steamfitter.Api.Services
             }
         }
 
-        private bool IsAnotherIteration(TaskEntity task, Data.TaskStatus taskStatus)
+        private bool IsAnotherIteration(TaskEntity task)
         {
             // task.Iterations is always the hard stop
             var isAnotherIteration = task.CurrentIteration < task.Iterations;
@@ -295,10 +301,10 @@ namespace Steamfitter.Api.Services
                 switch (task.IterationTermination)
                 {
                     case Data.TaskIterationTermination.UntilSuccess:
-                        isAnotherIteration = taskStatus != Data.TaskStatus.succeeded;
+                        isAnotherIteration = task.Status != Data.TaskStatus.succeeded;
                         break;
                     case Data.TaskIterationTermination.UntilFailure:
-                        isAnotherIteration = taskStatus != Data.TaskStatus.failed;
+                        isAnotherIteration = task.Status != Data.TaskStatus.failed;
                         break;
                     default:
                         break;
@@ -406,12 +412,15 @@ namespace Steamfitter.Api.Services
             foreach (var resultEntity in resultEntityList)
             {
                 resultEntity.InputString = resultEntity.InputString.Replace("{moid}", resultEntity.VmId.ToString());
-                resultEntity.VmName = _stackStormService.GetVmName((Guid)resultEntity.VmId);
+                if (resultEntity.VmId != null)
+                {
+                    resultEntity.VmName = _stackStormService.GetVmName((Guid)resultEntity.VmId);
+                }
                 resultEntity.Status = TaskStatus.pending;
                 resultEntity.StatusDate = DateTime.UtcNow;
                 // if no expiration is set, us the maximum allowed by the TaskProcessMaxWaitSeconds setting
                 resultEntity.ExpirationSeconds = resultEntity.ExpirationSeconds <= 0 ? _vmTaskProcessingOptions.CurrentValue.TaskProcessMaxWaitSeconds : resultEntity.ExpirationSeconds;
-                var task = RunTask(taskToExecute, resultEntity, ct);
+                var task = await RunTask(taskToExecute, resultEntity, ct);
                 tasks.Add(task);
                 xref[task.Id] = resultEntity;
                 await steamfitterContext.SaveChangesAsync();
@@ -448,7 +457,7 @@ namespace Steamfitter.Api.Services
             return overallStatus;
         }
 
-        private STT.Task<string> RunTask(TaskEntity taskToExecute, ResultEntity resultEntity, CancellationToken ct)
+         private async STT.Task<STT.Task<string>> RunTask(TaskEntity taskToExecute, ResultEntity resultEntity, CancellationToken ct)
         {
             STT.Task<string> task = null;
             switch (taskToExecute.ApiUrl)
@@ -524,8 +533,11 @@ namespace Steamfitter.Api.Services
                         }
                         break;
                     }
-                case "player":
-                case "caster":
+                case "http":
+                    {
+                        task = STT.Task.Run(() => HttpTaskTask(taskToExecute));
+                        break;
+                    }
                 default:
                     {
                         var message = $"API ({taskToExecute.ApiUrl}) is not currently implemented";
@@ -535,6 +547,61 @@ namespace Steamfitter.Api.Services
             }
 
             return task;
+        }
+
+        private async STT.Task<string> HttpTaskTask(TaskEntity taskToExecute)
+        {
+            HttpResponseMessage response;
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                // TODO: re-use tokens
+                var tokenResponse = await ApiClientsExtensions.GetToken(scope);
+                var actionParameters = JsonSerializer.Deserialize<HttpInputString>(taskToExecute.InputString);
+                var url = actionParameters.Url;
+                var client = ApiClientsExtensions.GetHttpClient(_httpClientFactory, url, tokenResponse);
+                switch (taskToExecute.Action)
+                {
+                    case TaskAction.http_get:
+                        {
+                            response = await client.GetAsync(url);
+                            break;
+                        }
+                    case TaskAction.http_post:
+                        {
+                            StringContent content = new StringContent(actionParameters.Body, Encoding.UTF8, "application/json");
+                            client.DefaultRequestHeaders.Add("Accept", "application/json");
+                            response = await client.PostAsync(url, content);
+                            break;
+                        }
+                    case TaskAction.http_put:
+                        {
+                            StringContent content = new StringContent(actionParameters.Body, Encoding.UTF8, "application/json");
+                            client.DefaultRequestHeaders.Add("Accept", "application/json");
+                            response = await client.PutAsync(url, content);
+                            break;
+                        }
+                    case TaskAction.http_delete:
+                        {
+                            response = await client.DeleteAsync(url);
+                            break;
+                        }
+                    default:
+                        {
+                            return $"Action '{taskToExecute.Action.ToString()}' is not a valid action for http tasks";
+                        }
+                }
+                if (response.IsSuccessStatusCode)
+                {
+                    // TODO:  possibly return the response code, as well
+                    var responseString = await response.Content.ReadAsStringAsync();
+                    return responseString;
+                }
+                else
+                {
+                    return $"'{taskToExecute.Action.ToString()}' returned a status code of {response.StatusCode}.";
+                }
+            }
+
         }
 
         private Data.TaskStatus ProcessResult(ResultEntity resultEntity, CancellationToken ct)
@@ -653,6 +720,12 @@ namespace Steamfitter.Api.Services
             return clientObject;
         }
 
+    }
+
+    class HttpInputString
+    {
+        public string Url { get; set; }
+        public string Body { get; set; }
     }
 
 }
