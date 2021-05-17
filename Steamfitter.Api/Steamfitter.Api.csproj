@@ -37,13 +37,13 @@
     <PackageReference Include="Player.Api.Client" Version="1.6.0"/>
     <PackageReference Include="Player.Vm.Api.Client" Version="1.5.0"/>
     <PackageReference Include="IdentityServer4.AccessTokenValidation" Version="2.7.0"/>
-    <PackageReference Include="Stackstorm.Connector" Version="1.0.7"/>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="3.1.0"/>
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="3.1.0"/>
     <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="3.1.0"/>
     <PackageReference Include="AspNetCore.HealthChecks.Sqlite" Version="3.1.0"/>
     <PackageReference Include="MediatR" Version="9.0.0"/>
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="9.0.0"/>
+    <PackageReference Include="Stackstorm.Connector" Version="2.0.0"/>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Steamfitter.Api.Data\Steamfitter.Api.Data.csproj"/>

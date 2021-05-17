@@ -137,6 +137,66 @@
             ]
         },
         {
+            "api": "stackstorm",
+            "action": "send_email",
+            "display": "Send an email",
+            "requiresVm": false,
+            "parameters": [
+                {
+                    "key": "EmailFrom",
+                    "display": "Email From",
+                    "hint": "Address the email will be sent from",
+                    "inputType": "text"
+                },
+                {
+                    "key": "EmailTo",
+                    "display": "Email To",
+                    "hint": "Address the email will be sent to",
+                    "inputType": "text"
+                },
+                {
+                    "key": "EmailCC",
+                    "display": "CC",
+                    "hint": "Addresses to CC on this email",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Subject",
+                    "display": "Subject",
+                    "hint": "The subject of the email",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Message",
+                    "display": "Message",
+                    "hint": "The contents of the email",
+                    "inputType": "textArea"
+                },
+                {
+                    "key": "Account",
+                    "display": "Account",
+                    "hint": "Account to use",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Mime",
+                    "display": "MIME Type",
+                    "hint": "The MIME type of the email",
+                    "inputType": "select",
+                    "choices": [
+                        {
+                            "key": "plain",
+                            "display": "Plain"
+                        },
+                        {
+                            "key": "html",
+                            "display": "HTML"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "api": "http",
             "action": "http_get",
             "display": "GET Request",

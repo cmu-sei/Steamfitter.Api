@@ -506,6 +506,11 @@ namespace Steamfitter.Api.Services
                                     task = STT.Task.Run(() => _stackStormService.VmRemove(resultEntity.InputString));
                                     break;
                                 }
+                            case TaskAction.send_email:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.SendEmail(resultEntity.InputString));
+                                    break;
+                                }
                             default:
                                 {
                                     var message = $"Stackstorm Action {taskToExecute.Action} has not been implemented.";

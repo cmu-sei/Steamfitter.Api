@@ -14,6 +14,8 @@ using STT = System.Threading.Tasks;
 using Steamfitter.Api.Infrastructure.Options;
 using Stackstorm.Connector;
 using Steamfitter.Api.Infrastructure.HealthChecks;
+using Stackstorm.Api.Client;
+using Stackstorm.Connector.Models.Email;
 
 namespace Steamfitter.Api.Services
 {
@@ -32,6 +34,7 @@ namespace Steamfitter.Api.Services
         STT.Task<string> VmPowerOff(string parameters);
         STT.Task<string> CreateVmFromTemplate(string parameters);
         STT.Task<string> VmRemove(string parameters);
+        STT.Task<string> SendEmail(string parameters);
     }
 
     public class StackStormService : IStackStormService
@@ -39,8 +42,8 @@ namespace Steamfitter.Api.Services
         private readonly ILogger<StackStormService> _logger;
         private VmTaskProcessingOptions _options;
         private ConcurrentDictionary<Guid, VmIdentityStrings> _vmList = new ConcurrentDictionary<Guid, VmIdentityStrings>();
-        private VSphere _vsphere;
-        
+        private StackstormConnector _stackStormConnector;
+
         private readonly StackStormServiceHealthCheck _stackStormServiceHealthCheck;
 
         public StackStormService(
@@ -97,7 +100,7 @@ namespace Steamfitter.Api.Services
 
         private void Connect()
         {
-            _vsphere = new VSphere(_options.ApiBaseUrl, _options.ApiUsername, _options.ApiPassword);
+            _stackStormConnector = new StackstormConnector(_options.ApiBaseUrl, _options.ApiUsername, _options.ApiPassword);
         }
 
         private async void Run()
@@ -139,11 +142,12 @@ namespace Steamfitter.Api.Services
             var apiParameters = _options.ApiParameters;
             try
             {
-                if (apiParameters == null || !apiParameters.ContainsKey("clusters")) {
+                if (apiParameters == null || !apiParameters.ContainsKey("clusters"))
+                {
                     throw new Exception("\"clusters\" appsetting value needs to be set in order to get Stackstorm VMs");
                 }
                 var clusters = apiParameters["clusters"].ToString().Split(",");
-                var vmListResult = await _vsphere.GetVmsWithUuid(clusters);
+                var vmListResult = await _stackStormConnector.VSphere.GetVmsWithUuid(clusters);
                 // add VM's to _vmList
                 foreach (var vm in vmListResult.Vms)
                 {
@@ -178,7 +182,7 @@ namespace Steamfitter.Api.Services
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.Vsphere.Requests.Command>(parameters);
             // the moid parameter is actually a Guid and the moid must be looked up
             command.Moid = GetVmMoid(Guid.Parse(command.Moid));
-            var executionResult = await _vsphere.GuestCommand(command);
+            var executionResult = await _stackStormConnector.VSphere.GuestCommand(command);
 
             return executionResult.Value;
         }
@@ -188,7 +192,7 @@ namespace Steamfitter.Api.Services
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.Vsphere.Requests.Command>(parameters);
             // the moid parameter is actually a Guid and the moid must be looked up
             command.Moid = GetVmMoid(Guid.Parse(command.Moid));
-            var executionResult = await _vsphere.GuestCommandFast(command);
+            var executionResult = await _stackStormConnector.VSphere.GuestCommandFast(command);
 
             return executionResult.Value;
         }
@@ -198,7 +202,7 @@ namespace Steamfitter.Api.Services
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.Vsphere.Requests.FileRead>(parameters);
             // the moid parameter is actually a Guid and the moid must be looked up
             command.Moid = GetVmMoid(Guid.Parse(command.Moid));
-            var executionResult = await _vsphere.GuestFileRead(command);
+            var executionResult = await _stackStormConnector.VSphere.GuestFileRead(command);
 
             return executionResult.Value;
         }
@@ -212,7 +216,7 @@ namespace Steamfitter.Api.Services
             command.GuestFileContent = command.GuestFileContent.Replace("<*0x0A*>", "\r\n");
             // the moid parameter is actually a Guid and the moid must be looked up
             command.Moid = GetVmMoid(Guid.Parse(command.Moid));
-            var executionResult = await _vsphere.GuestFileWrite(command);
+            var executionResult = await _stackStormConnector.VSphere.GuestFileWrite(command);
 
             return executionResult.Value;
         }
@@ -223,7 +227,7 @@ namespace Steamfitter.Api.Services
             {
                 // the moid parameter is actually a Guid and the moid must be looked up
                 var moid = GetVmMoid(Guid.Parse(command.RootElement.GetProperty("Moid").GetString()));
-                var executionResult = await _vsphere.GuestPowerOn(moid);
+                var executionResult = await _stackStormConnector.VSphere.GuestPowerOn(moid);
 
                 return executionResult.State.ToString();
             }
@@ -235,7 +239,7 @@ namespace Steamfitter.Api.Services
             {
                 // the moid parameter is actually a Guid and the moid must be looked up
                 var moid = GetVmMoid(Guid.Parse(command.RootElement.GetProperty("Moid").GetString()));
-                var executionResult = await _vsphere.GuestPowerOff(moid);
+                var executionResult = await _stackStormConnector.VSphere.GuestPowerOff(moid);
 
                 return executionResult.State.ToString();
             }
@@ -244,7 +248,7 @@ namespace Steamfitter.Api.Services
         public async STT.Task<string> CreateVmFromTemplate(string parameters)
         {
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.Vsphere.Requests.CreateVmFromTemplate>(parameters);
-            var executionResult = await _vsphere.CreateVmFromTemplate(command);
+            var executionResult = await _stackStormConnector.VSphere.CreateVmFromTemplate(command);
 
             return executionResult.Value;
         }
@@ -255,12 +259,18 @@ namespace Steamfitter.Api.Services
             {
                 // the moid parameter is actually a Guid and the moid must be looked up
                 var moid = GetVmMoid(Guid.Parse(command.RootElement.GetProperty("Moid").GetString()));
-                var executionResult = await _vsphere.RemoveVm(moid);
+                var executionResult = await _stackStormConnector.VSphere.RemoveVm(moid);
 
                 return executionResult.Value;
             }
         }
 
+        public async STT.Task<string> SendEmail(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<EmailSendDTO>(parameters).ToObject();
+            var executionResult = await _stackStormConnector.Email.SendEmail(command);
+            return executionResult.Success.ToString();
+        }
     }
 
     public class VmIdentityStrings
@@ -268,5 +278,31 @@ namespace Steamfitter.Api.Services
         public string Moid { get; set; }
         public string Name { get; set; }
     }
-}
 
+    class EmailSendDTO
+    {
+        public string Account { get; set; }
+        public string EmailFrom { get; set; }
+        public string EmailTo { get; set; }
+        public string Message { get; set; }
+        public string Subject { get; set; }
+        public string AttachmentPaths { get; set; }
+        public string EmailCC { get; set; }
+        public string Mime { get; set; }
+
+        public Requests.EmailSend ToObject()
+        {
+            return new Requests.EmailSend
+            {
+                Account = Account,
+                AttachmentPaths = AttachmentPaths?.Split(','),
+                EmailCC = EmailCC?.Split(','),
+                EmailFrom = EmailFrom,
+                EmailTo = EmailTo?.Split(','),
+                Message = Message,
+                Mime = Mime,
+                Subject = Subject
+            };
+        }
+    }
+}
