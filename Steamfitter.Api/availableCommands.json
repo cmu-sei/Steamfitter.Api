@@ -226,7 +226,7 @@
                     "key": "Body",
                     "display": "Body",
                     "hint": "The body to be passed to the POST request.",
-                    "inputType": "text"
+                    "inputType": "textArea"
                 }
             ]
         },
@@ -246,7 +246,7 @@
                     "key": "Body",
                     "display": "Body",
                     "hint": "The body to be passed to the PUT request.",
-                    "inputType": "text"
+                    "inputType": "textArea"
                 }
             ]
         },
