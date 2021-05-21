@@ -451,13 +451,13 @@ namespace Steamfitter.Api.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogInformation("the executing task caused an exception", ex);
+                    _logger.LogInformation(ex, "the executing task caused an exception");
                 }
             }
             return overallStatus;
         }
 
-         private async STT.Task<STT.Task<string>> RunTask(TaskEntity taskToExecute, ResultEntity resultEntity, CancellationToken ct)
+        private async STT.Task<STT.Task<string>> RunTask(TaskEntity taskToExecute, ResultEntity resultEntity, CancellationToken ct)
         {
             STT.Task<string> task = null;
             switch (taskToExecute.ApiUrl)
