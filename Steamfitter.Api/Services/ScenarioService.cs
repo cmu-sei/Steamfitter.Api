@@ -29,7 +29,7 @@ namespace Steamfitter.Api.Services
         STT.Task<ViewModels.Scenario> GetAsync(Guid Id, CancellationToken ct);
         STT.Task<ViewModels.Scenario> GetMineAsync(CancellationToken ct);
         STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioForm scenarioForm, CancellationToken ct);
-        STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, CancellationToken ct);
+        STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, SAVM.ScenarioCloneOptions options, CancellationToken ct);
         STT.Task<ViewModels.Scenario> CreateFromScenarioAsync(Guid scenarioId, CancellationToken ct);
         STT.Task<ViewModels.Scenario> UpdateAsync(Guid Id, ViewModels.ScenarioForm scenarioForm, CancellationToken ct);
         STT.Task<ViewModels.Scenario> AddUsersAsync(Guid Id, IEnumerable<Guid> userIds, CancellationToken ct);
@@ -173,7 +173,7 @@ namespace Steamfitter.Api.Services
             return scenario;
         }
 
-        public async STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, CancellationToken ct)
+        public async STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, SAVM.ScenarioCloneOptions options, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
                 throw new ForbiddenException();
@@ -191,6 +191,7 @@ namespace Steamfitter.Api.Services
                 OnDemand = true,
                 ScenarioTemplateId = scenarioTemplateId
             };
+
             var durationHours = scenarioTemplateEntity.DurationHours != null ? (int)scenarioTemplateEntity.DurationHours : 720;
             scenarioEntity.EndDate = scenarioEntity.StartDate.AddHours(durationHours);
             _context.Scenarios.Add(scenarioEntity);
@@ -208,6 +209,27 @@ namespace Steamfitter.Api.Services
             foreach (var oldTaskEntity in oldTaskEntities)
             {
                 await _taskService.CopyAsync(oldTaskEntity.Id, scenarioEntity.Id, "scenario", ct);
+            }
+
+            if (options != null)
+            {
+                if (!string.IsNullOrEmpty(options.NameSuffix))
+                {
+                    scenarioEntity.Name = scenarioTemplateEntity.Name + options.NameSuffix;
+                }
+
+                if (options.ViewId.HasValue)
+                {
+                    scenarioEntity.ViewId = options.ViewId;
+                }
+
+                if (options.UserIds != null && options.UserIds.Any())
+                {
+
+                    await AddUsersAsync(scenarioEntity.Id, options.UserIds, ct);
+                }
+
+                await _context.SaveChangesAsync(ct);
             }
 
             await transaction.CommitAsync(ct);
