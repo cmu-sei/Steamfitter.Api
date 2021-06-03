@@ -12,6 +12,7 @@ using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Services;
 using SAVM = Steamfitter.Api.ViewModels;
 using Swashbuckle.AspNetCore.Annotations;
+using Steamfitter.Api.ViewModels;
 
 namespace Steamfitter.Api.Controllers
 {
@@ -173,13 +174,14 @@ namespace Steamfitter.Api.Controllers
         /// Accessible only to a SuperUser or an Administrator
         /// </remarks>
         /// <param name="id">The ScenarioTemplate ID to create the Scenario with</param>
+        /// <param name="options"></param>
         /// <param name="ct"></param>
         [HttpPost("ScenarioTemplates/{id}/Scenarios")]
         [ProducesResponseType(typeof(SAVM.Scenario), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createScenarioFromScenarioTemplate")]
-        public async STT.Task<IActionResult> CreateFromScenarioTemplate(Guid id, CancellationToken ct)
+        public async STT.Task<IActionResult> CreateFromScenarioTemplate(Guid id, [FromBody] ScenarioCloneOptions options, CancellationToken ct)
         {
-            var createdScenario = await _ScenarioService.CreateFromScenarioTemplateAsync(id, ct);
+            var createdScenario = await _ScenarioService.CreateFromScenarioTemplateAsync(id, options, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdScenario.Id }, createdScenario);
         }
 
