@@ -412,7 +412,8 @@ namespace Steamfitter.Api.Services
             foreach (var resultEntity in resultEntityList)
             {
                 resultEntity.InputString = resultEntity.InputString.Replace("{moid}", resultEntity.VmId.ToString());
-                if (resultEntity.VmId != null)
+                resultEntity.InputString = resultEntity.InputString.Replace("{VmName}", resultEntity.VmName);
+                if (resultEntity.VmId != null && resultEntity.VmName == "")
                 {
                     resultEntity.VmName = _stackStormService.GetVmName((Guid)resultEntity.VmId);
                 }
@@ -509,6 +510,11 @@ namespace Steamfitter.Api.Services
                             case TaskAction.send_email:
                                 {
                                     task = STT.Task.Run(() => _stackStormService.SendEmail(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.vm_shell_script:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.AzureGovVmShellScript(resultEntity.InputString));
                                     break;
                                 }
                             default:

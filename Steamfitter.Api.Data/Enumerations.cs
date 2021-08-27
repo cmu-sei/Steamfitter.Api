@@ -20,7 +20,8 @@ namespace Steamfitter.Api.Data
         vm_hw_remove = 106,
         guest_process_run_fast = 107,
         guest_file_upload_content = 108,
-        send_email = 109
+        send_email = 109,
+        vm_shell_script = 110
     }
 
     public enum TaskStatus
