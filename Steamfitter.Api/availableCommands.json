@@ -2,7 +2,7 @@
     "availableCommands": [
         {
             "api": "stackstorm",
-            "action": "vm_shell_script",
+            "action": "az_vm_shell_script",
             "display": "AzureGov VM Shell Script Execution",
             "requiresVm": true,
             "parameters": [
@@ -39,6 +39,34 @@
                             "display": "PowerShell"
                         }
                     ]
+                }
+            ]
+        },
+        {
+            "api": "stackstorm",
+            "action": "az_vm_power_off",
+            "display": "AzureGov VM Power Off",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "VmName",
+                    "display": "VM Name",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                }
+            ]
+        },
+        {
+            "api": "stackstorm",
+            "action": "az_vm_power_on",
+            "display": "AzureGov VM Power On",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "VmName",
+                    "display": "VM Name",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
                 }
             ]
         },

@@ -512,9 +512,24 @@ namespace Steamfitter.Api.Services
                                     task = STT.Task.Run(() => _stackStormService.SendEmail(resultEntity.InputString));
                                     break;
                                 }
-                            case TaskAction.vm_shell_script:
+                            case TaskAction.az_vm_shell_script:
                                 {
                                     task = STT.Task.Run(() => _stackStormService.AzureGovVmShellScript(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.az_get_vms:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.AzureGovGetVms(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.az_vm_power_off:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.AzureGovVmPowerOff(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.az_vm_power_on:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.AzureGovVmPowerOn(resultEntity.InputString));
                                     break;
                                 }
                             default:
