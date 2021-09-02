@@ -35,6 +35,10 @@ namespace Steamfitter.Api.Services
         STT.Task<string> CreateVmFromTemplate(string parameters);
         STT.Task<string> VmRemove(string parameters);
         STT.Task<string> SendEmail(string parameters);
+        STT.Task<string> AzureGovGetVms(string parameters);
+        STT.Task<string> AzureGovVmPowerOff(string parameters);
+        STT.Task<string> AzureGovVmPowerOn(string parameters);
+        STT.Task<string> AzureGovVmShellScript(string parameters);
     }
 
     public class StackStormService : IStackStormService
@@ -83,7 +87,7 @@ namespace Steamfitter.Api.Services
 
         public string GetVmName(Guid uuid)
         {
-            return _vmList[uuid].Name;
+            return _vmList.ContainsKey(uuid) ? _vmList[uuid].Name : "Unknown";
         }
 
         public STT.Task StartAsync(CancellationToken cancellationToken)
@@ -271,6 +275,39 @@ namespace Steamfitter.Api.Services
             var executionResult = await _stackStormConnector.Email.SendEmail(command);
             return executionResult.Success.ToString();
         }
+
+        public async STT.Task<string> AzureGovGetVms(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.AzureGov.Requests.BaseRequest>(parameters);
+            var executionResult = await _stackStormConnector.AzureGov.GetVms(command);
+
+            return executionResult.Value;
+        }
+
+        public async STT.Task<string> AzureGovVmPowerOff(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.AzureGov.Requests.VmOnOff>(parameters);
+            var executionResult = await _stackStormConnector.AzureGov.VmPowerOff(command);
+
+            return executionResult.Value;
+        }
+
+        public async STT.Task<string> AzureGovVmPowerOn(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.AzureGov.Requests.VmOnOff>(parameters);
+            var executionResult = await _stackStormConnector.AzureGov.VmPowerOn(command);
+
+            return executionResult.Value;
+        }
+
+        public async STT.Task<string> AzureGovVmShellScript(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.AzureGov.Requests.VmShellScript>(parameters);
+            var executionResult = await _stackStormConnector.AzureGov.ShellScript(command);
+
+            return executionResult.Value;
+        }
+
     }
 
     public class VmIdentityStrings
