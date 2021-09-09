@@ -230,8 +230,17 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.Task> CreateAsync(SAVM.TaskForm taskForm, CancellationToken ct)
         {
+            // check permissions.  Content developers are good
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
+            {
+                var hasEmailClients = _options.ApiParameters != null && _options.ApiParameters.ContainsKey("CanSendEmailClients");
+                var canSendEmailClients = hasEmailClients ? _options.ApiParameters["CanSendEmailClients"].ToString() : "";
+                // users from allowed Send Email Clients can send emails
+                if (!(taskForm.Action == TaskAction.send_email && canSendEmailClients.Contains(_user.FindFirst("client_id")?.Value)))
+                {
+                    throw new ForbiddenException();
+                }
+            }
             var vmListCount = taskForm.VmList != null ? taskForm.VmList.Count : 0;
             if (vmListCount > 0)
             {
@@ -263,9 +272,8 @@ namespace Steamfitter.Api.Services
 
             _context.Tasks.Add(taskEntity);
             await _context.SaveChangesAsync(ct);
-            var task = await GetAsync(taskEntity.Id, ct);
 
-            return task;
+            return _mapper.Map<SAVM.Task>(taskEntity);;
         }
 
         public async STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskForm taskForm, CancellationToken ct)
@@ -315,11 +323,22 @@ namespace Steamfitter.Api.Services
                 {
                     throw new ForbiddenException("Task cannot be executed in it's current state");
                 }
-
+                // Check permissions.  Content Developer and System Admins are good
                 if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
                 {
-                    if (!taskToExecute.Scenario.Users.Any(x => x.UserId == _user.GetId()))
+                    var hasEmailClients = _options.ApiParameters != null && _options.ApiParameters.ContainsKey("CanSendEmailClients");
+                    var canSendEmailClients = hasEmailClients ? _options.ApiParameters["CanSendEmailClients"].ToString() : "";
+                    // Scenario users are good and users from allowed Send Email Clients can send emails
+                    if (
+                        !taskToExecute.Scenario.Users.Any(x => x.UserId == _user.GetId()) &&
+                        !(
+                            taskToExecute.Action == TaskAction.send_email &&
+                            canSendEmailClients.Contains(_user.FindFirst("client_id")?.Value)
+                        )
+                       )
+                    {
                         throw new ForbiddenException();
+                    }
                 }
 
                 taskToExecute.ResetTree(_user.GetId());
