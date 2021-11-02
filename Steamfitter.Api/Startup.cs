@@ -56,15 +56,10 @@ namespace Steamfitter.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<TaskMaintenanceServiceHealthCheck>();
-            services.AddSingleton<StackStormServiceHealthCheck>();
             services.AddSingleton<StartupHealthCheck>();
             services.AddHealthChecks()
                 .AddCheck<TaskMaintenanceServiceHealthCheck>(
                     "task_service_responsive",
-                    failureStatus: HealthStatus.Unhealthy,
-                    tags: new[] { "live" })
-                .AddCheck<StackStormServiceHealthCheck>(
-                    "stackstorm_service_responsive",
                     failureStatus: HealthStatus.Unhealthy,
                     tags: new[] { "live" })
                 .AddCheck<StartupHealthCheck>(
