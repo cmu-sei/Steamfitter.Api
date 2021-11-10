@@ -42,7 +42,7 @@
     <PackageReference Include="AspNetCore.HealthChecks.Sqlite" Version="3.1.0"/>
     <PackageReference Include="MediatR" Version="9.0.0"/>
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="9.0.0"/>
-    <PackageReference Include="Stackstorm.Connector" Version="2.1.0"/>
+    <PackageReference Include="Stackstorm.Connector" Version="2.2.2"/>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Steamfitter.Api.Data\Steamfitter.Api.Data.csproj"/>

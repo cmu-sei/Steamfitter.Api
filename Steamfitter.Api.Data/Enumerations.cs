@@ -24,7 +24,8 @@ namespace Steamfitter.Api.Data
         az_vm_shell_script = 110,
         az_get_vms = 111,
         az_vm_power_off = 112,
-        az_vm_power_on
+        az_vm_power_on = 113,
+        guest_file_upload_file = 114,
     }
 
     public enum TaskStatus

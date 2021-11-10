@@ -213,7 +213,7 @@ namespace Steamfitter.Api.Services
             var validJson = parameters.Replace("\r\n", "<*0x0A*>").Replace("\n", "<*0x0A*>");
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.Vsphere.Requests.FileWrite>(validJson);
             // \r\n is required for windows and still works in Ubuntu
-            command.GuestFileContent = command.GuestFileContent.Replace("<*0x0A*>", "\r\n");
+            command.GuestFileContent = command.GuestFileContent?.Replace("<*0x0A*>", "\r\n");
             // the moid parameter is actually a Guid and the moid must be looked up
             command.Moid = GetVmMoid(Guid.Parse(command.Moid));
             var executionResult = await _stackStormConnector.VSphere.GuestFileWrite(command);

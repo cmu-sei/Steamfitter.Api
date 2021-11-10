@@ -473,6 +473,7 @@ namespace Steamfitter.Api.Services
                                     break;
                                 }
                             case TaskAction.guest_file_upload_content:
+                            case TaskAction.guest_file_upload_file:
                                 {
                                     task = STT.Task.Run(() => _stackStormService.GuestFileUploadContent(resultEntity.InputString));
                                     break;
