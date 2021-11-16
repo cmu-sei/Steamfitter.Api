@@ -1,38 +1,38 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
+using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Principal;
+using System.Text.Json.Serialization;
+using AutoMapper;
+using MediatR;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Data;
+using Steamfitter.Api.Infrastructure.Authorization;
+using Steamfitter.Api.Infrastructure.DbInterceptors;
+using Steamfitter.Api.Infrastructure.Extensions;
+using Steamfitter.Api.Infrastructure.Filters;
+using Steamfitter.Api.Infrastructure.HealthChecks;
 using Steamfitter.Api.Infrastructure.JsonConverters;
 using Steamfitter.Api.Infrastructure.Mapping;
 using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Services;
-using System;
-using AutoMapper;
-using Steamfitter.Api.Infrastructure.Authorization;
-using Steamfitter.Api.Infrastructure.Filters;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Principal;
-using System.Linq;
-using System.Text.Json.Serialization;
-using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Steamfitter.Api.Infrastructure.HealthChecks;
-using MediatR;
-using Steamfitter.Api.Infrastructure.DbInterceptors;
 
 namespace Steamfitter.Api
 {
@@ -250,7 +250,7 @@ namespace Steamfitter.Api
             app.UseSwaggerUI(c =>
             {
                 c.RoutePrefix = _routePrefix;
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Steamfitter v1");
+                c.SwaggerEndpoint($"{_pathbase}/swagger/v1/swagger.json", "Steamfitter v1");
                 c.OAuthClientId(_authOptions.ClientId);
                 c.OAuthClientSecret(_authOptions.ClientSecret);
                 c.OAuthAppName(_authOptions.ClientName);
