@@ -15,6 +15,7 @@ using System.Text.Json;
 using Player.Api;
 using Player.Vm.Api;
 using System.Net.Http;
+using Player.Api.Client;
 
 namespace Steamfitter.Api.Infrastructure.Extensions
 {
@@ -88,11 +89,7 @@ namespace Steamfitter.Api.Infrastructure.Extensions
                 httpClient.BaseAddress = playerUri;
                 httpClient.DefaultRequestHeaders.Add("Authorization", authHeader);
 
-                var apiClient = new PlayerApiClient(httpClient, true)
-                {
-                    BaseUri = playerUri
-                };
-
+                var apiClient = new PlayerApiClient(httpClient);
                 return apiClient;
             });
         }

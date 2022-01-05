@@ -14,7 +14,7 @@ namespace Steamfitter.Api.Infrastructure.HealthChecks
     public class TaskMaintenanceServiceHealthCheck : IHealthCheck
     {
         private int _healthAllowance = 90;
-        private DateTime _lastRun = DateTime.Now;
+        private DateTime _lastRun = DateTime.UtcNow;
 
         public int HealthAllowance
         {
@@ -28,14 +28,14 @@ namespace Steamfitter.Api.Infrastructure.HealthChecks
         }
         public void CompletedRun()
         {
-            LastRun = DateTime.Now;
+            LastRun = DateTime.UtcNow;
         }
 
         public Task<HealthCheckResult> CheckHealthAsync(
             HealthCheckContext context,
             CancellationToken cancellationToken = default(CancellationToken))
         {
-            if ((DateTime.Now - LastRun).TotalSeconds < HealthAllowance)
+            if ((DateTime.UtcNow - LastRun).TotalSeconds < HealthAllowance)
             {
                 return Task.FromResult(
                     HealthCheckResult.Healthy("The TaskMaintenance Service is responsive."));

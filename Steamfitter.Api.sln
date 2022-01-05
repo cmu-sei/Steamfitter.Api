@@ -6,12 +6,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Steamfitter.Api.Data", "Ste
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Steamfitter.Api.Migrations.PostgreSQL", "Steamfitter.Api.Migrations.PostgreSQL\Steamfitter.Api.Migrations.PostgreSQL.csproj", "{9B0A7220-4E76-4D56-9AA0-2280A0238AA7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "stackstorm.api.client", "..\stackstorm.api\Stackstorm.Api.Client\Stackstorm.Api.Client.csproj", "{9EA0CCBF-3084-4A34-94AA-30C01612EA77}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "stackstorm.connector", "..\stackstorm.api\Stackstorm.Connector\Stackstorm.Connector.csproj", "{2094EAB7-4039-4F91-A372-D8E444233F51}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bond", "Bond\Bond.csproj", "{7829E76A-C737-42C7-8046-7C05A00E31F8}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
