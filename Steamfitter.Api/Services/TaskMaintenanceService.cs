@@ -68,10 +68,12 @@ namespace Steamfitter.Api.Services
                 {
                     try
                     {
-                        using (var scope = _scopeFactory.CreateScope())
+                        // Two scopes are needed because DBContext is not thread-safe
+                        using (var scope1 = _scopeFactory.CreateScope())
+                        using (var scope2 = _scopeFactory.CreateScope())
                         {
-                            var task1 = ExpireTasks(scope);
-                            var task2 = EndScenarios(scope);
+                            var task1 = ExpireTasks(scope1);
+                            var task2 = EndScenarios(scope2);
                             await STT.Task.WhenAll(task1, task2);
                         }
                     }
@@ -103,7 +105,7 @@ namespace Steamfitter.Api.Services
                             resultEntity.Status = TaskStatus.expired;
                             resultEntity.StatusDate = now;
                             await steamfitterContext.SaveChangesAsync();
-                            _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
+                            _ = _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
                             _logger.LogDebug($"TaskMaintenanceService expired Result {resultEntity.Id}.");
                         }
                     }
