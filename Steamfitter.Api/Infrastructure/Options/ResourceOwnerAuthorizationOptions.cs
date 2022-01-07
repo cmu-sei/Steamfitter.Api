@@ -17,6 +17,7 @@ namespace Steamfitter.Api.Infrastructure.Options
         public string Password { get; set; }
         public string Scope { get; set; }
         public int TokenExpirationBufferSeconds { get; set; }
+        public bool ValidateDiscoveryDocument { get; set; }
     }
 }
 

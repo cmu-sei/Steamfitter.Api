@@ -145,8 +145,7 @@ namespace Steamfitter.Api
             {
                 options.JsonSerializerOptions.Converters.Add(new JsonNullableGuidConverter());
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-            })
-            .SetCompatibilityVersion(CompatibilityVersion.Latest);
+            });
 
             services.AddSwagger(_authOptions);
             services.AddPlayerApiClient();

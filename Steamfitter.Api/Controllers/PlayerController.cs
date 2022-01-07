@@ -10,8 +10,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Steamfitter.Api.Services;
 using Swashbuckle.AspNetCore.Annotations;
-using Player.Api.Models;
 using Player.Vm.Api.Models;
+using Player.Api.Client;
 
 namespace Steamfitter.Api.Controllers
 {

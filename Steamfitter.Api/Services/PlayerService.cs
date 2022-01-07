@@ -1,10 +1,9 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using Player.Api;
-using Player.Api.Models;
 using System.Collections.Generic;
 using System.Threading;
+using Player.Api.Client;
 using STT = System.Threading.Tasks;
 
 

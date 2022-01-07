@@ -13,11 +13,10 @@ using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Options;
-using Z.EntityFramework.Plus;
 
 namespace Steamfitter.Api.Services
 {
-    public interface IUserClaimsService 
+    public interface IUserClaimsService
     {
         STT.Task<ClaimsPrincipal> AddUserClaims(ClaimsPrincipal principal, bool update);
         STT.Task<ClaimsPrincipal> GetClaimsPrincipal(Guid userId, bool setAsCurrent);
@@ -35,7 +34,7 @@ namespace Steamfitter.Api.Services
 
         public UserClaimsService(SteamfitterContext context, IMemoryCache cache, ClaimsTransformationOptions options)
         {
-            _context = context;            
+            _context = context;
             _options = options;
             _cache = cache;
         }
@@ -51,7 +50,7 @@ namespace Steamfitter.Api.Services
                 claims = new List<Claim>();
                 var user = await ValidateUser(userId, principal.FindFirst("name")?.Value, update);
 
-                if(user != null)
+                if (user != null)
                 {
                     claims.AddRange(await GetUserClaims(userId));
 
@@ -59,14 +58,14 @@ namespace Steamfitter.Api.Services
                     {
                         _cache.Set(userId, claims, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromSeconds(_options.CacheExpirationSeconds)));
                     }
-                }                
+                }
             }
             addNewClaims(identity, claims);
             return principal;
         }
 
         public async STT.Task<ClaimsPrincipal> GetClaimsPrincipal(Guid userId, bool setAsCurrent)
-        {                        
+        {
             ClaimsIdentity identity = new ClaimsIdentity();
             identity.AddClaim(new Claim("sub", userId.ToString()));
             ClaimsPrincipal principal = new ClaimsPrincipal(identity);
@@ -99,11 +98,13 @@ namespace Steamfitter.Api.Services
 
         private async STT.Task<UserEntity> ValidateUser(Guid subClaim, string nameClaim, bool update)
         {
-            var userQuery = _context.Users.Where(u => u.Id == subClaim).Future();
-            var anyUsers = _context.Users.DeferredAny().FutureValue();
-            var user = (await userQuery.ToListAsync()).SingleOrDefault();
+            var user = await _context.Users
+                .Where(u => u.Id == subClaim)
+                .SingleOrDefaultAsync();
 
-            if(update)
+            var anyUsers = await _context.Users.AnyAsync();
+
+            if (update)
             {
                 if (user == null)
                 {
@@ -114,7 +115,7 @@ namespace Steamfitter.Api.Services
                     };
 
                     // First user is default SystemAdmin
-                    if (!(await anyUsers.ValueAsync()))
+                    if (!anyUsers)
                     {
                         var systemAdminPermission = await _context.Permissions.Where(p => p.Key == SteamfitterClaimTypes.SystemAdmin.ToString()).FirstOrDefaultAsync();
 
@@ -136,7 +137,7 @@ namespace Steamfitter.Api.Services
                         await _context.SaveChangesAsync();
                     }
                 }
-            }            
+            }
 
             return user;
         }
@@ -148,18 +149,18 @@ namespace Steamfitter.Api.Services
             var userPermissions = await _context.UserPermissions
                 .Where(u => u.UserId == userId)
                 .Include(x => x.Permission)
-                .ToArrayAsync();         
+                .ToArrayAsync();
 
             if (userPermissions.Where(x => x.Permission.Key == SteamfitterClaimTypes.SystemAdmin.ToString()).Any())
             {
                 claims.Add(new Claim(SteamfitterClaimTypes.SystemAdmin.ToString(), "true"));
             }
-            
+
             if (userPermissions.Where(x => x.Permission.Key == SteamfitterClaimTypes.ContentDeveloper.ToString()).Any())
             {
                 claims.Add(new Claim(SteamfitterClaimTypes.ContentDeveloper.ToString(), "true"));
             }
-            
+
             if (userPermissions.Where(x => x.Permission.Key == SteamfitterClaimTypes.Operator.ToString()).Any())
             {
                 claims.Add(new Claim(SteamfitterClaimTypes.Operator.ToString(), "true"));
@@ -169,14 +170,14 @@ namespace Steamfitter.Api.Services
             {
                 claims.Add(new Claim(SteamfitterClaimTypes.BaseUser.ToString(), "true"));
             }
-            
+
             return claims;
         }
 
         private void addNewClaims(ClaimsIdentity identity, List<Claim> claims)
         {
             var newClaims = new List<Claim>();
-            claims.ForEach(delegate(Claim claim)
+            claims.ForEach(delegate (Claim claim)
             {
                 if (!identity.Claims.Any(identityClaim => identityClaim.Type == claim.Type))
                 {

@@ -9,7 +9,7 @@ namespace Steamfitter.Api.Data.Models
     {
         public BaseEntity()
         {
-            this.DateCreated = DateTime.Now;
+            this.DateCreated = DateTime.UtcNow;
         }
         public DateTime DateCreated { get; set; }
         public DateTime? DateModified { get; set; }
