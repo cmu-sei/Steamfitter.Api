@@ -55,6 +55,13 @@ namespace Steamfitter.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // Add Azure Application Insights, if connection string is supplied
+            string appInsights = Configuration["ApplicationInsights:ConnectionString"];
+            if (!string.IsNullOrWhiteSpace(appInsights))
+            {
+                services.AddApplicationInsightsTelemetry();
+            }
+
             services.AddSingleton<TaskMaintenanceServiceHealthCheck>();
             services.AddSingleton<StartupHealthCheck>();
             services.AddHealthChecks()
