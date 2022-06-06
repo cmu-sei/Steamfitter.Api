@@ -5,11 +5,12 @@ using System.Security.Claims;
 using STT = System.Threading.Tasks;
 using Steamfitter.Api.Services;
 using Microsoft.AspNetCore.Authentication;
+using Steamfitter.Api.Infrastructure.Extensions;
 
 namespace Steamfitter.Api.Infrastructure.Authorization
 {
     class AuthorizationClaimsTransformer : IClaimsTransformation
-    {        
+    {
         private IUserClaimsService _claimsService;
 
         public AuthorizationClaimsTransformer(IUserClaimsService claimsService)
@@ -19,10 +20,11 @@ namespace Steamfitter.Api.Infrastructure.Authorization
 
         public async STT.Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
         {
-            var user = await _claimsService.AddUserClaims(principal, true);
+            var user = principal.NormalizeScopeClaims();
+            user = await _claimsService.AddUserClaims(user, true);
             _claimsService.SetCurrentClaimsPrincipal(user);
             return user;
-        }       
+        }
     }
 }
 
