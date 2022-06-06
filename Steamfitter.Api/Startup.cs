@@ -166,10 +166,22 @@ namespace Steamfitter.Api
                 options.Authority = _authOptions.Authority;
                 options.RequireHttpsMetadata = _authOptions.RequireHttpsMetadata;
                 options.SaveToken = true;
+
+                string[] validAudiences;
+
+                if (_authOptions.ValidAudiences != null && _authOptions.ValidAudiences.Any())
+                {
+                    validAudiences = _authOptions.ValidAudiences;
+                }
+                else
+                {
+                    validAudiences = _authOptions.AuthorizationScope.Split(' ');
+                }
+
                 options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
                 {
-                    ValidateIssuer = true,
-                    ValidAudiences = _authOptions.AuthorizationScope.Split(' ')
+                    ValidateAudience = _authOptions.ValidateAudience,
+                    ValidAudiences = validAudiences
                 };
             });
 
@@ -286,7 +298,7 @@ namespace Steamfitter.Api
 
         private void ApplyPolicies(IServiceCollection services)
         {
-            services.AddAuthorizationPolicy();
+            services.AddAuthorizationPolicy(_authOptions);
         }
     }
 }
