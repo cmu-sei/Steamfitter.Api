@@ -36,7 +36,8 @@ namespace Steamfitter.Api.Services
         STT.Task<string> CreateVmFromTemplate(string parameters);
         STT.Task<string> VmRemove(string parameters);
         STT.Task<string> SendEmail(string parameters);
-        STT.Task<string> FileTouch(string parameters);
+        STT.Task<string> LinuxFileTouch(string parameters);
+        STT.Task<string> LinuxRm(string parameters);
         STT.Task<string> AzureGovGetVms(string parameters);
         STT.Task<string> AzureGovVmPowerOff(string parameters);
         STT.Task<string> AzureGovVmPowerOn(string parameters);
@@ -283,13 +284,19 @@ namespace Steamfitter.Api.Services
             return executionResult.Success.ToString();
         }
 
-        public async STT.Task<string> FileTouch(string parameters)
+        public async STT.Task<string> LinuxFileTouch(string parameters)
         {
-            var command = JsonSerializer.Deserialize<FileTouchDTO>(parameters).ToObject();
-            var executionResult = await _stackStormConnector.Linux.FileTouch(command);
+            var command = JsonSerializer.Deserialize<LinuxFileTouchDTO>(parameters).ToObject();
+            var executionResult = await _stackStormConnector.Linux.LinuxFileTouch(command);
             return executionResult.Success.ToString();
         }
 
+        public async STT.Task<string> LinuxRm(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<LinuxRmDTO>(parameters).ToObject();
+            var executionResult = await _stackStormConnector.Linux.LinuxRm(command);
+            return executionResult.Success.ToString();
+        }
         public async STT.Task<string> AzureGovGetVms(string parameters)
         {
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.AzureGov.Requests.BaseRequest>(parameters);
@@ -357,7 +364,7 @@ namespace Steamfitter.Api.Services
         }
     }
 
-    class FileTouchDTO
+    class LinuxFileTouchDTO
     {
         public string Hosts { get; set; }
         public string Port { get; set; }
@@ -368,9 +375,9 @@ namespace Steamfitter.Api.Services
         public string Env { get; set; }
         //public bool Sudo { get; set; }
 
-        public Stackstorm.Connector.Models.Linux.Requests.FileTouch ToObject()
+        public Stackstorm.Connector.Models.Linux.Requests.LinuxFileTouch ToObject()
         {
-            return new Stackstorm.Connector.Models.Linux.Requests.FileTouch
+            return new Stackstorm.Connector.Models.Linux.Requests.LinuxFileTouch
             {
                 Username = Username,
                 Password = Password,
@@ -383,5 +390,39 @@ namespace Steamfitter.Api.Services
             };
         }
     }
+
+    class LinuxRmDTO
+    {
+        public string Hosts { get; set; }
+        public string Port { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public string Target { get; set; }
+        public string Cwd { get; set; }
+        public string Env { get; set; }
+        public string Args { get; set; }
+        public string Sudo { get; set; }
+        public string Recursive { get; set; }
+        public string Force { get; set; }
+
+        public Stackstorm.Connector.Models.Linux.Requests.LinuxRm ToObject()
+        {
+            return new Stackstorm.Connector.Models.Linux.Requests.LinuxRm
+            {
+                Username = Username,
+                Password = Password,
+                Port = Port,
+                Hosts = Hosts,
+                Target = Target,
+                Cwd = Cwd,
+                Args = Args,
+                Env = Env,
+                Force = Force.ToLower() == "true",
+                Sudo = Sudo.ToLower() == "true",
+                Recursive = Recursive.ToLower() == "true"
+            };
+        }
+    }
+
 
 }

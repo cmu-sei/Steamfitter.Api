@@ -513,9 +513,14 @@ namespace Steamfitter.Api.Services
                                     task = STT.Task.Run(() => _stackStormService.SendEmail(resultEntity.InputString));
                                     break;
                                 }
-                            case TaskAction.file_touch:
+                            case TaskAction.linux_file_touch:
                                 {
-                                    task = STT.Task.Run(() => _stackStormService.FileTouch(resultEntity.InputString));
+                                    task = STT.Task.Run(() => _stackStormService.LinuxFileTouch(resultEntity.InputString));
+                                    break;
+                                }
+                            case TaskAction.linux_rm:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.LinuxRm(resultEntity.InputString));
                                     break;
                                 }
                             case TaskAction.az_vm_shell_script:

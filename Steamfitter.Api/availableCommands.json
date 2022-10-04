@@ -306,7 +306,7 @@
         },
         {
             "api": "stackstorm",
-            "action": "file_touch",
+            "action": "linux_file_touch",
             "display": "Touch a File",
             "requiresVm": false,
             "parameters": [
@@ -319,7 +319,7 @@
                 {
                     "key": "Password",
                     "display": "Password",
-                    "hint": "Password for user",
+                    "hint": "Password used to log in. If not provided, private key from the config file is used.",
                     "inputType": "text"
                 },
                 {
@@ -343,14 +343,93 @@
                 {
                     "key": "Cwd",
                     "display": "CWD",
-                    "hint": "Current Working Directory",
+                    "hint": "Working directory where the script will be executed in",
                     "inputType": "text"
                 },
                 {
                     "key": "Env",
                     "display": "Env",
-                    "hint": "Environment variables to set",
+                    "hint": "Environment variables which will be available to the command(e.g. key1=val1,key2=val2)",
                     "inputType": "text"
+                }
+            ]
+        },
+        {
+            "api": "stackstorm",
+            "action": "linux_rm",
+            "display": "Remove file(s)",
+            "requiresVm": false,
+            "parameters": [
+                {
+                    "key": "Username",
+                    "display": "Username",
+                    "hint": "User to login as",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Password",
+                    "display": "Password",
+                    "hint": "Password used to log in. If not provided, private key from the config file is used.",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Hosts",
+                    "display": "Hosts",
+                    "hint": "Host for SSHD",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Port",
+                    "display": "Port",
+                    "hint": "Port for SSHD",
+                    "inputType": "text",
+                    "default": "22"
+                },
+                {
+                    "key": "Target",
+                    "display": "Target",
+                    "hint": "List of files/directories to to be removed",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Args",
+                    "display": "Args",
+                    "hint": "Command line arguments passed to rm",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Cwd",
+                    "display": "CWD",
+                    "hint": "Working directory where the script will be executed in",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Env",
+                    "display": "Env",
+                    "hint": "Environment variables which will be available to the command(e.g. key1=val1,key2=val2)",
+                    "inputType": "text",
+                    "default": "{}"
+                },
+                {
+                    "key": "Sudo",
+                    "display": "Sudo",
+                    "hint": "Boolean flag for sudo",
+                    "inputType": "checkbox",
+                    "default": "false"
+                },
+                {
+                    "key": "Recursive",
+                    "display": "Recursive",
+                    "hint": "Boolean flag for recursive",
+                    "inputType": "checkbox",
+                    "default": "false"
+                },
+                {
+                    "key": "Force",
+                    "display": "Force",
+                    "hint": "Boolean flag for force",
+                    "inputType": "checkbox",
+                    "default": "false"
                 }
             ]
         },
