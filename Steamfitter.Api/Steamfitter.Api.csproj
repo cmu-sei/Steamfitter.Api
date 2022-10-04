@@ -40,11 +40,12 @@
     <PackageReference Include="AspNetCore.HealthChecks.Sqlite" Version="6.0.1"/>
     <PackageReference Include="MediatR" Version="9.0.0"/>
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="9.0.0"/>
-    <PackageReference Include="Stackstorm.Connector" Version="2.3.0"/>
+    <!--<PackageReference Include="Stackstorm.Connector" Version="2.3.0"/>-->
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Steamfitter.Api.Data\Steamfitter.Api.Data.csproj"/>
     <ProjectReference Include="..\Steamfitter.Api.Migrations.PostgreSQL\Steamfitter.Api.Migrations.PostgreSQL.csproj"/>
+    <ProjectReference Include="..\..\Stackstorm.Api\Stackstorm.Connector\Stackstorm.Connector.csproj"/>
   </ItemGroup>
   <ItemGroup>
     <Content Update="appsettings.json">

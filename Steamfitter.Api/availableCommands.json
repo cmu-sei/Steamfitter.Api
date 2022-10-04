@@ -305,6 +305,56 @@
             ]
         },
         {
+            "api": "stackstorm",
+            "action": "file_touch",
+            "display": "Touch a File",
+            "requiresVm": false,
+            "parameters": [
+                {
+                    "key": "Username",
+                    "display": "Username",
+                    "hint": "User to login as",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Password",
+                    "display": "Password",
+                    "hint": "Password for user",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Hosts",
+                    "display": "Hosts",
+                    "hint": "Host for SSHD",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Port",
+                    "display": "Port",
+                    "hint": "Port for SSHD",
+                    "inputType": "text"
+                },
+                {
+                    "key": "File",
+                    "display": "File",
+                    "hint": "Filename",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Cwd",
+                    "display": "CWD",
+                    "hint": "Current Working Directory",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Env",
+                    "display": "Env",
+                    "hint": "Environment variables to set",
+                    "inputType": "text"
+                }
+            ]
+        },
+        {
             "api": "http",
             "action": "http_get",
             "display": "GET Request",

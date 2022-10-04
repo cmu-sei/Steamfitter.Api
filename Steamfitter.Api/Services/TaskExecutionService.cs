@@ -513,6 +513,11 @@ namespace Steamfitter.Api.Services
                                     task = STT.Task.Run(() => _stackStormService.SendEmail(resultEntity.InputString));
                                     break;
                                 }
+                            case TaskAction.file_touch:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.FileTouch(resultEntity.InputString));
+                                    break;
+                                }
                             case TaskAction.az_vm_shell_script:
                                 {
                                     task = STT.Task.Run(() => _stackStormService.AzureGovVmShellScript(resultEntity.InputString));

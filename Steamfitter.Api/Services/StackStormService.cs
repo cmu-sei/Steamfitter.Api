@@ -16,6 +16,7 @@ using Stackstorm.Connector;
 using Steamfitter.Api.Infrastructure.HealthChecks;
 using Stackstorm.Api.Client;
 using Stackstorm.Connector.Models.Email;
+using Stackstorm.Connector.Models.Linux;
 
 namespace Steamfitter.Api.Services
 {
@@ -35,6 +36,7 @@ namespace Steamfitter.Api.Services
         STT.Task<string> CreateVmFromTemplate(string parameters);
         STT.Task<string> VmRemove(string parameters);
         STT.Task<string> SendEmail(string parameters);
+        STT.Task<string> FileTouch(string parameters);
         STT.Task<string> AzureGovGetVms(string parameters);
         STT.Task<string> AzureGovVmPowerOff(string parameters);
         STT.Task<string> AzureGovVmPowerOn(string parameters);
@@ -281,6 +283,13 @@ namespace Steamfitter.Api.Services
             return executionResult.Success.ToString();
         }
 
+        public async STT.Task<string> FileTouch(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<FileTouchDTO>(parameters).ToObject();
+            var executionResult = await _stackStormConnector.Linux.FileTouch(command);
+            return executionResult.Success.ToString();
+        }
+
         public async STT.Task<string> AzureGovGetVms(string parameters)
         {
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.AzureGov.Requests.BaseRequest>(parameters);
@@ -332,9 +341,9 @@ namespace Steamfitter.Api.Services
         public string EmailCC { get; set; }
         public string Mime { get; set; }
 
-        public Requests.EmailSend ToObject()
+        public Stackstorm.Connector.Models.Email.Requests.EmailSend ToObject()
         {
-            return new Requests.EmailSend
+            return new Stackstorm.Connector.Models.Email.Requests.EmailSend
             {
                 Account = Account,
                 AttachmentPaths = AttachmentPaths?.Split(','),
@@ -347,4 +356,32 @@ namespace Steamfitter.Api.Services
             };
         }
     }
+
+    class FileTouchDTO
+    {
+        public string Hosts { get; set; }
+        public string Port { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public string File { get; set; }
+        public string Cwd { get; set; }
+        public string Env { get; set; }
+        //public bool Sudo { get; set; }
+
+        public Stackstorm.Connector.Models.Linux.Requests.FileTouch ToObject()
+        {
+            return new Stackstorm.Connector.Models.Linux.Requests.FileTouch
+            {
+                Username = Username,
+                Password = Password,
+                Port = Port,
+                Hosts = Hosts,
+                File = File,
+                Cwd = Cwd,
+                Env = Env//,
+                //Sudo = Sudo
+            };
+        }
+    }
+
 }
