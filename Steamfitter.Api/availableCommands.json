@@ -332,7 +332,8 @@
                     "key": "Port",
                     "display": "Port",
                     "hint": "Port for SSHD",
-                    "inputType": "text"
+                    "inputType": "text",
+                    "default": "22"
                 },
                 {
                     "key": "File",
@@ -350,7 +351,15 @@
                     "key": "Env",
                     "display": "Env",
                     "hint": "Environment variables which will be available to the command(e.g. key1=val1,key2=val2)",
-                    "inputType": "text"
+                    "inputType": "text",
+                    "default": "{}"
+                },
+                {
+                    "key": "Sudo",
+                    "display": "Sudo",
+                    "hint": "Boolean flag for sudo",
+                    "inputType": "checkbox",
+                    "default": "false"
                 }
             ]
         },

@@ -373,7 +373,7 @@ namespace Steamfitter.Api.Services
         public string File { get; set; }
         public string Cwd { get; set; }
         public string Env { get; set; }
-        //public bool Sudo { get; set; }
+        public string Sudo { get; set; }
 
         public Stackstorm.Connector.Models.Linux.Requests.LinuxFileTouch ToObject()
         {
@@ -385,8 +385,8 @@ namespace Steamfitter.Api.Services
                 Hosts = Hosts,
                 File = File,
                 Cwd = Cwd,
-                Env = Env//,
-                //Sudo = Sudo
+                Env = Env,
+                Sudo = Sudo.ToLower() == "true"
             };
         }
     }
