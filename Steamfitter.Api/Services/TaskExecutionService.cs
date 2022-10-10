@@ -596,13 +596,31 @@ namespace Steamfitter.Api.Services
             HttpResponseMessage response;
             using (var scope = _scopeFactory.CreateScope())
             {
-                // TODO: re-use tokens
-                var tokenResponse = await ApiClientsExtensions.GetToken(scope);
                 var actionParameters = JsonSerializer.Deserialize<HttpInputString>(taskToExecute.InputString);
+                // TODO: re-use tokens
+                TokenResponse tokenResponse = null;
+                // If the user specified headers, assume we do not need crucible auth token
+                if (String.IsNullOrEmpty(actionParameters.Headers))
+                {
+                    tokenResponse = await ApiClientsExtensions.GetToken(scope);
+                }
                 var url = actionParameters.Url;
                 var client = ApiClientsExtensions.GetHttpClient(_httpClientFactory, url, tokenResponse);
+                if (!String.IsNullOrEmpty(actionParameters.Headers))
+                {
+                    var headers = JsonSerializer.Deserialize<HttpHeaderString>(actionParameters.Headers);
+                    if (!String.IsNullOrEmpty(headers.XUserId))
+                    {
+                        client.DefaultRequestHeaders.Add("X-User-Id", headers.XUserId);
+                    }
+                    if (!String.IsNullOrEmpty(headers.XAuthToken))
+                    {
+                        client.DefaultRequestHeaders.Add("X-Auth-Token", headers.XAuthToken);
+                    }
+                }
                 switch (taskToExecute.Action)
                 {
+
                     case TaskAction.http_get:
                         {
                             response = await client.GetAsync(url);
@@ -768,6 +786,14 @@ namespace Steamfitter.Api.Services
     {
         public string Url { get; set; }
         public string Body { get; set; }
+        public string Headers { get; set; }
     }
 
+    // Request headers the user is allowed to define
+    class HttpHeaderString
+    {
+
+        public string XAuthToken { get; set; }
+        public string XUserId { get; set; }
+    }
 }

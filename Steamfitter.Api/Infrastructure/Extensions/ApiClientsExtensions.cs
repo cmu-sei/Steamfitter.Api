@@ -16,7 +16,11 @@ namespace Steamfitter.Api.Infrastructure.Extensions
         {
             var client = httpClientFactory.CreateClient();
             client.BaseAddress = new Uri(apiUrl);
-            client.DefaultRequestHeaders.Add("authorization", $"{tokenResponse.TokenType} {tokenResponse.AccessToken}");
+            // Only add the header if the token was passed
+            if (tokenResponse != null)
+            {
+                client.DefaultRequestHeaders.Add("authorization", $"{tokenResponse.TokenType} {tokenResponse.AccessToken}");
+            }
             return client;
         }
 

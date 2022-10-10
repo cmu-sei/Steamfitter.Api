@@ -507,6 +507,12 @@
                     "display": "Body",
                     "hint": "The body to be passed to the POST request.",
                     "inputType": "textArea"
+                },
+                {
+                    "key": "Headers",
+                    "display": "Headers",
+                    "hint": "Request headers",
+                    "inputType": "textArea"
                 }
             ]
         },
