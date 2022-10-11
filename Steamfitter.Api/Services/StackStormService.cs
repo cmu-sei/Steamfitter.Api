@@ -48,6 +48,8 @@ namespace Steamfitter.Api.Services
         private ConcurrentDictionary<Guid, VmIdentityStrings> _vmList = new ConcurrentDictionary<Guid, VmIdentityStrings>();
         private StackstormConnector _stackStormConnector;
 
+        private bool _hasVms;
+
         public StackStormService(
             IOptions<VmTaskProcessingOptions> options,
             ILogger<StackStormService> logger)
@@ -105,7 +107,18 @@ namespace Steamfitter.Api.Services
         private async void Run()
         {
             _logger.LogInformation($"Starting StackStormService");
-            while (true)
+            var apiParameters = _options.ApiParameters;
+            if (apiParameters == null || !apiParameters.ContainsKey("clusters"))
+            {
+                _logger.LogWarning("\"clusters\" appsetting value needs to be set in order to get Stackstorm VMs");
+                _hasVms = false;
+            }
+            else
+            {
+                _hasVms = true;
+            }
+
+            while (_hasVms)
             {
                 try
                 {
@@ -142,10 +155,6 @@ namespace Steamfitter.Api.Services
             var apiParameters = _options.ApiParameters;
             try
             {
-                if (apiParameters == null || !apiParameters.ContainsKey("clusters"))
-                {
-                    throw new Exception("\"clusters\" appsetting value needs to be set in order to get Stackstorm VMs");
-                }
                 var clusters = apiParameters["clusters"].ToString().Split(",");
                 var vmListResult = await _stackStormConnector.VSphere.GetVmsWithUuid(clusters);
                 // add VM's to _vmList
