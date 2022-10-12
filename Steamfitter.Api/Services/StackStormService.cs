@@ -287,6 +287,15 @@ namespace Steamfitter.Api.Services
         public async STT.Task<string> LinuxFileTouch(string parameters)
         {
             var command = JsonSerializer.Deserialize<LinuxFileTouchDTO>(parameters).ToObject();
+            var apiParameters = _options.ApiParameters;
+            if (apiParameters == null || !apiParameters.ContainsKey("StackStormLinuxPrivateKey")) {
+                    _logger.LogError("\"StackStormLinuxPrivateKey\" appsetting value needs to be set");
+            }
+            else
+            {
+                var StackStormLinuxPrivateKey = apiParameters["StackStormLinuxPrivateKey"].ToString();
+                command.PrivateKey = StackStormLinuxPrivateKey;
+            }
             var executionResult = await _stackStormConnector.Linux.LinuxFileTouch(command);
             return executionResult.Success.ToString();
         }
@@ -294,6 +303,15 @@ namespace Steamfitter.Api.Services
         public async STT.Task<string> LinuxRm(string parameters)
         {
             var command = JsonSerializer.Deserialize<LinuxRmDTO>(parameters).ToObject();
+            var apiParameters = _options.ApiParameters;
+            if (apiParameters == null || !apiParameters.ContainsKey("StackStormLinuxPrivateKey")) {
+                    _logger.LogError("\"StackStormLinuxPrivateKey\" appsetting value needs to be set");
+            }
+            else
+            {
+                var StackStormLinuxPrivateKey = apiParameters["StackStormLinuxPrivateKey"].ToString();
+                command.PrivateKey = StackStormLinuxPrivateKey;
+            }
             var executionResult = await _stackStormConnector.Linux.LinuxRm(command);
             return executionResult.Success.ToString();
         }
@@ -369,7 +387,7 @@ namespace Steamfitter.Api.Services
         public string Hosts { get; set; }
         public string Port { get; set; }
         public string Username { get; set; }
-        public string Password { get; set; }
+        public string PrivateKey { get; set; }
         public string File { get; set; }
         public string Cwd { get; set; }
         public string Env { get; set; }
@@ -380,7 +398,7 @@ namespace Steamfitter.Api.Services
             return new Stackstorm.Connector.Models.Linux.Requests.LinuxFileTouch
             {
                 Username = Username,
-                Password = Password,
+                PrivateKey = PrivateKey,
                 Port = Port,
                 Hosts = Hosts,
                 File = File,
@@ -396,7 +414,7 @@ namespace Steamfitter.Api.Services
         public string Hosts { get; set; }
         public string Port { get; set; }
         public string Username { get; set; }
-        public string Password { get; set; }
+        public string PrivateKey { get; set; }
         public string Target { get; set; }
         public string Cwd { get; set; }
         public string Env { get; set; }
@@ -410,7 +428,7 @@ namespace Steamfitter.Api.Services
             return new Stackstorm.Connector.Models.Linux.Requests.LinuxRm
             {
                 Username = Username,
-                Password = Password,
+                PrivateKey = PrivateKey,
                 Port = Port,
                 Hosts = Hosts,
                 Target = Target,
