@@ -431,6 +431,52 @@
             ]
         },
         {
+            "api": "stackstorm",
+            "action": "core_remote",
+            "display": "Remote Command",
+            "requiresVm": false,
+            "parameters": [
+                {
+                    "key": "Username",
+                    "display": "Username",
+                    "hint": "User to login as",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Hosts",
+                    "display": "Hosts",
+                    "hint": "Host for SSHD",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Port",
+                    "display": "Port",
+                    "hint": "Port for SSHD",
+                    "inputType": "text",
+                    "default": "22"
+                },
+                {
+                    "key": "Cmd",
+                    "display": "Cmd",
+                    "hint": "Arbitrary Linux command to be executed on the remote host(s)",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Cwd",
+                    "display": "CWD",
+                    "hint": "Working directory where the script will be executed in",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Env",
+                    "display": "Env",
+                    "hint": "Environment variables which will be available to the command(e.g. key1=val1,key2=val2)",
+                    "inputType": "text",
+                    "default": "{}"
+                }
+            ]
+        },
+        {
             "api": "http",
             "action": "http_get",
             "display": "GET Request",

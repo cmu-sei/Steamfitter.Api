@@ -523,6 +523,11 @@ namespace Steamfitter.Api.Services
                                     task = STT.Task.Run(() => _stackStormService.LinuxRm(resultEntity.InputString));
                                     break;
                                 }
+                            case TaskAction.core_remote:
+                                {
+                                    task = STT.Task.Run(() => _stackStormService.SendLinuxRemoteCommand(resultEntity.InputString));
+                                    break;
+                                }
                             case TaskAction.az_vm_shell_script:
                                 {
                                     task = STT.Task.Run(() => _stackStormService.AzureGovVmShellScript(resultEntity.InputString));

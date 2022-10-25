@@ -17,6 +17,7 @@ using Steamfitter.Api.Infrastructure.HealthChecks;
 using Stackstorm.Api.Client;
 using Stackstorm.Connector.Models.Email;
 using Stackstorm.Connector.Models.Linux;
+using Stackstorm.Connector.Models.Core;
 
 namespace Steamfitter.Api.Services
 {
@@ -42,6 +43,7 @@ namespace Steamfitter.Api.Services
         STT.Task<string> AzureGovVmPowerOff(string parameters);
         STT.Task<string> AzureGovVmPowerOn(string parameters);
         STT.Task<string> AzureGovVmShellScript(string parameters);
+        STT.Task<string> SendLinuxRemoteCommand(string parameters);
     }
 
     public class StackStormService : IStackStormService
@@ -297,7 +299,14 @@ namespace Steamfitter.Api.Services
                 command.PrivateKey = StackStormLinuxPrivateKey;
             }
             var executionResult = await _stackStormConnector.Linux.LinuxFileTouch(command);
-            return executionResult.Success.ToString();
+            if (executionResult.Success)
+            {
+                return executionResult.Success.ToString();
+            }
+            else
+            {
+                return executionResult.Value;
+            }
         }
 
         public async STT.Task<string> LinuxRm(string parameters)
@@ -313,7 +322,14 @@ namespace Steamfitter.Api.Services
                 command.PrivateKey = StackStormLinuxPrivateKey;
             }
             var executionResult = await _stackStormConnector.Linux.LinuxRm(command);
-            return executionResult.Success.ToString();
+            if (executionResult.Success)
+            {
+                return executionResult.Success.ToString();
+            }
+            else
+            {
+                return executionResult.Value;
+            }
         }
         public async STT.Task<string> AzureGovGetVms(string parameters)
         {
@@ -344,6 +360,23 @@ namespace Steamfitter.Api.Services
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.AzureGov.Requests.VmShellScript>(parameters);
             var executionResult = await _stackStormConnector.AzureGov.ShellScript(command);
 
+            return executionResult.Value;
+        }
+
+
+        public async STT.Task<string> SendLinuxRemoteCommand(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.Core.Requests.SendLinuxRemoteCommand>(parameters);
+            var apiParameters = _options.ApiParameters;
+            if (apiParameters == null || !apiParameters.ContainsKey("StackStormLinuxPrivateKey")) {
+                    _logger.LogError("\"StackStormLinuxPrivateKey\" appsetting value needs to be set");
+            }
+            else
+            {
+                var StackStormLinuxPrivateKey = apiParameters["StackStormLinuxPrivateKey"].ToString();
+                command.PrivateKey = StackStormLinuxPrivateKey;
+            }
+            var executionResult = await _stackStormConnector.Core.SendLinuxRemoteCommand(command);
             return executionResult.Value;
         }
 

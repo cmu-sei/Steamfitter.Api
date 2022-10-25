@@ -28,6 +28,7 @@ namespace Steamfitter.Api.Data
         guest_file_upload_file = 114,
         linux_file_touch = 115,
         linux_rm = 116,
+        core_remote = 117,
     }
 
     public enum TaskStatus
