@@ -28,6 +28,10 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<Vm>> GetViewVmsAsync(Guid viewId, CancellationToken ct)
         {
+            if (_playerVmApiClient == null)
+            {
+                return null;
+            }
             var vms = await _playerVmApiClient.GetViewVmsAsync(viewId, null, true, false, ct);
             return (IEnumerable<Vm>)vms;
         }

@@ -102,6 +102,10 @@ namespace Steamfitter.Api.Infrastructure.Extensions
                 var httpClientFactory = p.GetRequiredService<IHttpClientFactory>();
                 var clientOptions = p.GetRequiredService<ClientOptions>();
 
+                if ((clientOptions.urls.vmApi == null) || (clientOptions.urls.vmApi == ""))
+                {
+                    return null;
+                }
                 var vmUri = new Uri(clientOptions.urls.vmApi);
 
                 string authHeader = httpContextAccessor.HttpContext.Request.Headers["Authorization"];
