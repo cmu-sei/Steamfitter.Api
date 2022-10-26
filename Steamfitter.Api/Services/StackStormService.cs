@@ -283,7 +283,7 @@ namespace Steamfitter.Api.Services
         {
             var command = JsonSerializer.Deserialize<EmailSendDTO>(parameters).ToObject();
             var executionResult = await _stackStormConnector.Email.SendEmail(command);
-            return executionResult.Success.ToString();
+            return executionResult.Success ? executionResult.Success.ToString() : executionResult.Value;
         }
 
         public async STT.Task<string> LinuxFileTouch(string parameters)
@@ -299,14 +299,7 @@ namespace Steamfitter.Api.Services
                 command.PrivateKey = StackStormLinuxPrivateKey;
             }
             var executionResult = await _stackStormConnector.Linux.LinuxFileTouch(command);
-            if (executionResult.Success)
-            {
-                return executionResult.Success.ToString();
-            }
-            else
-            {
-                return executionResult.Value;
-            }
+            return executionResult.Success ? executionResult.Success.ToString() : executionResult.Value;
         }
 
         public async STT.Task<string> LinuxRm(string parameters)
@@ -322,14 +315,7 @@ namespace Steamfitter.Api.Services
                 command.PrivateKey = StackStormLinuxPrivateKey;
             }
             var executionResult = await _stackStormConnector.Linux.LinuxRm(command);
-            if (executionResult.Success)
-            {
-                return executionResult.Success.ToString();
-            }
-            else
-            {
-                return executionResult.Value;
-            }
+            return executionResult.Success ? executionResult.Success.ToString() : executionResult.Value;
         }
         public async STT.Task<string> AzureGovGetVms(string parameters)
         {
