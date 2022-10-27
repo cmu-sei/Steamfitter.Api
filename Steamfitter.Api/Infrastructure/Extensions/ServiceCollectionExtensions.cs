@@ -102,7 +102,7 @@ namespace Steamfitter.Api.Infrastructure.Extensions
                 var httpClientFactory = p.GetRequiredService<IHttpClientFactory>();
                 var clientOptions = p.GetRequiredService<ClientOptions>();
 
-                if ((clientOptions.urls.vmApi == null) || (clientOptions.urls.vmApi == ""))
+                if (String.IsNullOrEmpty(clientOptions.urls.vmApi))
                 {
                     return null;
                 }
