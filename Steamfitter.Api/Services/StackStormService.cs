@@ -291,7 +291,7 @@ namespace Steamfitter.Api.Services
             var command = JsonSerializer.Deserialize<LinuxFileTouchDTO>(parameters).ToObject();
             var apiParameters = _options.ApiParameters;
             if (apiParameters == null || !apiParameters.ContainsKey("StackStormLinuxPrivateKey")) {
-                    _logger.LogError("\"StackStormLinuxPrivateKey\" appsetting value needs to be set");
+                _logger.LogWarning("\"StackStormLinuxPrivateKey\" appsetting value needs to be set if SSH Private Key differs from Stackstorm default");
             }
             else
             {
@@ -307,7 +307,7 @@ namespace Steamfitter.Api.Services
             var command = JsonSerializer.Deserialize<LinuxRmDTO>(parameters).ToObject();
             var apiParameters = _options.ApiParameters;
             if (apiParameters == null || !apiParameters.ContainsKey("StackStormLinuxPrivateKey")) {
-                    _logger.LogError("\"StackStormLinuxPrivateKey\" appsetting value needs to be set");
+                _logger.LogWarning("\"StackStormLinuxPrivateKey\" appsetting value needs to be set if SSH Private Key differs from Stackstorm default");
             }
             else
             {
@@ -355,7 +355,7 @@ namespace Steamfitter.Api.Services
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.Core.Requests.SendLinuxRemoteCommand>(parameters);
             var apiParameters = _options.ApiParameters;
             if (apiParameters == null || !apiParameters.ContainsKey("StackStormLinuxPrivateKey")) {
-                    _logger.LogError("\"StackStormLinuxPrivateKey\" appsetting value needs to be set");
+                _logger.LogWarning("\"StackStormLinuxPrivateKey\" appsetting value needs to be set if SSH Private Key differs from Stackstorm default");
             }
             else
             {
