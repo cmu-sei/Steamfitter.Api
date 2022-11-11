@@ -24,6 +24,7 @@ using Player.Vm.Api;
 using Steamfitter.Api.Infrastructure.HealthChecks;
 using System.Data;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Steamfitter.Api.Services
 {
@@ -608,14 +609,25 @@ namespace Steamfitter.Api.Services
                 var client = ApiClientsExtensions.GetHttpClient(_httpClientFactory, url, tokenResponse);
                 if (!String.IsNullOrEmpty(actionParameters.Headers))
                 {
-                    var headers = JsonSerializer.Deserialize<HttpHeaderString>(actionParameters.Headers);
-                    if (!String.IsNullOrEmpty(headers.XUserId))
+                    var replacementValues = _vmTaskProcessingOptions.CurrentValue.HttpHeaderReplacements;
+                    if (replacementValues != null)
                     {
-                        client.DefaultRequestHeaders.Add("X-User-Id", headers.XUserId);
-                    }
-                    if (!String.IsNullOrEmpty(headers.XAuthToken))
-                    {
-                        client.DefaultRequestHeaders.Add("X-Auth-Token", headers.XAuthToken);
+                        var headers = JsonSerializer.Deserialize<Dictionary<string, String>>(actionParameters.Headers);
+
+                        // look up any replacement value and replace if found
+                        foreach (var header in headers)
+                        {
+                            Match output = Regex.Match(header.Value, @"\{(\w+)\}");
+                            if (output.Success && replacementValues.ContainsKey(output.Groups[1].Value))
+                            {
+                                var value = header.Value.Replace(header.Value, replacementValues[output.Groups[1].Value]);
+                                client.DefaultRequestHeaders.Add(header.Key, value);
+                            }
+                            else
+                            {
+                                client.DefaultRequestHeaders.Add(header.Key, header.Value);
+                            }
+                        }
                     }
                 }
                 switch (taskToExecute.Action)
@@ -787,13 +799,5 @@ namespace Steamfitter.Api.Services
         public string Url { get; set; }
         public string Body { get; set; }
         public string Headers { get; set; }
-    }
-
-    // Request headers the user is allowed to define
-    class HttpHeaderString
-    {
-
-        public string XAuthToken { get; set; }
-        public string XUserId { get; set; }
     }
 }

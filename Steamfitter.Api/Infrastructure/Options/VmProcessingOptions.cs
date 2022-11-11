@@ -19,5 +19,6 @@ namespace Steamfitter.Api.Infrastructure.Options
         public int TaskProcessMaxWaitSeconds { get; set; }
         public int ExpirationCheckSeconds { get; set; }
         public Dictionary<string, string> ApiParameters { get; set; }
+        public Dictionary<string, string> HttpHeaderReplacements { get; set; }
     }
 }
