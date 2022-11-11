@@ -16,6 +16,8 @@ using Stackstorm.Connector;
 using Steamfitter.Api.Infrastructure.HealthChecks;
 using Stackstorm.Api.Client;
 using Stackstorm.Connector.Models.Email;
+using Stackstorm.Connector.Models.Linux;
+using Stackstorm.Connector.Models.Core;
 
 namespace Steamfitter.Api.Services
 {
@@ -35,10 +37,13 @@ namespace Steamfitter.Api.Services
         STT.Task<string> CreateVmFromTemplate(string parameters);
         STT.Task<string> VmRemove(string parameters);
         STT.Task<string> SendEmail(string parameters);
+        STT.Task<string> LinuxFileTouch(string parameters);
+        STT.Task<string> LinuxRm(string parameters);
         STT.Task<string> AzureGovGetVms(string parameters);
         STT.Task<string> AzureGovVmPowerOff(string parameters);
         STT.Task<string> AzureGovVmPowerOn(string parameters);
         STT.Task<string> AzureGovVmShellScript(string parameters);
+        STT.Task<string> SendLinuxRemoteCommand(string parameters);
     }
 
     public class StackStormService : IStackStormService
@@ -278,9 +283,40 @@ namespace Steamfitter.Api.Services
         {
             var command = JsonSerializer.Deserialize<EmailSendDTO>(parameters).ToObject();
             var executionResult = await _stackStormConnector.Email.SendEmail(command);
-            return executionResult.Success.ToString();
+            return executionResult.Success ? executionResult.Success.ToString() : executionResult.Value;
         }
 
+        public async STT.Task<string> LinuxFileTouch(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<LinuxFileTouchDTO>(parameters).ToObject();
+            var apiParameters = _options.ApiParameters;
+            if (apiParameters == null || !apiParameters.ContainsKey("StackStormLinuxPrivateKey")) {
+                _logger.LogWarning("\"StackStormLinuxPrivateKey\" appsetting value needs to be set if SSH Private Key differs from Stackstorm default");
+            }
+            else
+            {
+                var StackStormLinuxPrivateKey = apiParameters["StackStormLinuxPrivateKey"].ToString();
+                command.PrivateKey = StackStormLinuxPrivateKey;
+            }
+            var executionResult = await _stackStormConnector.Linux.LinuxFileTouch(command);
+            return executionResult.Success ? executionResult.Success.ToString() : executionResult.Value;
+        }
+
+        public async STT.Task<string> LinuxRm(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<LinuxRmDTO>(parameters).ToObject();
+            var apiParameters = _options.ApiParameters;
+            if (apiParameters == null || !apiParameters.ContainsKey("StackStormLinuxPrivateKey")) {
+                _logger.LogWarning("\"StackStormLinuxPrivateKey\" appsetting value needs to be set if SSH Private Key differs from Stackstorm default");
+            }
+            else
+            {
+                var StackStormLinuxPrivateKey = apiParameters["StackStormLinuxPrivateKey"].ToString();
+                command.PrivateKey = StackStormLinuxPrivateKey;
+            }
+            var executionResult = await _stackStormConnector.Linux.LinuxRm(command);
+            return executionResult.Success ? executionResult.Success.ToString() : executionResult.Value;
+        }
         public async STT.Task<string> AzureGovGetVms(string parameters)
         {
             var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.AzureGov.Requests.BaseRequest>(parameters);
@@ -313,6 +349,23 @@ namespace Steamfitter.Api.Services
             return executionResult.Value;
         }
 
+
+        public async STT.Task<string> SendLinuxRemoteCommand(string parameters)
+        {
+            var command = JsonSerializer.Deserialize<Stackstorm.Connector.Models.Core.Requests.SendLinuxRemoteCommand>(parameters);
+            var apiParameters = _options.ApiParameters;
+            if (apiParameters == null || !apiParameters.ContainsKey("StackStormLinuxPrivateKey")) {
+                _logger.LogWarning("\"StackStormLinuxPrivateKey\" appsetting value needs to be set if SSH Private Key differs from Stackstorm default");
+            }
+            else
+            {
+                var StackStormLinuxPrivateKey = apiParameters["StackStormLinuxPrivateKey"].ToString();
+                command.PrivateKey = StackStormLinuxPrivateKey;
+            }
+            var executionResult = await _stackStormConnector.Core.SendLinuxRemoteCommand(command);
+            return executionResult.Value;
+        }
+
     }
 
     public class VmIdentityStrings
@@ -332,9 +385,9 @@ namespace Steamfitter.Api.Services
         public string EmailCC { get; set; }
         public string Mime { get; set; }
 
-        public Requests.EmailSend ToObject()
+        public Stackstorm.Connector.Models.Email.Requests.EmailSend ToObject()
         {
-            return new Requests.EmailSend
+            return new Stackstorm.Connector.Models.Email.Requests.EmailSend
             {
                 Account = Account,
                 AttachmentPaths = AttachmentPaths?.Split(','),
@@ -347,4 +400,66 @@ namespace Steamfitter.Api.Services
             };
         }
     }
+
+    class LinuxFileTouchDTO
+    {
+        public string Hosts { get; set; }
+        public string Port { get; set; }
+        public string Username { get; set; }
+        public string PrivateKey { get; set; }
+        public string File { get; set; }
+        public string Cwd { get; set; }
+        public string Env { get; set; }
+        public string Sudo { get; set; }
+
+        public Stackstorm.Connector.Models.Linux.Requests.LinuxFileTouch ToObject()
+        {
+            return new Stackstorm.Connector.Models.Linux.Requests.LinuxFileTouch
+            {
+                Username = Username,
+                PrivateKey = PrivateKey,
+                Port = Port,
+                Hosts = Hosts,
+                File = File,
+                Cwd = Cwd,
+                Env = Env,
+                Sudo = Sudo.ToLower() == "true"
+            };
+        }
+    }
+
+    class LinuxRmDTO
+    {
+        public string Hosts { get; set; }
+        public string Port { get; set; }
+        public string Username { get; set; }
+        public string PrivateKey { get; set; }
+        public string Target { get; set; }
+        public string Cwd { get; set; }
+        public string Env { get; set; }
+        public string Args { get; set; }
+        public string Sudo { get; set; }
+        public string Recursive { get; set; }
+        public string Force { get; set; }
+
+        public Stackstorm.Connector.Models.Linux.Requests.LinuxRm ToObject()
+        {
+            return new Stackstorm.Connector.Models.Linux.Requests.LinuxRm
+            {
+                Username = Username,
+                PrivateKey = PrivateKey,
+                Port = Port,
+                Hosts = Hosts,
+                Target = Target,
+                Cwd = Cwd,
+                Args = Args,
+                Env = Env,
+                Force = Force.ToLower() == "true",
+                Sudo = Sudo.ToLower() == "true",
+                Recursive = Recursive.ToLower() == "true"
+            };
+        }
+    }
+
+
 }
