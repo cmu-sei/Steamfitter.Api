@@ -113,7 +113,7 @@ namespace Steamfitter.Api.Services
         {
             _logger.LogInformation($"Starting StackStormService");
             var apiParameters = _options.ApiParameters;
-            if (apiParameters == null || !apiParameters.ContainsKey("clusters"))
+            if (apiParameters == null || !apiParameters.ContainsKey("clusters") || String.IsNullOrWhiteSpace(apiParameters["clusters"]))
             {
                 _logger.LogWarning("\"clusters\" appsetting value needs to be set in order to get Stackstorm VMs");
                 _hasVms = false;
