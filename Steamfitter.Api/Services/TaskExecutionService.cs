@@ -24,6 +24,7 @@ using Player.Vm.Api;
 using Steamfitter.Api.Infrastructure.HealthChecks;
 using System.Data;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Steamfitter.Api.Services
 {
@@ -596,13 +597,42 @@ namespace Steamfitter.Api.Services
             HttpResponseMessage response;
             using (var scope = _scopeFactory.CreateScope())
             {
-                // TODO: re-use tokens
-                var tokenResponse = await ApiClientsExtensions.GetToken(scope);
                 var actionParameters = JsonSerializer.Deserialize<HttpInputString>(taskToExecute.InputString);
+                // TODO: re-use tokens
+                TokenResponse tokenResponse = null;
+                // If the user specified headers, assume we do not need crucible auth token
+                if (String.IsNullOrEmpty(actionParameters.Headers))
+                {
+                    tokenResponse = await ApiClientsExtensions.GetToken(scope);
+                }
                 var url = actionParameters.Url;
                 var client = ApiClientsExtensions.GetHttpClient(_httpClientFactory, url, tokenResponse);
+                if (!String.IsNullOrEmpty(actionParameters.Headers))
+                {
+                    var replacementValues = _vmTaskProcessingOptions.CurrentValue.HttpHeaderReplacements;
+                    if (replacementValues != null)
+                    {
+                        var headers = JsonSerializer.Deserialize<Dictionary<string, String>>(actionParameters.Headers);
+
+                        // look up any replacement value and replace if found
+                        foreach (var header in headers)
+                        {
+                            Match output = Regex.Match(header.Value, @"\{(\w+)\}");
+                            if (output.Success && replacementValues.ContainsKey(output.Groups[1].Value))
+                            {
+                                var value = header.Value.Replace(header.Value, replacementValues[output.Groups[1].Value]);
+                                client.DefaultRequestHeaders.Add(header.Key, value);
+                            }
+                            else
+                            {
+                                client.DefaultRequestHeaders.Add(header.Key, header.Value);
+                            }
+                        }
+                    }
+                }
                 switch (taskToExecute.Action)
                 {
+
                     case TaskAction.http_get:
                         {
                             response = await client.GetAsync(url);
@@ -768,6 +798,6 @@ namespace Steamfitter.Api.Services
     {
         public string Url { get; set; }
         public string Body { get; set; }
+        public string Headers { get; set; }
     }
-
 }
