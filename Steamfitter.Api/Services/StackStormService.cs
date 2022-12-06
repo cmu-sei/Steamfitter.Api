@@ -160,9 +160,8 @@ namespace Steamfitter.Api.Services
             var apiParameters = _options.ApiParameters;
             try
             {
-                if (apiParameters == null || !apiParameters.ContainsKey("clusters") || String.IsNullOrWhiteSpace(apiParameters["clusters"]))
+                if (!_hasVms)
                 {
-                    _logger.LogWarning("\"clusters\" appsetting value needs to be set in order to get Stackstorm VMs");
                     return;
                 }
 
