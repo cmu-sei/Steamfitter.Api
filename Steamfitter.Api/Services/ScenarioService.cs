@@ -252,6 +252,7 @@ namespace Steamfitter.Api.Services
             newScenarioEntity.CreatedBy = _user.GetId();
             newScenarioEntity.Name = $"{oldScenarioEntity.Name} - {_user.Claims.FirstOrDefault(c => c.Type == "name").Value}";
             newScenarioEntity.OnDemand = true;
+            newScenarioEntity.Status = ScenarioStatus.ready;
 
             _context.Scenarios.Add(newScenarioEntity);
             await _context.SaveChangesAsync(ct);

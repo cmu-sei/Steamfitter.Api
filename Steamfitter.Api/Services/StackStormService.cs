@@ -160,6 +160,11 @@ namespace Steamfitter.Api.Services
             var apiParameters = _options.ApiParameters;
             try
             {
+                if (!_hasVms)
+                {
+                    return;
+                }
+
                 var clusters = apiParameters["clusters"].ToString().Split(",");
                 var vmListResult = await _stackStormConnector.VSphere.GetVmsWithUuid(clusters);
                 // add VM's to _vmList
