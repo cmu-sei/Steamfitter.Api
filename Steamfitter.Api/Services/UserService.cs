@@ -105,7 +105,7 @@ namespace Steamfitter.Api.Services
 
             _context.Users.Update(userToUpdate);
             await _context.SaveChangesAsync(ct);
-            _logger.LogWarning($"User {user.Name} ({userToUpdate.Id}) updated by {_user.GetId()}");
+            _logger.LogWarning($"User {userToUpdate.Name} ({userToUpdate.Id}) updated by {_user.GetId()}");
             return await GetAsync(id, ct);
         }
 

@@ -78,7 +78,7 @@ namespace Steamfitter.Api.Services
 
             _context.UserPermissions.Add(userPermissionEntity);
             await _context.SaveChangesAsync(ct);
-            _logger.LogWarning($"UserPermission created by {_user.GetId()} = user: {userPermission.UserId} and permission: {userPermission.PermissionId}");
+            _logger.LogWarning($"Permission {userPermission.PermissionId} added to user {userPermission.UserId} by {_user.GetId()}");
             return await GetAsync(userPermissionEntity.Id, ct);
         }
 
@@ -94,7 +94,7 @@ namespace Steamfitter.Api.Services
 
             _context.UserPermissions.Remove(userPermissionToDelete);
             await _context.SaveChangesAsync(ct);
-            _logger.LogWarning($"UserPermission deleted by {_user.GetId()} = user: {userPermissionToDelete.UserId} and permission: {userPermissionToDelete.PermissionId}");
+            _logger.LogWarning($"Permission {userPermissionToDelete.PermissionId} removed from user {userPermissionToDelete.UserId} by {_user.GetId()}");
             return true;
         }
 
@@ -110,7 +110,7 @@ namespace Steamfitter.Api.Services
 
             _context.UserPermissions.Remove(userPermissionToDelete);
             await _context.SaveChangesAsync(ct);
-            _logger.LogWarning($"UserPermission deleted by {_user.GetId()} = user: {userPermissionToDelete.UserId} and permission: {userPermissionToDelete.PermissionId}");
+            _logger.LogWarning($"Permission {userPermissionToDelete.PermissionId} removed from user {userPermissionToDelete.UserId} by {_user.GetId()}");
             return true;
         }
 
