@@ -10,10 +10,12 @@ using STT = System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
+using Steamfitter.Api.Infrastructure.Extensions;
 using SAVM = Steamfitter.Api.ViewModels;
 
 namespace Steamfitter.Api.Services
@@ -33,13 +35,15 @@ namespace Steamfitter.Api.Services
         private readonly IAuthorizationService _authorizationService;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
+        private readonly ILogger<IUserPermissionService> _logger;
 
-        public UserPermissionService(SteamfitterContext context, IAuthorizationService authorizationService, IPrincipal user, IMapper mapper)
+        public UserPermissionService(SteamfitterContext context, IAuthorizationService authorizationService, IPrincipal user, ILogger<IUserPermissionService> logger, IMapper mapper)
         {
             _context = context;
             _authorizationService = authorizationService;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async STT.Task<IEnumerable<ViewModels.UserPermission>> GetAsync(CancellationToken ct)
@@ -74,7 +78,7 @@ namespace Steamfitter.Api.Services
 
             _context.UserPermissions.Add(userPermissionEntity);
             await _context.SaveChangesAsync(ct);
-
+            _logger.LogWarning($"UserPermission created by {_user.GetId()} = user: {userPermission.UserId} and permission: {userPermission.PermissionId}");
             return await GetAsync(userPermissionEntity.Id, ct);
         }
 
@@ -90,7 +94,7 @@ namespace Steamfitter.Api.Services
 
             _context.UserPermissions.Remove(userPermissionToDelete);
             await _context.SaveChangesAsync(ct);
-
+            _logger.LogWarning($"UserPermission deleted by {_user.GetId()} = user: {userPermissionToDelete.UserId} and permission: {userPermissionToDelete.PermissionId}");
             return true;
         }
 
@@ -106,7 +110,7 @@ namespace Steamfitter.Api.Services
 
             _context.UserPermissions.Remove(userPermissionToDelete);
             await _context.SaveChangesAsync(ct);
-
+            _logger.LogWarning($"UserPermission deleted by {_user.GetId()} = user: {userPermissionToDelete.UserId} and permission: {userPermissionToDelete.PermissionId}");
             return true;
         }
 
