@@ -1,29 +1,27 @@
 #
 #multi-stage target: dev
 #
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS dev
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS dev
 
-ENV ASPNETCORE_URLS=http://0.0.0.0:4302 \
-    ASPNETCORE_ENVIRONMENT=DEVELOPMENT
+ENV ASPNETCORE_HTTP_PORTS=4300
+ENV ASPNETCORE_ENVIRONMENT=DEVELOPMENT
 
-# Must be copied above both steamfitter and stackstorm. Will not accept ../stackstorm.api for copying.
 COPY . /app
-WORKDIR /app/Steamfitter.Api
-
+WORKDIR /app
 RUN dotnet publish -c Release -o /app/dist
-
 CMD ["dotnet", "run"]
 
 #
 #multi-stage target: prod
 #
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS prod
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS prod
+ARG commit
+ENV COMMIT=$commit
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGCHANGE=false
 COPY --from=dev /app/dist /app
 
 WORKDIR /app
-ENV ASPNETCORE_URLS=http://*:80
+ENV ASPNETCORE_HTTP_PORTS=80
 EXPOSE 80
-CMD [ "dotnet", "Steamfitter.Api.dll" ]
 
-RUN apt-get update && \
-    apt-get install -y jq
+CMD ["dotnet", "Steamfitter.Api.dll"]

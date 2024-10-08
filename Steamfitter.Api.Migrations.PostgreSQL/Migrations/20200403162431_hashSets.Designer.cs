@@ -14,7 +14,7 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
     [DbContext(typeof(SteamfitterContext))]
     [Migration("20200403162431_hashSets")]
-    partial class hashSets
+    partial class HashSets
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

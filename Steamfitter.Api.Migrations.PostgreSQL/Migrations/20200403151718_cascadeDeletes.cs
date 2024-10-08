@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
-    public partial class cascadeDeletes : Migration
+    public partial class CascadeDeletes : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
-    public partial class renameNouns : Migration
+    public partial class RenameNouns : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

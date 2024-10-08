@@ -14,7 +14,7 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
     [DbContext(typeof(SteamfitterContext))]
     [Migration("20200403151718_cascadeDeletes")]
-    partial class cascadeDeletes
+    partial class CascadeDeletes
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

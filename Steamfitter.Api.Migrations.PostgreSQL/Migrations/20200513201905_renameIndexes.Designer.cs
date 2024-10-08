@@ -14,7 +14,7 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
     [DbContext(typeof(SteamfitterContext))]
     [Migration("20200513201905_renameIndexes")]
-    partial class renameIndexes
+    partial class RenameIndexes
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

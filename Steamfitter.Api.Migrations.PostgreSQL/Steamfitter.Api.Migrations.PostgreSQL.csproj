@@ -1,17 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <ProjectGuid>{9B0A7220-4E76-4D56-9AA0-2280A0238AA7}</ProjectGuid>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Steamfitter.Api.Data\Steamfitter.Api.Data.csproj" />
   </ItemGroup>
-
 </Project>

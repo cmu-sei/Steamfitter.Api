@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
-    public partial class resultAction : Migration
+    public partial class ResultAction : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
