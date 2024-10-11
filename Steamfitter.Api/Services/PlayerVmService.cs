@@ -18,7 +18,6 @@ namespace Steamfitter.Api.Services
     public class PlayerVmService : IPlayerVmService
     {
         private readonly IPlayerVmApiClient _playerVmApiClient;
-        private readonly Guid _userId;
 
         public PlayerVmService(
             IPlayerVmApiClient playerVmApiClient)

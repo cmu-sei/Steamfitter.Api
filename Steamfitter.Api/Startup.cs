@@ -32,6 +32,7 @@ using Steamfitter.Api.Infrastructure.JsonConverters;
 using Steamfitter.Api.Infrastructure.Mapping;
 using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Services;
+using MediatR;
 
 namespace Steamfitter.Api;
 
@@ -79,16 +80,16 @@ public class Startup
         switch (provider)
         {
             case "InMemory":
-                services.AddDbContextPool<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
-                        .AddInterceptors(serviceProvider.GetRequiredService<EventTransactionInterceptor>())
-                        .UseInMemoryDatabase("api"));
+                services.AddPooledDbContextFactory<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
+                    .AddInterceptors(serviceProvider.GetRequiredService<EventInterceptor>())
+                    .UseInMemoryDatabase("api"));
                 break;
             case "Sqlite":
             case "SqlServer":
             case "PostgreSQL":
-                services.AddDbContextPool<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
-                        .AddInterceptors(serviceProvider.GetRequiredService<EventTransactionInterceptor>())
-                        .UseConfiguredDatabase(Configuration));
+                services.AddPooledDbContextFactory<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
+                    .AddInterceptors(serviceProvider.GetRequiredService<EventInterceptor>())
+                    .UseConfiguredDatabase(Configuration));
                 break;
         }
 
@@ -108,13 +109,13 @@ public class Startup
 
         services.AddOptions()
             .Configure<DatabaseOptions>(Configuration.GetSection("Database"))
-                .AddScoped(config => config.GetService<IOptionsMonitor<DatabaseOptions>>().CurrentValue)
+            .AddScoped(config => config.GetService<IOptionsMonitor<DatabaseOptions>>().CurrentValue)
 
             .Configure<ClaimsTransformationOptions>(Configuration.GetSection("ClaimsTransformation"))
-                .AddScoped(config => config.GetService<IOptionsMonitor<ClaimsTransformationOptions>>().CurrentValue)
+            .AddScoped(config => config.GetService<IOptionsMonitor<ClaimsTransformationOptions>>().CurrentValue)
 
             .Configure<SeedDataOptions>(Configuration.GetSection("SeedData"))
-                .AddScoped(config => config.GetService<IOptionsMonitor<SeedDataOptions>>().CurrentValue);
+            .AddScoped(config => config.GetService<IOptionsMonitor<SeedDataOptions>>().CurrentValue);
 
         services
             .Configure<ClientOptions>(Configuration.GetSection("ClientSettings"))
@@ -128,6 +129,9 @@ public class Startup
         services.AddScoped<IPlayerService, PlayerService>();
         services.AddScoped<IClaimsTransformation, AuthorizationClaimsTransformer>();
         services.AddScoped<IUserClaimsService, UserClaimsService>();
+
+        services.AddScoped<SteamfitterContextFactory>();
+        services.AddScoped(sp => sp.GetRequiredService<SteamfitterContextFactory>().CreateDbContext());
 
         services.AddCors(options => options.UseConfiguredCors(Configuration.GetSection("CorsPolicy")));
 
@@ -229,8 +233,10 @@ public class Startup
             .Configure<ResourceOwnerAuthorizationOptions>(Configuration.GetSection("ResourceOwnerAuthorization"))
             .AddScoped(config => config.GetService<IOptionsMonitor<ResourceOwnerAuthorizationOptions>>().CurrentValue);
 
-        services.AddTransient<EventTransactionInterceptor>();
+        services.AddTransient<EventInterceptor>();
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Startup>());
+
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(Startup).Assembly));
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -258,7 +264,7 @@ public class Startup
                     .SingleOrDefault(x => x.StartsWith("bearer="))?.Split('=')[1];
 
                 if (!String.IsNullOrWhiteSpace(token))
-                    context.Request.Headers.Add("Authorization", new[] { $"Bearer {token}" });
+                    context.Request.Headers.Append("Authorization", new[] { $"Bearer {token}" });
             }
 
             await next.Invoke();
