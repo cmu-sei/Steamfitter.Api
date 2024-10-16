@@ -121,7 +121,7 @@ namespace Steamfitter.Api.Services
                 }
                 catch (System.Exception ex)
                 {
-                    _logger.LogError("Exception encountered in TaskExecutionService Bootstrap.", ex);
+                    _logger.LogError(ex, "Exception encountered in TaskExecutionService Bootstrap.");
                     await STT.Task.Delay(new TimeSpan(0, 0, _vmTaskProcessingOptions.CurrentValue.HealthCheckSeconds));
                 }
             }
@@ -148,7 +148,7 @@ namespace Steamfitter.Api.Services
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError("Exception encountered in TaskExecutionService Run loop.", ex);
+                        _logger.LogError(ex, "Exception encountered in TaskExecutionService Run loop.");
                     }
                 }
             });
@@ -211,7 +211,7 @@ namespace Steamfitter.Api.Services
                             // save the current iteration
                             taskToSave.CurrentIteration = taskToExecute.CurrentIteration;
                             await steamfitterContext.SaveChangesAsync(ct);
-                            _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultsUpdated, _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
+                            await _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultsUpdated, _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
                         }
                         // make sure there were no errors creating the results before continuing
                         if (resultEntityList.Where(r => r.Status == Data.TaskStatus.error).Count() == 0)
@@ -426,7 +426,7 @@ namespace Steamfitter.Api.Services
                 tasks.Add(task);
                 xref[task.Id] = resultEntity;
                 await steamfitterContext.SaveChangesAsync();
-                _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
+                await _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
             }
             foreach (var bucket in AsCompletedBuckets(tasks))
             {
@@ -445,7 +445,7 @@ namespace Steamfitter.Api.Services
                         }
                     }
                     await steamfitterContext.SaveChangesAsync();
-                    _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
+                    await _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
                 }
                 catch (OperationCanceledException)
                 {

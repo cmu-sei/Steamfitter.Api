@@ -18,12 +18,10 @@ namespace Steamfitter.Api.Data
     {
         public List<Entry> Entries { get; set; } = new List<Entry>();
 
-        private DbContextOptions<SteamfitterContext> _options;
+        // Needed for EventInterceptor
+        public IServiceProvider ServiceProvider;
 
-        public SteamfitterContext(DbContextOptions<SteamfitterContext> options) : base(options)
-        {
-            _options = options;
-        }
+        public SteamfitterContext(DbContextOptions<SteamfitterContext> options) : base(options) { }
 
         public DbSet<TaskEntity> Tasks { get; set; }
         public DbSet<ResultEntity> Results { get; set; }

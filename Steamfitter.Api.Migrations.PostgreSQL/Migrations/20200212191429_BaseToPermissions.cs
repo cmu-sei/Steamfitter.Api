@@ -53,4 +53,3 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
         }
     }
 }
-

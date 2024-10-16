@@ -6,7 +6,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
-    public partial class taskIterations : Migration
+    public partial class TaskIterations : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
-    public partial class renameIndexes : Migration
+    public partial class RenameIndexes : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

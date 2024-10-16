@@ -14,7 +14,7 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
     [DbContext(typeof(SteamfitterContext))]
     [Migration("20200505203415_renameNouns")]
-    partial class renameNouns
+    partial class RenameNouns
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

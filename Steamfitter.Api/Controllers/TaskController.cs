@@ -301,7 +301,6 @@ namespace Steamfitter.Api.Controllers
         /// Accessible to an authenticated user.
         /// The task will fail, if the user does not have access to the targeted VMs.
         /// </remarks>
-        /// <param name="id">The Id of the Task to execute</param>
         /// <param name="gradedExecutionInfo">The scenario ID, start task name and task substitutions to make</param>
         /// <param name="ct"></param>
         /// <returns></returns>

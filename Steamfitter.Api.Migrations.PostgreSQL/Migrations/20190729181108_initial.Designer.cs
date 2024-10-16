@@ -14,7 +14,7 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
     [DbContext(typeof(SteamfitterContext))]
     [Migration("20190729181108_initial")]
-    partial class initial
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -351,4 +351,3 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
         }
     }
 }
-

@@ -14,7 +14,7 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
     [DbContext(typeof(SteamfitterContext))]
     [Migration("20200720175527_resultAction")]
-    partial class resultAction
+    partial class ResultAction
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

@@ -14,7 +14,7 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
     [DbContext(typeof(SteamfitterContext))]
     [Migration("20200817202203_vmcreds2")]
-    partial class vmcreds2
+    partial class Vmcreds2
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

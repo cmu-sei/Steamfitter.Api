@@ -79,7 +79,7 @@ namespace Steamfitter.Api.Services
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError("Exception encountered in TaskMaintenanceService Run loop.", ex);
+                        _logger.LogError(ex, "Exception encountered in TaskMaintenanceService Run loop.");
                     }
                     var delaySeconds = _vmTaskProcessingOptions.CurrentValue.ExpirationCheckSeconds > 0 ? _vmTaskProcessingOptions.CurrentValue.ExpirationCheckSeconds : 60;
                     _taskMaintenanceServiceHealthCheck.CompletedRun();

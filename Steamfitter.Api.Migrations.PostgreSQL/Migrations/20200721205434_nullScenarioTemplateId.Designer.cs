@@ -13,7 +13,7 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
     [DbContext(typeof(SteamfitterContext))]
     [Migration("20200721205434_nullScenarioTemplateId")]
-    partial class nullScenarioTemplateId
+    partial class NullScenarioTemplateId
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

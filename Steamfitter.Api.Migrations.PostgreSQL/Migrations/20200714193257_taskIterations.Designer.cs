@@ -14,7 +14,7 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
 {
     [DbContext(typeof(SteamfitterContext))]
     [Migration("20200714193257_taskIterations")]
-    partial class taskIterations
+    partial class TaskIterations
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

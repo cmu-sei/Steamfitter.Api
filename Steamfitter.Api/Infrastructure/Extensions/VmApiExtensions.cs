@@ -30,7 +30,7 @@ namespace Steamfitter.Api.Infrastructure.Extensions
                 var vms = (await playerVmApiClient.GetViewVmsAsync(viewId, null, true, false, ct)) as IEnumerable<Player.Vm.Api.Models.Vm>;
                 return vms;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return null;
             }

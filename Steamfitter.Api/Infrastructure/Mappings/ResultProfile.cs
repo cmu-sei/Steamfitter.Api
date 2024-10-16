@@ -29,7 +29,7 @@ namespace Steamfitter.Api.Infrastructure.Mappings
             {
                 parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(src.InputString);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 parameters["BadInputString"] = src.InputString;
                 Console.WriteLine($"Error mapping InputString for Result {src.Id}");
