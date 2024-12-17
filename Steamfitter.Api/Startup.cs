@@ -127,7 +127,7 @@ public class Startup
 
         services.AddScoped<IPlayerVmService, PlayerVmService>();
         services.AddScoped<IPlayerService, PlayerService>();
-        services.AddScoped<IClaimsTransformation, AuthorizationClaimsTransformer>();
+        // services.AddScoped<IClaimsTransformation, AuthorizationClaimsTransformer>();
         services.AddScoped<IUserClaimsService, UserClaimsService>();
 
         services.AddScoped<SteamfitterContextFactory>();

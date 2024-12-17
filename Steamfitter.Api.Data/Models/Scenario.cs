@@ -36,7 +36,7 @@ namespace Steamfitter.Api.Data.Models
         public Guid? DefaultVmCredentialId { get; set; }
         public virtual ICollection<VmCredentialEntity> VmCredentials { get; set; } = new HashSet<VmCredentialEntity>();
         public virtual ICollection<UserScenarioEntity> Users { get; set; } = new HashSet<UserScenarioEntity>();
-
+        public virtual ICollection<ScenarioMembershipEntity> Memberships { get; set; } = new List<ScenarioMembershipEntity>();
         /// <summary>
         /// Flag that denotes if this Scenario's Scores need to be Updated
         /// </summary>
