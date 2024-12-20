@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Steamfitter.Api.Data;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Services;
@@ -19,30 +20,12 @@ namespace Steamfitter.Api.Controllers
     public class ResultController : BaseController
     {
         private readonly IResultService _ResultService;
-        private readonly IAuthorizationService _authorizationService;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
 
-        public ResultController(IResultService ResultService, IAuthorizationService authorizationService)
+        public ResultController(IResultService ResultService, ISteamfitterAuthorizationService authorizationService)
         {
             _ResultService = ResultService;
             _authorizationService = authorizationService;
-        }
-
-        /// <summary>
-        /// Gets all Result in the system
-        /// </summary>
-        /// <remarks>
-        /// Returns a list of all of the Results in the system.
-        /// <para />
-        /// Only accessible to a SuperUser
-        /// </remarks>       
-        /// <returns></returns>
-        [HttpGet("Results")]
-        [ProducesResponseType(typeof(IEnumerable<SAVM.Result>), (int)HttpStatusCode.OK)]
-        [SwaggerOperation(OperationId = "getResults")]
-        public async STT.Task<IActionResult> Get(CancellationToken ct)
-        {
-            var list = await _ResultService.GetAsync(ct);
-            return Ok(list);
         }
 
         /// <summary>
@@ -57,6 +40,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarioResults")]
         public async STT.Task<IActionResult> GetByScenarioId(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Scenario>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             var list = await _ResultService.GetByScenarioIdAsync(id, ct);
             return Ok(list);
         }
@@ -73,12 +59,15 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getTaskResults")]
         public async STT.Task<IActionResult> GetByTaskId(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Task>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             var list = await _ResultService.GetByTaskIdAsync(id, ct);
             return Ok(list);
         }
 
         /// <summary>
-        /// Gets all Results for an View
+        /// Gets all Results for a View
         /// </summary>
         /// <remarks>
         /// Returns all Results for the specified View
@@ -89,6 +78,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getViewResults")]
         public async STT.Task<IActionResult> GetByViewId(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.PlayerView>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             var list = await _ResultService.GetByViewIdAsync(id, ct);
             return Ok(list);
         }
@@ -105,6 +97,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getUserResults")]
         public async STT.Task<IActionResult> GetByUserId(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+                throw new ForbiddenException();
+
             var list = await _ResultService.GetByUserIdAsync(id, ct);
             return Ok(list);
         }
@@ -157,10 +152,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getResult")]
         public async STT.Task<IActionResult> Get(Guid id, CancellationToken ct)
         {
-            var Result = await _ResultService.GetAsync(id, ct);
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
 
-            if (Result == null)
-                throw new EntityNotFoundException<SAVM.Result>();
+            var Result = await _ResultService.GetAsync(id, ct);
 
             return Ok(Result);
         }
@@ -172,7 +167,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new Result with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="result">The data to create the Result with</param>
         /// <param name="ct"></param>
         [HttpPost("Results")]
@@ -180,6 +175,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createResult")]
         public async STT.Task<IActionResult> Create([FromBody] SAVM.Result result, CancellationToken ct)
         {
+            if (result.TaskId == null ||
+                !await _authorizationService.AuthorizeAsync<ViewModels.Task>(result.TaskId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             var createdResult = await _ResultService.CreateAsync(result, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdResult.Id }, createdResult);
         }
@@ -191,7 +190,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates an Result with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Result
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="result">The updated Result values</param>
         /// <param name="ct"></param>
@@ -200,6 +199,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "updateResult")]
         public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.Result result, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             var updatedResult = await _ResultService.UpdateAsync(id, result, ct);
             return Ok(updatedResult);
         }
@@ -211,7 +213,7 @@ namespace Steamfitter.Api.Controllers
         /// Deletes an Result with the specified id
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Result
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The id of the Result to delete</param>
         /// <param name="ct"></param>
         [HttpDelete("Results/{id}")]
@@ -219,10 +221,12 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteResult")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             await _ResultService.DeleteAsync(id, ct);
             return NoContent();
         }
 
     }
 }
-

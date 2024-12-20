@@ -34,32 +34,6 @@ namespace Steamfitter.Api.Hubs
             _user = user as ClaimsPrincipal;
         }
 
-        public async STT.Task JoinScenario(Guid scenarioId)
-        {
-            if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"{EngineGroups.GetSystemGroup(scenarioId)}");
-            }
-            else
-            {
-                var scenario = await _db.Scenarios
-                    .Include(x => x.Users)
-                    .Where(x => x.Id == scenarioId)
-                    .SingleOrDefaultAsync();
-
-                if (scenario.Users.Any(x => x.UserId == _user.GetId()))
-                {
-                    await Groups.AddToGroupAsync(Context.ConnectionId, $"{scenario.Id}");
-                }
-            }
-        }
-
-        public async STT.Task LeaveScenario(Guid scenarioId)
-        {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{EngineGroups.GetSystemGroup(scenarioId)}");
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, scenarioId.ToString());
-        }
-
         public async STT.Task JoinSystem()
         {
             if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)

@@ -7,10 +7,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Steamfitter.Api.Data;
-using Steamfitter.Api.Data.Models;
+using Steamfitter.Api.ViewModels;
 using Steamfitter.Api.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using SAVM = Steamfitter.Api.ViewModels;
+using Steamfitter.Api.Infrastructure.Exceptions;
 
 namespace Steamfitter.Api.Infrastructure.Authorization;
 
@@ -24,13 +26,13 @@ public interface ISteamfitterAuthorizationService
         Guid? resourceId,
         SystemPermission[] requiredSystemPermissions,
         ScenarioPermission[] requiredScenarioPermissions,
-        CancellationToken cancellationToken) where T : IEntity;
+        CancellationToken cancellationToken) where T : IAuthorizationType;
 
     Task<bool> AuthorizeAsync<T>(
         Guid? resourceId,
         SystemPermission[] requiredSystemPermissions,
         ScenarioTemplatePermission[] requiredScenarioTemplatePermissions,
-        CancellationToken cancellationToken) where T : IEntity;
+        CancellationToken cancellationToken) where T : IAuthorizationType;
 
     IEnumerable<Guid> GetAuthorizedScenarioIds();
     IEnumerable<SystemPermission> GetSystemPermissions();
@@ -47,17 +49,17 @@ public class AuthorizationService(
         SystemPermission[] requiredSystemPermissions,
         CancellationToken cancellationToken)
     {
-        return await HasSystemPermission<IEntity>(requiredSystemPermissions);
+        return await HasSystemPermission<IAuthorizationType>(requiredSystemPermissions);
     }
 
     public async Task<bool> AuthorizeAsync<T>(
         Guid? resourceId,
         SystemPermission[] requiredSystemPermissions,
         ScenarioPermission[] requiredScenarioPermissions,
-        CancellationToken cancellationToken) where T : IEntity
+        CancellationToken cancellationToken) where T : IAuthorizationType
     {
         var claimsPrincipal = identityResolver.GetClaimsPrincipal();
-        bool succeeded = await HasSystemPermission<IEntity>(requiredSystemPermissions);
+        bool succeeded = await HasSystemPermission<IAuthorizationType>(requiredSystemPermissions);
 
         if (!succeeded && resourceId.HasValue)
         {
@@ -80,10 +82,10 @@ public class AuthorizationService(
         Guid? resourceId,
         SystemPermission[] requiredSystemPermissions,
         ScenarioTemplatePermission[] requiredScenarioTemplatePermissions,
-        CancellationToken cancellationToken) where T : IEntity
+        CancellationToken cancellationToken) where T : IAuthorizationType
     {
         var claimsPrincipal = identityResolver.GetClaimsPrincipal();
-        bool succeeded = await HasSystemPermission<IEntity>(requiredSystemPermissions);
+        bool succeeded = await HasSystemPermission<IAuthorizationType>(requiredSystemPermissions);
 
         if (!succeeded && resourceId.HasValue)
         {
@@ -155,7 +157,7 @@ public class AuthorizationService(
     }
 
     private async Task<bool> HasSystemPermission<T>(
-        SystemPermission[] requiredSystemPermissions) where T : IEntity
+        SystemPermission[] requiredSystemPermissions) where T : IAuthorizationType
     {
         var claimsPrincipal = identityResolver.GetClaimsPrincipal();
         var permissionRequirement = new SystemPermissionRequirement(requiredSystemPermissions);
@@ -168,9 +170,11 @@ public class AuthorizationService(
     {
         return typeof(T) switch
         {
-            var t when t == typeof(ScenarioEntity) => resourceId,
-            var t when t == typeof(TaskEntity) => await GetScenarioIdFromTask(resourceId, cancellationToken),
-            var t when t == typeof(ScenarioMembershipEntity) => await GetScenarioIdFromScenarioMembership(resourceId, cancellationToken),
+            var t when t == typeof(Scenario) => resourceId,
+            var t when t == typeof(SAVM.Task) => await GetScenarioIdFromTask(resourceId, cancellationToken),
+            var t when t == typeof(ScenarioMembership) => await GetScenarioIdFromScenarioMembership(resourceId, cancellationToken),
+            var t when t == typeof(Result) => await GetScenarioIdFromResult(resourceId, cancellationToken),
+            var t when t == typeof(PlayerView) => await GetScenarioIdFromPlayerView(resourceId, cancellationToken),
             _ => throw new NotImplementedException($"Handler for type {typeof(T).Name} is not implemented.")
         };
     }
@@ -179,20 +183,12 @@ public class AuthorizationService(
     {
         return typeof(T) switch
         {
-            var t when t == typeof(ScenarioTemplateEntity) => resourceId,
-            var t when t == typeof(ScenarioEntity) => await GetScenarioTemplateIdFromScenario(resourceId, cancellationToken),
-            var t when t == typeof(TaskEntity) => await GetScenarioIdFromTaskTemplate(resourceId, cancellationToken),
-            var t when t == typeof(ScenarioMembershipEntity) => await GetScenarioTemplateIdFromScenarioTemplateMembership(resourceId, cancellationToken),
+            var t when t == typeof(ScenarioTemplate) => resourceId,
+            var t when t == typeof(Scenario) => await GetScenarioTemplateIdFromScenario(resourceId, cancellationToken),
+            var t when t == typeof(SAVM.Task) => await GetScenarioIdFromTaskTemplate(resourceId, cancellationToken),
+            var t when t == typeof(ScenarioMembership) => await GetScenarioTemplateIdFromScenarioTemplateMembership(resourceId, cancellationToken),
             _ => throw new NotImplementedException($"Handler for type {typeof(T).Name} is not implemented.")
         };
-    }
-
-    private async Task<Guid> GetScenarioTemplateIdFromScenario(Guid id, CancellationToken cancellationToken)
-    {
-        return (Guid)await dbContext.Tasks
-            .Where(x => x.Id == id)
-            .Select(x => x.ScenarioId)
-            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private async Task<Guid> GetScenarioIdFromTask(Guid id, CancellationToken cancellationToken)
@@ -219,6 +215,37 @@ public class AuthorizationService(
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    private async Task<Guid> GetScenarioIdFromResult(Guid id, CancellationToken cancellationToken)
+    {
+        var taskId = await dbContext.Results
+            .Where(x => x.Id == id)
+            .Select(x => x.TaskId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (taskId == null)
+            throw new EntityNotFoundException<Result>();
+
+        return (Guid)await dbContext.Tasks
+            .Where(m => m.Id == taskId)
+            .Select(m => m.ScenarioId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<Guid> GetScenarioIdFromPlayerView(Guid id, CancellationToken cancellationToken)
+    {
+        return (Guid)await dbContext.Scenarios
+            .Where(x => x.ViewId == id)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<Guid> GetScenarioTemplateIdFromScenario(Guid id, CancellationToken cancellationToken)
+    {
+        return (Guid)await dbContext.Tasks
+            .Where(x => x.Id == id)
+            .Select(x => x.ScenarioId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     private async Task<Guid> GetScenarioTemplateIdFromScenarioTemplateMembership(Guid id, CancellationToken cancellationToken)
     {
         return await dbContext.ScenarioTemplateMemberships
@@ -226,4 +253,13 @@ public class AuthorizationService(
             .Select(x => x.ScenarioTemplateId)
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+    private async Task<Guid> GetScenarioTemplateIdFromTask(Guid id, CancellationToken cancellationToken)
+    {
+        return (Guid)await dbContext.Tasks
+            .Where(x => x.Id == id)
+            .Select(x => x.ScenarioTemplateId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
 }

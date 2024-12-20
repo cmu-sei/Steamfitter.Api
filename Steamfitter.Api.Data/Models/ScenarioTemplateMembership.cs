@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Steamfitter.Api.Data.Models;
 
-public class ScenarioTemplateMembershipEntity : IEntity
+public class ScenarioTemplateMembershipEntity
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

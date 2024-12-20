@@ -9,17 +9,15 @@ using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Hubs;
 using Steamfitter.Api.Infrastructure.Extensions;
-using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
+using Steamfitter.Api.ViewModels;
 
 namespace Steamfitter.Api.Services
 {
@@ -27,7 +25,6 @@ namespace Steamfitter.Api.Services
     {
         STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetAsync(CancellationToken ct);
         STT.Task<ViewModels.ScenarioTemplate> GetAsync(Guid id, CancellationToken ct);
-        // STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetByUserIdAsync(Guid userId, CancellationToken ct);
         STT.Task<ViewModels.ScenarioTemplate> CreateAsync(ViewModels.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct);
         STT.Task<ViewModels.ScenarioTemplate> CopyAsync(Guid id, CancellationToken ct);
         STT.Task<ViewModels.ScenarioTemplate> UpdateAsync(Guid id, ViewModels.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct);
@@ -37,7 +34,6 @@ namespace Steamfitter.Api.Services
     public class ScenarioTemplateService : IScenarioTemplateService
     {
         private readonly SteamfitterContext _context;
-        private readonly IAuthorizationService _authorizationService;
         private readonly ITaskService _taskService;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
@@ -45,14 +41,12 @@ namespace Steamfitter.Api.Services
 
         public ScenarioTemplateService(
             SteamfitterContext context,
-            IAuthorizationService authorizationService,
             ITaskService taskService,
             IPrincipal user,
             IMapper mapper,
             IHubContext<EngineHub> engineHub)
         {
             _context = context;
-            _authorizationService = authorizationService;
             _taskService = taskService;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
@@ -61,9 +55,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetAsync(CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var items = await _context.ScenarioTemplates.Include(st => st.VmCredentials)
                 .ToListAsync(ct);
 
@@ -72,31 +63,20 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.ScenarioTemplate> GetAsync(Guid id, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var item = await _context.ScenarioTemplates.Include(st => st.VmCredentials)
                 .SingleOrDefaultAsync(o => o.Id == id, ct);
+
+            if (item == null)
+                throw new EntityNotFoundException<ScenarioTemplate>();
 
             return _mapper.Map<SAVM.ScenarioTemplate>(item);
         }
 
         public async STT.Task<ViewModels.ScenarioTemplate> CreateAsync(ViewModels.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var scenarioTemplateEntity = _mapper.Map<ScenarioTemplateEntity>(scenarioTemplateForm);
             scenarioTemplateEntity.DateCreated = DateTime.UtcNow;
             scenarioTemplateEntity.CreatedBy = _user.GetId();
-
-            //TODO: add permissions
-            // var scenarioTemplateAdminPermission = await _context.Permissions
-            //     .Where(p => p.Key == PlayerClaimTypes.ScenarioTemplateAdmin.ToString())
-            //     .FirstOrDefaultAsync();
-
-            // if (scenarioTemplateAdminPermission == null)
-            //     throw new EntityNotFoundException<Permission>($"{PlayerClaimTypes.ScenarioTemplateAdmin.ToString()} Permission not found.");
 
             _context.ScenarioTemplates.Add(scenarioTemplateEntity);
             await _context.SaveChangesAsync(ct);
@@ -107,9 +87,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.ScenarioTemplate> CopyAsync(Guid oldScenarioTemplateId, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             await using var transaction = await _context.Database.BeginTransactionAsync(ct);
             var oldScenarioTemplateEntity = _context.ScenarioTemplates.Find(oldScenarioTemplateId);
             if (oldScenarioTemplateEntity == null)
@@ -143,9 +120,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.ScenarioTemplate> UpdateAsync(Guid id, ViewModels.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var scenarioTemplateToUpdate = await _context.ScenarioTemplates.SingleOrDefaultAsync(v => v.Id == id, ct);
 
             if (scenarioTemplateToUpdate == null)
@@ -165,9 +139,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var scenarioTemplateToDelete = await _context.ScenarioTemplates.SingleOrDefaultAsync(v => v.Id == id, ct);
 
             if (scenarioTemplateToDelete == null)

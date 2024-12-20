@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Steamfitter.Api.Data.Models;
 
-public class GroupEntity : IEntity
+public class GroupEntity
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

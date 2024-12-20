@@ -7,42 +7,27 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Steamfitter.Api.Data;
+using Steamfitter.Api.Infrastructure.Authorization;
+using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Services;
 using SAVM = Steamfitter.Api.ViewModels;
 using Swashbuckle.AspNetCore.Annotations;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Steamfitter.Api.Controllers
 {
     public class TaskController : BaseController
     {
         private readonly ITaskService _TaskService;
-        private readonly IAuthorizationService _authorizationService;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
 
-        public TaskController(ITaskService TaskService, IAuthorizationService authorizationService)
+        public TaskController(ITaskService TaskService, ISteamfitterAuthorizationService authorizationService)
         {
             _TaskService = TaskService;
             _authorizationService = authorizationService;
-        }
-
-        /// <summary>
-        /// Gets all Task in the system
-        /// </summary>
-        /// <remarks>
-        /// Returns a list of all of the Tasks in the system.
-        /// <para />
-        /// Only accessible to a SuperUser
-        /// </remarks>
-        /// <returns></returns>
-        [HttpGet("Tasks")]
-        [ProducesResponseType(typeof(IEnumerable<SAVM.Task>), (int)HttpStatusCode.OK)]
-        [SwaggerOperation(OperationId = "getTasks")]
-        public async STT.Task<IActionResult> Get(CancellationToken ct)
-        {
-            var list = await _TaskService.GetAsync(ct);
-            return Ok(list);
         }
 
         /// <summary>
@@ -57,6 +42,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarioTemplateTasks")]
         public async STT.Task<IActionResult> GetByScenarioTemplateId(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                throw new ForbiddenException();
+
             var list = await _TaskService.GetByScenarioTemplateIdAsync(id, ct);
             return Ok(list);
         }
@@ -73,12 +61,15 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarioTasks")]
         public async STT.Task<IActionResult> GetByScenarioId(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             var list = await _TaskService.GetByScenarioIdAsync(id, ct);
             return Ok(list);
         }
 
         /// <summary>
-        /// Gets all Tasks for an View
+        /// Gets all Tasks for a View
         /// </summary>
         /// <remarks>
         /// Returns all Tasks for the specified View
@@ -89,71 +80,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getViewTasks")]
         public async STT.Task<IActionResult> GetByViewId(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<SAVM.PlayerView>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             var list = await _TaskService.GetByViewIdAsync(id, ct);
-            return Ok(list);
-        }
-
-        /// <summary>
-        /// Gets all manual Tasks for a User
-        /// </summary>
-        /// <remarks>
-        /// Returns all manual Tasks for the specified User
-        /// </remarks>
-        /// <returns></returns>
-        [HttpGet("users/{id}/Tasks")]
-        [ProducesResponseType(typeof(IEnumerable<SAVM.Task>), (int)HttpStatusCode.OK)]
-        [SwaggerOperation(OperationId = "getUserTasks")]
-        public async STT.Task<IActionResult> GetByUserId(Guid id, CancellationToken ct)
-        {
-            var list = await _TaskService.GetByUserIdAsync(id, ct);
-            return Ok(list);
-        }
-
-        /// <summary>
-        /// Gets all Tasks for a VM
-        /// </summary>
-        /// <remarks>
-        /// Returns all Tasks for the specified VM
-        /// </remarks>
-        /// <returns></returns>
-        [HttpGet("vms/{id}/Tasks")]
-        [ProducesResponseType(typeof(IEnumerable<SAVM.Task>), (int)HttpStatusCode.OK)]
-        [SwaggerOperation(OperationId = "getVmTasks")]
-        public async STT.Task<IActionResult> GetByVmId(Guid id, CancellationToken ct)
-        {
-            var list = await _TaskService.GetByVmIdAsync(id, ct);
-            return Ok(list);
-        }
-
-        /// <summary>
-        /// Gets all Tasks for a Trigger Task (Parent)
-        /// </summary>
-        /// <remarks>
-        /// Returns all Tasks for the specified TriggerTask
-        /// </remarks>
-        /// <returns></returns>
-        [HttpGet("Tasks/{id}/subtasks")]
-        [ProducesResponseType(typeof(IEnumerable<SAVM.Task>), (int)HttpStatusCode.OK)]
-        [SwaggerOperation(OperationId = "getSubtasks")]
-        public async STT.Task<IActionResult> GetSubtasks(Guid id, CancellationToken ct)
-        {
-            var list = await _TaskService.GetSubtasksAsync(id, ct);
-            return Ok(list);
-        }
-
-        /// <summary>
-        /// Gets all manual Tasks for the current User
-        /// </summary>
-        /// <remarks>
-        /// Returns all manual Tasks for the current User
-        /// </remarks>
-        /// <returns></returns>
-        [HttpGet("me/Tasks")]
-        [ProducesResponseType(typeof(IEnumerable<SAVM.Task>), (int)HttpStatusCode.OK)]
-        [SwaggerOperation(OperationId = "getMyTasks")]
-        public async STT.Task<IActionResult> GetMine(CancellationToken ct)
-        {
-            var list = await _TaskService.GetByUserIdAsync(User.GetId(), ct);
             return Ok(list);
         }
 
@@ -173,6 +103,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getTask")]
         public async STT.Task<IActionResult> Get(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Task>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             var Task = await _TaskService.GetAsync(id, ct);
             return Ok(Task);
         }
@@ -192,6 +125,11 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createTask")]
         public async STT.Task<IActionResult> Create([FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
         {
+            if ((taskForm.ScenarioId != null &&
+                    !await _authorizationService.AuthorizeAsync<SAVM.Task>(taskForm.ScenarioId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                || !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(taskForm.ScenarioTemplateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                throw new ForbiddenException();
+
             var createdTask = await _TaskService.CreateAsync(taskForm, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdTask.Id }, createdTask);
         }
@@ -212,6 +150,25 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "copyTask")]
         public async STT.Task<IActionResult> Copy([FromRoute] Guid id, [FromBody] NewLocation newLocation, CancellationToken ct)
         {
+            xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            if (newLocation.ScenarioTemplateId != null)
+            {
+                if (
+                    !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(newLocation.ScenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct)
+                    && !await _authorizationService.AuthorizeAsync<SAVM.Task>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                    throw new ForbiddenException();
+            }
+            else if (newLocation.ScenarioId != null)
+            {
+                if (
+                    !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(newLocation.ScenarioId, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct)
+                    && !await _authorizationService.AuthorizeAsync<SAVM.Task>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                    throw new ForbiddenException();
+            }
+            else
+            {
+                throw new ArgumentException("To copy a task, the new location must contain a scenario ID or a scenario template ID.");
+            }
             var taskWithSubtasks = await _TaskService.CopyAsync(id, newLocation.Id, newLocation.LocationType, ct);
             return Ok(taskWithSubtasks);
         }
@@ -397,8 +354,9 @@ namespace Steamfitter.Api.Controllers
 
     public class NewLocation
     {
-        public Guid? Id { get; set; }
-        public string LocationType { get; set; }
+        public Guid? ScenarioTemplateId { get; set; }
+        public Guid? ScenarioId { get; set; }
+        public Guid? TaskId { get; set; }
     }
 
     public class GradeCheckInfo

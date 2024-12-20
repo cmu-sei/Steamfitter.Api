@@ -3,7 +3,7 @@
 
 using System;
 using System.Text.Json;
-using Steamfitter.Api.Data.Models;
+using Steamfitter.Api.Data;
 
 namespace Steamfitter.Api.Infrastructure.Authorization;
 

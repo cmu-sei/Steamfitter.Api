@@ -6,14 +6,12 @@ using System.Linq;
 using System.Security.Principal;
 using System.Text.Json.Serialization;
 using AutoMapper.Internal;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,7 +30,6 @@ using Steamfitter.Api.Infrastructure.JsonConverters;
 using Steamfitter.Api.Infrastructure.Mapping;
 using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Services;
-using MediatR;
 
 namespace Steamfitter.Api;
 
@@ -207,6 +204,9 @@ public class Startup
         services.AddScoped<IFilesService, FilesService>();
         services.AddScoped<IBondAgentService, BondAgentService>();
         services.AddScoped<IVmCredentialService, VmCredentialService>();
+        services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>().HttpContext.User);
+        services.AddScoped<IScoringService, ScoringService>();
+        services.AddScoped<ISteamfitterAuthorizationService, AuthorizationService>();
         services.AddSingleton<StackStormService>();
         services.AddSingleton<IHostedService>(x => x.GetService<StackStormService>());
         services.AddSingleton<IStackStormService>(x => x.GetService<StackStormService>());
@@ -215,9 +215,7 @@ public class Startup
         services.AddHostedService<TaskExecutionService>();
         services.AddHostedService<TaskMaintenanceService>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>().HttpContext.User);
         services.AddHttpClient();
-        services.AddScoped<IScoringService, ScoringService>();
 
         ApplyPolicies(services);
 

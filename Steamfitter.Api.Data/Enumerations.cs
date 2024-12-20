@@ -71,4 +71,40 @@ namespace Steamfitter.Api.Data
         error = 6
     }
 
+
+    public enum SystemPermission
+    {
+        CreateScenarioTemplates,
+        ViewScenarioTemplates,
+        EditScenarioTemplates,
+        ManageScenarioTemplates,
+        CreateScenarios,
+        ViewScenarios,
+        EditScenarios,
+        ExecuteScenarios,
+        ManageScenarios,
+        ManageTasks,
+        ViewUsers,
+        ManageUsers,
+        ViewRoles,
+        ManageRoles,
+        ViewGroups,
+        ManageGroups
+    }
+
+    public enum ScenarioPermission
+    {
+        ViewScenario,
+        EditScenario,
+        ExecuteScenario,
+        ManageScenario
+    }
+
+    public enum ScenarioTemplatePermission
+    {
+        ViewScenarioTemplate,
+        EditScenarioTemplate,
+        ManageScenarioTemplate
+    }
+
 }

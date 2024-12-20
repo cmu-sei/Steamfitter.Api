@@ -6,29 +6,29 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Steamfitter.Api.Data;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Services;
 using SAVM = Steamfitter.Api.ViewModels;
 using Swashbuckle.AspNetCore.Annotations;
-using Steamfitter.Api.ViewModels;
 
 namespace Steamfitter.Api.Controllers
 {
     public class ScenarioController : BaseController
     {
         private readonly IScenarioService _ScenarioService;
-        private readonly IAuthorizationService _authorizationService;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
 
-        public ScenarioController(IScenarioService ScenarioService, IAuthorizationService authorizationService)
+        public ScenarioController(IScenarioService ScenarioService, ISteamfitterAuthorizationService authorizationService)
         {
             _ScenarioService = ScenarioService;
             _authorizationService = authorizationService;
         }
 
         /// <summary>
-        /// Gets all Scenario in the system
+        /// Gets all Scenarios in the system
         /// </summary>
         /// <remarks>
         /// Returns a list of all of the Scenarios in the system.
@@ -41,6 +41,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarios")]
         public async STT.Task<IActionResult> Get(CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+                throw new ForbiddenException();
+
             var list = await _ScenarioService.GetAsync(ct);
             return Ok(list);
         }
@@ -49,7 +52,7 @@ namespace Steamfitter.Api.Controllers
         /// Gets all Scenarios with the specified ViewId
         /// </summary>
         /// <remarks>
-        /// Returns a list of all of the Scenarios in the system.
+        /// Returns a list of all of the Scenarios in the specified View.
         /// <para />
         /// Only accessible to a SuperUser
         /// </remarks>
@@ -59,45 +62,12 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenariosByViewId")]
         public async STT.Task<IActionResult> GetByViewId(Guid viewId, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+                throw new ForbiddenException();
+
             var list = await _ScenarioService.GetByViewIdAsync(viewId, ct);
             return Ok(list);
         }
-
-        // /// <summary>
-        // /// Gets all Scenarios for a User
-        // /// </summary>
-        // /// <remarks>
-        // /// Returns all Scenarios where the specified User is a member of at least one of it's Teams
-        // /// <para />
-        // /// Accessible to a SuperUser or the specified User itself
-        // /// </remarks>
-        // /// <returns></returns>
-        // [HttpGet("users/{id}/Scenarios")]
-        // [ProducesResponseType(typeof(IEnumerable<Scenario>), (int)HttpStatusCode.OK)]
-        // [SwaggerOperation(OperationId = "getUserScenarios")]
-        // public async STT.Task<IActionResult> GetByUserId(int id, CancellationToken ct)
-        // {
-        //     var list = await _ScenarioService.GetByUserIdAsync(id, ct);
-        //     return Ok(list);
-        // }
-
-        // /// <summary>
-        // /// Gets all Scenarios for the current User
-        // /// </summary>
-        // /// <remarks>
-        // /// Returns all Scenarios where the current User is a member of at least one of it's Teams
-        // /// <para />
-        // /// Accessible only to the current User.
-        // /// <para/>
-        // /// This is a convenience endpoint and simply returns a 302 redirect to the fully qualified users/{id}/Scenarios endpoint
-        // /// </remarks>
-        // [HttpGet("me/Scenarios")]
-        // [ProducesResponseType(typeof(IEnumerable<Scenario>), (int)HttpStatusCode.OK)]
-        // [SwaggerOperation(OperationId = "getMyScenarios")]
-        // public async STT.Task<IActionResult> GetMy(CancellationToken ct)
-        // {
-        //     return RedirectToAction(nameof(this.GetByUserId), new { id = User.GetId() });
-        // }
 
         /// <summary>
         /// Gets a specific Scenario by id
@@ -115,10 +85,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenario")]
         public async STT.Task<IActionResult> Get(Guid id, CancellationToken ct)
         {
-            var Scenario = await _ScenarioService.GetAsync(id, ct);
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
 
-            if (Scenario == null)
-                throw new EntityNotFoundException<SAVM.Scenario>();
+            var Scenario = await _ScenarioService.GetAsync(id, ct);
 
             return Ok(Scenario);
         }
@@ -138,6 +108,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getMyScenario")]
         public async STT.Task<IActionResult> GetMine(CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ManageTasks], ct))
+                throw new ForbiddenException();
+
             var Scenario = await _ScenarioService.GetMineAsync(ct);
 
             if (Scenario == null)
@@ -161,6 +134,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createScenario")]
         public async STT.Task<IActionResult> Create([FromBody] SAVM.ScenarioForm scenarioForm, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.CreateScenarios], ct))
+                throw new ForbiddenException();
+
             var createdScenario = await _ScenarioService.CreateAsync(scenarioForm, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdScenario.Id }, createdScenario);
         }
@@ -179,8 +155,12 @@ namespace Steamfitter.Api.Controllers
         [HttpPost("ScenarioTemplates/{id}/Scenarios")]
         [ProducesResponseType(typeof(SAVM.Scenario), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createScenarioFromScenarioTemplate")]
-        public async STT.Task<IActionResult> CreateFromScenarioTemplate(Guid id, [FromBody] ScenarioCloneOptions options, CancellationToken ct)
+        public async STT.Task<IActionResult> CreateFromScenarioTemplate(Guid id, [FromBody] SAVM.ScenarioCloneOptions options, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.CreateScenarios], ct)
+                || !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                throw new ForbiddenException();
+
             var createdScenario = await _ScenarioService.CreateFromScenarioTemplateAsync(id, options, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdScenario.Id }, createdScenario);
         }
@@ -200,6 +180,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "copyScenario")]
         public async STT.Task<IActionResult> CopyScenario(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.CreateScenarios], ct)
+                || !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
             var createdScenario = await _ScenarioService.CreateFromScenarioAsync(id, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdScenario.Id }, createdScenario);
         }
@@ -208,7 +192,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates a Scenario
         /// </summary>
         /// <remarks>
-        /// Updates an Scenario with the attributes specified
+        /// Updates a Scenario with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Scenario
         /// </remarks>
@@ -220,27 +204,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "updateScenario")]
         public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.ScenarioForm scenarioForm, CancellationToken ct)
         {
-            var updatedScenario = await _ScenarioService.UpdateAsync(id, scenarioForm, ct);
-            return Ok(updatedScenario);
-        }
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
+                throw new ForbiddenException();
 
-        /// <summary>
-        /// Adds Users to a Scenario
-        /// </summary>
-        /// <remarks>
-        /// Adds one or more Users to the Scenario specified
-        /// <para />
-        /// Accessible only to a SuperUser ContentDeveloper
-        /// </remarks>
-        /// <param name="id"></param>
-        /// <param name="userIds"></param>
-        /// <param name="ct"></param>
-        [HttpPut("Scenarios/{id}/users/add")]
-        [ProducesResponseType(typeof(SAVM.Scenario), (int)HttpStatusCode.OK)]
-        [SwaggerOperation(OperationId = "addUsersToScenario")]
-        public async STT.Task<IActionResult> AddUsers([FromRoute] Guid id, [FromBody] IEnumerable<Guid> userIds, CancellationToken ct)
-        {
-            var updatedScenario = await _ScenarioService.AddUsersAsync(id, userIds, ct);
+            var updatedScenario = await _ScenarioService.UpdateAsync(id, scenarioForm, ct);
             return Ok(updatedScenario);
         }
 
@@ -259,6 +226,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "startScenario")]
         public async STT.Task<IActionResult> Start([FromRoute] Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
+                throw new ForbiddenException();
+
             var updatedScenario = await _ScenarioService.StartAsync(id, ct);
             return Ok(updatedScenario);
         }
@@ -278,6 +248,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "pauseScenario")]
         public async STT.Task<IActionResult> Pause([FromRoute] Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
+                throw new ForbiddenException();
+
             var updatedScenario = await _ScenarioService.PauseAsync(id, ct);
             return Ok(updatedScenario);
         }
@@ -297,6 +270,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "continueScenario")]
         public async STT.Task<IActionResult> Continue([FromRoute] Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
+                throw new ForbiddenException();
+
             var updatedScenario = await _ScenarioService.ContinueAsync(id, ct);
             return Ok(updatedScenario);
         }
@@ -316,15 +292,18 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "endScenario")]
         public async STT.Task<IActionResult> End([FromRoute] Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
+                throw new ForbiddenException();
+
             var updatedScenario = await _ScenarioService.EndAsync(id, ct);
             return Ok(updatedScenario);
         }
 
         /// <summary>
-        /// Deletes an Scenario
+        /// Deletes a Scenario
         /// </summary>
         /// <remarks>
-        /// Deletes an Scenario with the specified id
+        /// Deletes a Scenario with the specified id
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Scenario
         /// </remarks>
@@ -335,6 +314,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteScenario")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
+                throw new ForbiddenException();
+
             await _ScenarioService.DeleteAsync(id, ct);
             return NoContent();
         }

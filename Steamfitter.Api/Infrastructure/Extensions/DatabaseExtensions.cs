@@ -70,20 +70,6 @@ namespace Steamfitter.Api.Infrastructure.Extensions
 
         private static void ProcessSeedDataOptions(SeedDataOptions options, SteamfitterContext context)
         {
-            if (options.Permissions.Any())
-            {
-                var dbPermissions = context.Permissions.ToList();
-
-                foreach (PermissionEntity permission in options.Permissions)
-                {
-                    if (!dbPermissions.Where(x => x.Key == permission.Key && x.Value == permission.Value).Any())
-                    {
-                        context.Permissions.Add(permission);
-                    }
-                }
-
-                context.SaveChanges();
-            }
             if (options.Users.Any())
             {
                 var dbUsers = context.Users.ToList();
@@ -93,20 +79,6 @@ namespace Steamfitter.Api.Infrastructure.Extensions
                     if (!dbUsers.Where(x => x.Id == user.Id).Any())
                     {
                         context.Users.Add(user);
-                    }
-                }
-
-                context.SaveChanges();
-            }
-            if (options.UserPermissions.Any())
-            {
-                var dbUserPermissions = context.UserPermissions.ToList();
-
-                foreach (UserPermissionEntity userPermission in options.UserPermissions)
-                {
-                    if (!dbUserPermissions.Where(x => x.UserId == userPermission.UserId && x.PermissionId == userPermission.PermissionId).Any())
-                    {
-                        context.UserPermissions.Add(userPermission);
                     }
                 }
 

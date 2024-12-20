@@ -1,10 +1,9 @@
 // Copyright 2024 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using Steamfitter.Api.Data.Models;
+using Steamfitter.Api.Data;
 using Microsoft.AspNetCore.Authorization;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Steamfitter.Api.Infrastructure.Authorization
@@ -19,7 +18,7 @@ namespace Steamfitter.Api.Infrastructure.Authorization
         }
     }
 
-    public class SystemPermissionsHandler : AuthorizationHandler<SystemPermissionRequirement>, IAuthorizationHandler
+    public class SystemPermissionHandler : AuthorizationHandler<SystemPermissionRequirement>, IAuthorizationHandler
     {
         protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, SystemPermissionRequirement requirement)
         {

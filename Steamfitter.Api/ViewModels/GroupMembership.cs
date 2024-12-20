@@ -5,7 +5,7 @@ using System;
 
 namespace Steamfitter.Api.ViewModels
 {
-    public class GroupMembership
+    public class GroupMembership : IAuthorizationType
     {
         public Guid Id { get; set; }
 

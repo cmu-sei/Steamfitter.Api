@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Steamfitter.Api.Data.Models
 {
-    public class ScenarioTemplateEntity : BaseEntity
+    public class ScenarioTemplateEntity : BaseEntity, IEntity
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

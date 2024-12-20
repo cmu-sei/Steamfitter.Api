@@ -19,13 +19,19 @@ namespace Steamfitter.Api.Infrastructure.Extensions
                 Array.ForEach(authOptions.AuthorizationScope.Split(' '), x => policyBuilder.RequireClaim("scope", x));
 
                 options.DefaultPolicy = policyBuilder.Build();
+                options.AddPolicy(nameof(SteamfitterClaimTypes.SystemAdmin), policy => policy.Requirements.Add(new FullRightsRequirement()));
+                options.AddPolicy(nameof(SteamfitterClaimTypes.ContentDeveloper), policy => policy.Requirements.Add(new ContentDeveloperRequirement()));
+                options.AddPolicy(nameof(SteamfitterClaimTypes.BaseUser), policy => policy.Requirements.Add(new BaseUserRequirement()));
+                options.AddPolicy(nameof(SteamfitterClaimTypes.Operator), policy => policy.Requirements.Add(new OperatorRequirement()));
             });
 
             services.AddSingleton<IAuthorizationHandler, FullRightsHandler>();
             services.AddSingleton<IAuthorizationHandler, ContentDeveloperHandler>();
             services.AddSingleton<IAuthorizationHandler, OperatorHandler>();
-            services.AddSingleton<IAuthorizationHandler, UserAccessHandler>();
             services.AddSingleton<IAuthorizationHandler, BaseUserHandler>();
+            services.AddSingleton<IAuthorizationHandler, SystemPermissionHandler>();
+            services.AddSingleton<IAuthorizationHandler, ScenarioPermissionHandler>();
+            services.AddSingleton<IAuthorizationHandler, ScenarioTemplatePermissionHandler>();
         }
 
 

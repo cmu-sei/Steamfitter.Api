@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Steamfitter.Api.Data.Models;
 
-public class GroupMembershipEntity : IEntity
+public class GroupMembershipEntity
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

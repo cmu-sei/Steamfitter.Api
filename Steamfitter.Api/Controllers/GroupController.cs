@@ -12,7 +12,7 @@ using Steamfitter.Api.Services;
 using SAVM = Steamfitter.Api.ViewModels;
 using Swashbuckle.AspNetCore.Annotations;
 using Steamfitter.Api.ViewModels;
-using Steamfitter.Api.Data.Models;
+using Steamfitter.Api.Data;
 using Steamfitter.Api.Infrastructure.Authorization;
 
 namespace Steamfitter.Api.Controllers
@@ -66,7 +66,6 @@ namespace Steamfitter.Api.Controllers
         /// Create a new group.
         /// </summary>
         /// <param name="group"></param>
-        /// <param name="ct"></param>
         /// <returns></returns>
         [HttpPost("groups")]
         [ProducesResponseType(typeof(Group), (int)HttpStatusCode.Created)]
@@ -100,7 +99,6 @@ namespace Steamfitter.Api.Controllers
         /// Delete a group.
         /// </summary>
         /// <param name="id">ID of an group.</param>
-        /// <param name="ct"></param>
         /// <returns></returns>
         [HttpDelete("groups/{id}")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
@@ -148,7 +146,6 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <param name="groupId"></param>
         /// <param name="groupMembership"></param>
-        /// <param name="ct"></param>
         /// <returns></returns>
         [HttpPost("groups/{groupId}/memberships")]
         [ProducesResponseType(typeof(GroupMembership), (int)HttpStatusCode.Created)]

@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Steamfitter.Api.Data.Models;
 
-public class ScenarioTemplateRoleEntity : IEntity
+public class ScenarioTemplateRoleEntity
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -23,14 +23,6 @@ public class ScenarioTemplateRoleEntity : IEntity
     public bool AllPermissions { get; set; }
 
     public List<ScenarioTemplatePermission> Permissions { get; set; }
-}
-
-public enum ScenarioTemplatePermission
-{
-    ViewScenarioTemplate,
-    EditScenarioTemplate,
-    ManageScenarioTemplate,
-    ImportScenarioTemplate
 }
 
 public static class ScenarioTemplateRoleEntityDefaults
