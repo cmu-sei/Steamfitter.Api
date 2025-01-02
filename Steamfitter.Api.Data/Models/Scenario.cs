@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Steamfitter.Api.Data.Models
 {
-    public class ScenarioEntity : BaseEntity, IEntity
+    public class ScenarioEntity : BaseEntity
     {
         public ScenarioEntity()
         {

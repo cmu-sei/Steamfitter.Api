@@ -45,9 +45,9 @@ namespace Steamfitter.Api.Services
         STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct);
         STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.TaskForm taskForm, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
-        STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct);
-        STT.Task<SAVM.Task> CreateFromResultAsync(Guid resultId, Guid? newLocationId, string newLocationType, CancellationToken ct);
-        STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct);
+        STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, NewLocation newLocation, CancellationToken ct);
+        STT.Task<SAVM.Task> CreateFromResultAsync(Guid resultId, NewLocation newLocation, CancellationToken ct);
+        STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, NewLocation newLocation, CancellationToken ct);
     }
 
     public class TaskService : ITaskService
@@ -456,7 +456,7 @@ namespace Steamfitter.Api.Services
             return true;
         }
 
-        public async STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        public async STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, NewLocation newLocation, CancellationToken ct)
         {
             // check user authorization
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -467,7 +467,7 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<SAVM.Task>>(items);
         }
 
-        public async STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        public async STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, NewLocation newLocation, CancellationToken ct)
         {
             // check user authorization
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -478,7 +478,7 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<SAVM.Task>>(items);
         }
 
-        public async STT.Task<SAVM.Task> CreateFromResultAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        public async STT.Task<SAVM.Task> CreateFromResultAsync(Guid id, NewLocation newLocation, CancellationToken ct)
         {
             // check user authorization
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
@@ -544,7 +544,7 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<SAVM.Task>(newTask);
         }
 
-        private async STT.Task<IEnumerable<TaskEntity>> CopyTaskAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        private async STT.Task<IEnumerable<TaskEntity>> CopyTaskAsync(Guid id, NewLocation newLocation, CancellationToken ct)
         {
             // check for existing task
             var existingTaskEntity = await _context.Tasks.SingleAsync(v => v.Id == id, ct);
@@ -615,7 +615,7 @@ namespace Steamfitter.Api.Services
             return subEntities;
         }
 
-        private async STT.Task<IEnumerable<TaskEntity>> MoveTaskAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        private async STT.Task<IEnumerable<TaskEntity>> MoveTaskAsync(Guid id, NewLocation newLocation, CancellationToken ct)
         {
             // check for existing task
             var existingTaskEntity = await _context.Tasks.SingleAsync(v => v.Id == id, ct);
@@ -717,5 +717,11 @@ namespace Steamfitter.Api.Services
         public Dictionary<string, string> TaskSubstitutions { get; set; }
     }
 
+    public class NewLocation
+    {
+        public Guid? ScenarioTemplateId { get; set; }
+        public Guid? ScenarioId { get; set; }
+        public Guid? TaskId { get; set; }
+    }
 
 }

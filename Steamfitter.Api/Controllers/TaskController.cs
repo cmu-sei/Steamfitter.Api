@@ -16,18 +16,24 @@ using Steamfitter.Api.Services;
 using SAVM = Steamfitter.Api.ViewModels;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Threading.Tasks;
+using Steamfitter.Api.Migrations.PostgreSQL.Migrations;
+using Steamfitter.Api.ViewModels;
+using System.Data.SqlTypes;
 
 namespace Steamfitter.Api.Controllers
 {
     public class TaskController : BaseController
     {
-        private readonly ITaskService _TaskService;
+        private readonly ITaskService _taskService;
         private readonly ISteamfitterAuthorizationService _authorizationService;
+        private readonly IResultService _resultService;
 
-        public TaskController(ITaskService TaskService, ISteamfitterAuthorizationService authorizationService)
+        public TaskController(ITaskService TaskService, ISteamfitterAuthorizationService authorizationService, IResultService resultService)
         {
-            _TaskService = TaskService;
+            _taskService = TaskService;
             _authorizationService = authorizationService;
+            _resultService = resultService;
         }
 
         /// <summary>
@@ -45,7 +51,7 @@ namespace Steamfitter.Api.Controllers
             if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
                 throw new ForbiddenException();
 
-            var list = await _TaskService.GetByScenarioTemplateIdAsync(id, ct);
+            var list = await _taskService.GetByScenarioTemplateIdAsync(id, ct);
             return Ok(list);
         }
 
@@ -64,7 +70,7 @@ namespace Steamfitter.Api.Controllers
             if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
                 throw new ForbiddenException();
 
-            var list = await _TaskService.GetByScenarioIdAsync(id, ct);
+            var list = await _taskService.GetByScenarioIdAsync(id, ct);
             return Ok(list);
         }
 
@@ -83,7 +89,7 @@ namespace Steamfitter.Api.Controllers
             if (!await _authorizationService.AuthorizeAsync<SAVM.PlayerView>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
                 throw new ForbiddenException();
 
-            var list = await _TaskService.GetByViewIdAsync(id, ct);
+            var list = await _taskService.GetByViewIdAsync(id, ct);
             return Ok(list);
         }
 
@@ -106,7 +112,7 @@ namespace Steamfitter.Api.Controllers
             if (!await _authorizationService.AuthorizeAsync<SAVM.Task>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
                 throw new ForbiddenException();
 
-            var Task = await _TaskService.GetAsync(id, ct);
+            var Task = await _taskService.GetAsync(id, ct);
             return Ok(Task);
         }
 
@@ -126,11 +132,12 @@ namespace Steamfitter.Api.Controllers
         public async STT.Task<IActionResult> Create([FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
         {
             if ((taskForm.ScenarioId != null &&
-                    !await _authorizationService.AuthorizeAsync<SAVM.Task>(taskForm.ScenarioId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
-                || !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(taskForm.ScenarioTemplateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                    !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(taskForm.ScenarioId, [SystemPermission.ManageScenarioTemplates], [ScenarioPermission.ManageScenario], ct))
+                || (taskForm.ScenarioTemplateId != null &&
+                    !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(taskForm.ScenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct)))
                 throw new ForbiddenException();
 
-            var createdTask = await _TaskService.CreateAsync(taskForm, ct);
+            var createdTask = await _taskService.CreateAsync(taskForm, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdTask.Id }, createdTask);
         }
 
@@ -150,27 +157,29 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "copyTask")]
         public async STT.Task<IActionResult> Copy([FromRoute] Guid id, [FromBody] NewLocation newLocation, CancellationToken ct)
         {
-            xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-            if (newLocation.ScenarioTemplateId != null)
+            await CheckTaskCreationAuthorization(newLocation.TaskId, newLocation.ScenarioId, newLocation.ScenarioTemplateId, ct);
+
+            var existingTask = await _taskService.GetAsync(id, ct);
+            if (existingTask == null)
+                throw new EntityNotFoundException<SAVM.Task>();
+
+            if (existingTask.ScenarioId != null)
             {
-                if (
-                    !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(newLocation.ScenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct)
-                    && !await _authorizationService.AuthorizeAsync<SAVM.Task>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(existingTask.ScenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
                     throw new ForbiddenException();
             }
-            else if (newLocation.ScenarioId != null)
+            else if (existingTask.ScenarioTemplateId != null)
             {
-                if (
-                    !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(newLocation.ScenarioId, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct)
-                    && !await _authorizationService.AuthorizeAsync<SAVM.Task>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(existingTask.ScenarioTemplateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
                     throw new ForbiddenException();
             }
             else
             {
-                throw new ArgumentException("To copy a task, the new location must contain a scenario ID or a scenario template ID.");
+                throw new ArgumentException("The task selected is not a valid task to copy.");
             }
-            var taskWithSubtasks = await _TaskService.CopyAsync(id, newLocation.Id, newLocation.LocationType, ct);
-            return Ok(taskWithSubtasks);
+
+            var newTaskWithSubtasks = await _taskService.CopyAsync(id, newLocation, ct);
+            return Ok(newTaskWithSubtasks);
         }
 
         /// <summary>
@@ -189,8 +198,33 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createTaskFromResult")]
         public async STT.Task<IActionResult> CreateFromResult([FromRoute] Guid resultId, [FromBody] NewLocation newLocation, CancellationToken ct)
         {
-            var task = await _TaskService.CreateFromResultAsync(resultId, newLocation.Id, newLocation.LocationType, ct);
-            return Ok(task);
+            await CheckTaskCreationAuthorization(newLocation.TaskId, newLocation.ScenarioId, newLocation.ScenarioTemplateId, ct);
+
+            var result = await _resultService.GetAsync(resultId, ct);
+            if (result == null)
+                throw new EntityNotFoundException<Result>();
+
+            var existingTask = await _taskService.GetAsync((Guid)result.TaskId, ct);
+            if (existingTask == null)
+                throw new EntityNotFoundException<SAVM.Task>();
+
+            if (existingTask.ScenarioId != null)
+            {
+                if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(existingTask.ScenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                    throw new ForbiddenException();
+            }
+            else if (existingTask.ScenarioTemplateId != null)
+            {
+                if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(existingTask.ScenarioTemplateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                    throw new ForbiddenException();
+            }
+            else
+            {
+                throw new ArgumentException("The result selected is not associated to a valid task to copy.");
+            }
+
+            var newTask = await _taskService.CreateFromResultAsync(resultId, newLocation, ct);
+            return Ok(newTask);
         }
 
         /// <summary>
@@ -208,7 +242,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createAndExecuteTask")]
         public async STT.Task<IActionResult> CreateAndExecute([FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
         {
-            var resultList = await _TaskService.CreateAndExecuteAsync(taskForm, ct);
+            await CheckTaskCreationAuthorization(null, taskForm.ScenarioId, null, ct);
+            await CheckTaskExecutionAuthorization(null, taskForm.ScenarioId, ct);
+
+            var resultList = await _taskService.CreateAndExecuteAsync(taskForm, ct);
             return Ok(resultList);
         }
 
@@ -226,7 +263,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "executeTask")]
         public async STT.Task<IActionResult> Execute(Guid id, CancellationToken ct)
         {
-            var resultList = await _TaskService.ExecuteAsync(id, ct);
+            await CheckTaskExecutionAuthorization(null, id, ct);
+
+            var resultList = await _taskService.ExecuteAsync(id, ct);
             return Ok(resultList);
         }
 
@@ -245,7 +284,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "executeTaskWithSubstitutions")]
         public async STT.Task<IActionResult> Execute([FromRoute] Guid id, [FromBody] Dictionary<string, string> taskSubstitutions, CancellationToken ct)
         {
-            var resultList = await _TaskService.ExecuteWithSubstitutionsAsync(id, taskSubstitutions, ct);
+            await CheckTaskExecutionAuthorization(null, id, ct);
+
+            var resultList = await _taskService.ExecuteWithSubstitutionsAsync(id, taskSubstitutions, ct);
             return Ok(resultList);
         }
 
@@ -266,8 +307,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "executeForGrade")]
         public async STT.Task<IActionResult> ExecuteForGrade([FromBody] GradedExecutionInfo gradedExecutionInfo, CancellationToken ct)
         {
+            await CheckTaskExecutionAuthorization(null, gradedExecutionInfo.ScenarioId, ct);
+
             var executionTime = DateTime.UtcNow;
-            var gradedTaskId = await _TaskService.ExecuteForGradeAsync(gradedExecutionInfo, ct);
+            var gradedTaskId = await _taskService.ExecuteForGradeAsync(gradedExecutionInfo, ct);
             var result = new GradeCheckInfo()
             {
                 GradedTaskId = (Guid)gradedTaskId,
@@ -292,7 +335,8 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "updateTask")]
         public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
         {
-            var updatedTask = await _TaskService.UpdateAsync(id, taskForm, ct);
+            await CheckTaskCreationAuthorization(null, taskForm.ScenarioId, taskForm.ScenarioTemplateId, ct);
+            var updatedTask = await _taskService.UpdateAsync(id, taskForm, ct);
             return Ok(updatedTask);
         }
 
@@ -312,7 +356,8 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "moveTask")]
         public async STT.Task<IActionResult> Move([FromRoute] Guid id, [FromBody] NewLocation newLocation, CancellationToken ct)
         {
-            var taskWithSubtasks = await _TaskService.MoveAsync(id, newLocation.Id, newLocation.LocationType, ct);
+            xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            var taskWithSubtasks = await _taskService.MoveAsync(id, newLocation, ct);
             return Ok(taskWithSubtasks);
         }
 
@@ -331,7 +376,7 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteTask")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
-            await _TaskService.DeleteAsync(id, ct);
+            await _taskService.DeleteAsync(id, ct);
             return NoContent();
         }
 
@@ -350,13 +395,52 @@ namespace Steamfitter.Api.Controllers
             return Ok(System.IO.File.ReadAllText(@"availableCommands.json"));
         }
 
-    }
+        private async STT.Task CheckTaskCreationAuthorization(Guid? taskId, Guid? scenarioId, Guid? scenarioTemplateId, CancellationToken ct)
+        {
+            if (taskId != null)
+            {
+                var task = await _taskService.GetAsync((Guid)taskId, ct);
+                if (task == null)
+                    throw new EntityNotFoundException<SAVM.Task>();
+                scenarioId = task.ScenarioId;
+                scenarioTemplateId = task.ScenarioTemplateId;
+            }
+            if (scenarioId != null)
+            {
+                if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(scenarioId, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
+                    throw new ForbiddenException();
+            }
+            else if (scenarioTemplateId != null)
+            {
+                if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(scenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct))
+                    throw new ForbiddenException();
+            }
+            else
+            {
+                throw new ArgumentException("Invalid task destination location.");
+            }
+        }
 
-    public class NewLocation
-    {
-        public Guid? ScenarioTemplateId { get; set; }
-        public Guid? ScenarioId { get; set; }
-        public Guid? TaskId { get; set; }
+        private async STT.Task CheckTaskExecutionAuthorization(Guid? taskId, Guid? scenarioId, CancellationToken ct)
+        {
+            if (taskId != null)
+            {
+                var task = await _taskService.GetAsync((Guid)taskId, ct);
+                if (task == null)
+                    throw new EntityNotFoundException<SAVM.Task>();
+                scenarioId = task.ScenarioId;
+            }
+            if (scenarioId != null)
+            {
+                if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(scenarioId, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
+                    throw new ForbiddenException();
+            }
+            else
+            {
+                throw new ArgumentException("Invalid task for execution.");
+            }
+        }
+
     }
 
     public class GradeCheckInfo
