@@ -97,7 +97,8 @@ namespace Steamfitter.Api.Data
         ViewScenario,
         EditScenario,
         ExecuteScenario,
-        ManageScenario
+        ManageScenario,
+        ViewTasks
     }
 
     public enum ScenarioTemplatePermission
