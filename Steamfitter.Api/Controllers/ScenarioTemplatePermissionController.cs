@@ -2,21 +2,20 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Steamfitter.Api.Infrastructure.Authorization;
-using Steamfitter.Api.Data;
+using System;
 
 namespace Steamfitter.Api.Controllers;
 
-public class SystemPermissionsController : BaseController
+public class ScenarioTemplatePermissionsController : BaseController
 {
     private readonly ISteamfitterAuthorizationService _authorizationService;
 
-    public SystemPermissionsController(ISteamfitterAuthorizationService authorizationService)
+    public ScenarioTemplatePermissionsController(ISteamfitterAuthorizationService authorizationService)
     {
         _authorizationService = authorizationService;
     }
@@ -25,12 +24,12 @@ public class SystemPermissionsController : BaseController
     /// Get all SystemPermissions for the calling User.
     /// </summary>
     /// <returns></returns>
-    [HttpGet("me/systemPermissions")]
-    [ProducesResponseType(typeof(IEnumerable<SystemPermission>), (int)HttpStatusCode.OK)]
-    [SwaggerOperation(OperationId = "GetMySystemPermissions")]
-    public async Task<IActionResult> GetMine()
+    [HttpGet("scenarioTemplates/{id}/me/permissions")]
+    [ProducesResponseType(typeof(IEnumerable<ScenarioTemplatePermissionClaim>), (int)HttpStatusCode.OK)]
+    [SwaggerOperation(OperationId = "GetMyScenarioTemplatePermissions")]
+    public async Task<IActionResult> GetMine(Guid id)
     {
-        var result = _authorizationService.GetSystemPermissions().ToArray();
+        var result = _authorizationService.GetScenarioTemplatePermissions();
         return Ok(result);
     }
 }

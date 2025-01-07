@@ -11,7 +11,7 @@ using System;
 
 namespace Steamfitter.Api.Controllers;
 
-public class ScenarioPermissionsController : ControllerBase
+public class ScenarioPermissionsController : BaseController
 {
     private readonly ISteamfitterAuthorizationService _authorizationService;
 

@@ -22,10 +22,10 @@ using SAVM = Steamfitter.Api.ViewModels;
 
 namespace Steamfitter.Api.Services
 {
-    public interface IUserService 
+    public interface IUserService
     {
         STT.Task<IEnumerable<ViewModels.User>> GetAsync(CancellationToken ct);
-        STT.Task<ViewModels.User> GetAsync(Guid id, CancellationToken ct);             
+        STT.Task<ViewModels.User> GetAsync(Guid id, CancellationToken ct);
         STT.Task<ViewModels.User> CreateAsync(ViewModels.User user, CancellationToken ct);
         STT.Task<ViewModels.User> UpdateAsync(Guid id, ViewModels.User user, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct);
@@ -56,9 +56,8 @@ namespace Steamfitter.Api.Services
                 throw new ForbiddenException();
 
             var items = await _context.Users
-                .ProjectTo<ViewModels.User>(_mapper.ConfigurationProvider, dest => dest.Permissions)
                 .ToArrayAsync(ct);
-            return items;
+            return _mapper.Map<IEnumerable<SAVM.User>>(items);
         }
 
         public async STT.Task<ViewModels.User> GetAsync(Guid id, CancellationToken ct)
@@ -67,11 +66,10 @@ namespace Steamfitter.Api.Services
                 throw new ForbiddenException();
 
             var item = await _context.Users
-                .ProjectTo<ViewModels.User>(_mapper.ConfigurationProvider, dest => dest.Permissions)
                 .SingleOrDefaultAsync(o => o.Id == id, ct);
-            return item;
+            return _mapper.Map<SAVM.User>(item);
         }
-        
+
         public async STT.Task<ViewModels.User> CreateAsync(ViewModels.User user, CancellationToken ct)
         {
             if (!(await _authorizationService.AuthorizeAsync(_user, null, new FullRightsRequirement())).Succeeded)
@@ -132,4 +130,3 @@ namespace Steamfitter.Api.Services
 
     }
 }
-

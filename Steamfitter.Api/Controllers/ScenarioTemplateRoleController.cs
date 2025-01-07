@@ -16,7 +16,7 @@ using System.Threading;
 
 namespace Steamfitter.Api.Controllers;
 
-public class ScenarioTemplateRolesController : ControllerBase
+public class ScenarioTemplateRolesController : BaseController
 {
     private readonly ISteamfitterAuthorizationService _authorizationService;
     private readonly IScenarioTemplateRoleService _scenarioRoleService;
@@ -32,7 +32,7 @@ public class ScenarioTemplateRolesController : ControllerBase
     /// </summary>
     /// <param name="id">ID of a ScenarioTemplateRole.</param>
     /// <returns></returns>
-    [HttpGet("scenario-roles/{id}")]
+    [HttpGet("scenarioTemplate-roles/{id}")]
     [ProducesResponseType(typeof(ScenarioTemplateRole), (int)HttpStatusCode.OK)]
     [SwaggerOperation(OperationId = "GetScenarioTemplateRole")]
     public async Task<IActionResult> Get([FromRoute] Guid id, CancellationToken ct)
@@ -48,7 +48,7 @@ public class ScenarioTemplateRolesController : ControllerBase
     /// Get all ScenarioTemplateRoles.
     /// </summary>
     /// <returns></returns>
-    [HttpGet()]
+    [HttpGet("scenarioTemplate-roles")]
     [ProducesResponseType(typeof(IEnumerable<ScenarioTemplateRole>), (int)HttpStatusCode.OK)]
     [SwaggerOperation(OperationId = "GetAllScenarioTemplateRoles")]
     public async Task<IActionResult> GetAll(CancellationToken ct)

@@ -36,15 +36,6 @@ namespace Steamfitter.Api.Data.Models
         {
             builder.HasIndex(x => new { x.UserId, x.PermissionId }).IsUnique();
 
-            builder
-                .HasOne(u => u.User)
-                .WithMany(p => p.UserPermissions)
-                .HasForeignKey(x => x.UserId);
-            builder
-                .HasOne(u => u.Permission)
-                .WithMany(p => p.UserPermissions)
-                .HasForeignKey(x => x.PermissionId);
         }
     }
 }
-

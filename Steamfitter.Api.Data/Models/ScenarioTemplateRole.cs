@@ -60,8 +60,7 @@ public class ScenarioTemplateRoleEntityConfiguration : IEntityTypeConfiguration<
                 AllPermissions = false,
                 Permissions = [
                     ScenarioTemplatePermission.ViewScenarioTemplate,
-                    ScenarioTemplatePermission.EditScenarioTemplate,
-                    ScenarioTemplatePermission.ImportScenarioTemplate
+                    ScenarioTemplatePermission.EditScenarioTemplate
                 ],
                 Description = "Has read only access to the ScenarioTemplate"
             }

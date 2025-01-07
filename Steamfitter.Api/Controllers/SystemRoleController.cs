@@ -16,7 +16,7 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace Steamfitter.Api.Controllers
 {
-    public class SystemRolesController : ControllerBase
+    public class SystemRolesController : BaseController
     {
         private readonly ISteamfitterAuthorizationService _authorizationService;
         private readonly ISystemRoleService _systemRoleService;

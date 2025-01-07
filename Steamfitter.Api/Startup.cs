@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Principal;
 using System.Text.Json.Serialization;
 using AutoMapper.Internal;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -26,6 +27,7 @@ using Steamfitter.Api.Infrastructure.DbInterceptors;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.Filters;
 using Steamfitter.Api.Infrastructure.HealthChecks;
+using Steamfitter.Api.Infrastructure.Identity;
 using Steamfitter.Api.Infrastructure.JsonConverters;
 using Steamfitter.Api.Infrastructure.Mapping;
 using Steamfitter.Api.Infrastructure.Options;
@@ -124,7 +126,7 @@ public class Startup
 
         services.AddScoped<IPlayerVmService, PlayerVmService>();
         services.AddScoped<IPlayerService, PlayerService>();
-        // services.AddScoped<IClaimsTransformation, AuthorizationClaimsTransformer>();
+        services.AddScoped<IClaimsTransformation, AuthorizationClaimsTransformer>();
         services.AddScoped<IUserClaimsService, UserClaimsService>();
 
         services.AddScoped<SteamfitterContextFactory>();
@@ -198,15 +200,14 @@ public class Startup
         services.AddScoped<ITaskService, TaskService>();
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<IScenarioTemplateService, ScenarioTemplateService>();
-        services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IUserPermissionService, UserPermissionService>();
         services.AddScoped<IFilesService, FilesService>();
         services.AddScoped<IBondAgentService, BondAgentService>();
         services.AddScoped<IVmCredentialService, VmCredentialService>();
         services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>().HttpContext.User);
         services.AddScoped<IScoringService, ScoringService>();
         services.AddScoped<ISteamfitterAuthorizationService, AuthorizationService>();
+        services.AddScoped<IIdentityResolver, IdentityResolver>();
         services.AddSingleton<StackStormService>();
         services.AddSingleton<IHostedService>(x => x.GetService<StackStormService>());
         services.AddSingleton<IStackStormService>(x => x.GetService<StackStormService>());

@@ -27,7 +27,9 @@ namespace Steamfitter.Api.Data
         public DbSet<ResultEntity> Results { get; set; }
         public DbSet<ScenarioTemplateEntity> ScenarioTemplates { get; set; }
         public DbSet<ScenarioEntity> Scenarios { get; set; }
+        public DbSet<PermissionEntity> Permissions { get; set; }
         public DbSet<UserEntity> Users { get; set; }
+        public DbSet<UserPermissionEntity> UserPermissions { get; set; }
         public DbSet<FileEntity> Files { get; set; }
         public DbSet<BondAgent> BondAgents { get; set; }
         public DbSet<VmCredentialEntity> VmCredentials { get; set; }

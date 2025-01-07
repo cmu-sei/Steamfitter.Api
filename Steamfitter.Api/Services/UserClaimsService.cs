@@ -45,17 +45,35 @@ namespace Steamfitter.Api.Services
         public async STT.Task<ClaimsPrincipal> AddUserClaims(ClaimsPrincipal principal, bool update)
         {
             List<Claim> claims;
-            var identity = ((ClaimsIdentity)principal.Identity);
+            var identity = (ClaimsIdentity)principal.Identity;
             var userId = principal.GetId();
 
-            if (!_cache.TryGetValue(userId, out claims))
+            // Don't use cached claims if given a new token and we are using roles or groups from the token
+            if (_cache.TryGetValue(userId, out claims) && (_options.UseGroupsFromIdP || _options.UseRolesFromIdP))
             {
-                claims = new List<Claim>();
+                var cachedTokenId = claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Jti)?.Value;
+                var newTokenId = identity.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Jti)?.Value;
+
+                if (newTokenId != cachedTokenId)
+                {
+                    claims = null;
+                }
+            }
+
+            if (claims == null)
+            {
+                claims = [];
                 var user = await ValidateUser(userId, principal.FindFirst("name")?.Value, update);
 
                 if (user != null)
                 {
-                    claims.AddRange(await GetUserClaims(userId));
+                    var jtiClaim = identity.Claims.Where(x => x.Type == JwtRegisteredClaimNames.Jti).FirstOrDefault();
+
+                    if (jtiClaim is not null)
+                    {
+                        claims.Add(new Claim(jtiClaim.Type, jtiClaim.Value));
+                    }
+
                     claims.AddRange(await GetPermissionClaims(userId, principal));
 
                     if (_options.EnableCaching)
@@ -64,6 +82,7 @@ namespace Steamfitter.Api.Services
                     }
                 }
             }
+
             addNewClaims(identity, claims);
             return principal;
         }
@@ -118,18 +137,6 @@ namespace Steamfitter.Api.Services
                         Name = nameClaim ?? "Anonymous"
                     };
 
-                    // First user is default SystemAdmin
-                    // TODO: set first user to ALL permissions/sysadmin
-                    // if (!anyUsers)
-                    // {
-                    //     var systemAdminPermission = await _context.Permissions.Where(p => p.Key == SteamfitterClaimTypes.SystemAdmin.ToString()).FirstOrDefaultAsync();
-
-                    //     if (systemAdminPermission != null)
-                    //     {
-                    //         user.UserPermissions.Add(new UserPermissionEntity(user.Id, systemAdminPermission.Id));
-                    //     }
-                    // }
-
                     _context.Users.Add(user);
                     await _context.SaveChangesAsync();
                 }
@@ -145,39 +152,6 @@ namespace Steamfitter.Api.Services
             }
 
             return user;
-        }
-
-        private async STT.Task<IEnumerable<Claim>> GetUserClaims(Guid userId)
-        {
-            List<Claim> claims = new List<Claim>();
-            throw new NotImplementedException();
-
-            // var userPermissions = await _context.UserPermissions
-            //     .Where(u => u.UserId == userId)
-            //     .Include(x => x.Permission)
-            //     .ToArrayAsync();
-
-            // if (userPermissions.Where(x => x.Permission.Key == SteamfitterClaimTypes.SystemAdmin.ToString()).Any())
-            // {
-            //     claims.Add(new Claim(SteamfitterClaimTypes.SystemAdmin.ToString(), "true"));
-            // }
-
-            // if (userPermissions.Where(x => x.Permission.Key == SteamfitterClaimTypes.ContentDeveloper.ToString()).Any())
-            // {
-            //     claims.Add(new Claim(SteamfitterClaimTypes.ContentDeveloper.ToString(), "true"));
-            // }
-
-            // if (userPermissions.Where(x => x.Permission.Key == SteamfitterClaimTypes.Operator.ToString()).Any())
-            // {
-            //     claims.Add(new Claim(SteamfitterClaimTypes.Operator.ToString(), "true"));
-            // }
-
-            // if (userPermissions.Where(x => x.Permission.Key == SteamfitterClaimTypes.BaseUser.ToString()).Any())
-            // {
-            //     claims.Add(new Claim(SteamfitterClaimTypes.BaseUser.ToString(), "true"));
-            // }
-
-            return claims;
         }
 
         private async STT.Task<IEnumerable<Claim>> GetPermissionClaims(Guid userId, ClaimsPrincipal principal)

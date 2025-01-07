@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -26,6 +27,8 @@ public class SystemRoleEntity
 public static class SystemRoleEntityDefaults
 {
     public static Guid AdministratorRoleId = new("f35e8fff-f996-4cba-b303-3ba515ad8d2f");
+    public static Guid ContentDeveloperRoleId = new("d80b73c3-95d7-4468-8650-c62bbd082507");
+    public static Guid ObserverRoleId = new("1da3027e-725d-4753-9455-a836ed9bdb1e");
 }
 
 public class SystemRoleEntityConfiguration : IEntityTypeConfiguration<SystemRoleEntity>
@@ -43,6 +46,30 @@ public class SystemRoleEntityConfiguration : IEntityTypeConfiguration<SystemRole
                 Immutable = true,
                 Permissions = [],
                 Description = "Can perform all actions"
+            },
+            new SystemRoleEntity
+            {
+                Id = SystemRoleEntityDefaults.ContentDeveloperRoleId,
+                Name = "Content Developer",
+                AllPermissions = false,
+                Immutable = false,
+                Permissions = [
+                    SystemPermission.CreateScenarioTemplates,
+                    SystemPermission.CreateScenarios,
+                    SystemPermission.ExecuteScenarios
+                ],
+                Description = "Can create and manage their own Scenario Templates and Scenarios."
+            },
+            new SystemRoleEntity
+            {
+                Id = SystemRoleEntityDefaults.ObserverRoleId,
+                Name = "Observer",
+                AllPermissions = false,
+                Immutable = false,
+                Permissions = Enum.GetValues<SystemPermission>()
+                    .Where(x => x.ToString().StartsWith("View"))
+                    .ToList(),
+                Description = "Can View all Scenario Templates and Scenarios, but cannot make any changes."
             }
         );
     }
