@@ -197,21 +197,22 @@ public class Startup
         services.AddMemoryCache();
 
         services.AddScoped<IScenarioService, ScenarioService>();
+        services.AddScoped<IScenarioRoleService, ScenarioRoleService>();
         services.AddScoped<ITaskService, TaskService>();
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<IScenarioTemplateService, ScenarioTemplateService>();
+        services.AddScoped<IScenarioTemplateRoleService, ScenarioTemplateRoleService>();
         services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IFilesService, FilesService>();
-        services.AddScoped<IBondAgentService, BondAgentService>();
         services.AddScoped<IVmCredentialService, VmCredentialService>();
         services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>().HttpContext.User);
         services.AddScoped<IScoringService, ScoringService>();
         services.AddScoped<ISteamfitterAuthorizationService, AuthorizationService>();
         services.AddScoped<IIdentityResolver, IdentityResolver>();
+        services.AddScoped<IGroupService, GroupService>();
+        services.AddScoped<ISystemRoleService, SystemRoleService>();
         services.AddSingleton<StackStormService>();
         services.AddSingleton<IHostedService>(x => x.GetService<StackStormService>());
         services.AddSingleton<IStackStormService>(x => x.GetService<StackStormService>());
-        services.AddSingleton<BondAgentStore>();
         services.AddSingleton<ITaskExecutionQueue, TaskExecutionQueue>();
         services.AddHostedService<TaskExecutionService>();
         services.AddHostedService<TaskMaintenanceService>();

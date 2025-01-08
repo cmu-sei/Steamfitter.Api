@@ -9,7 +9,6 @@ using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
@@ -34,21 +33,18 @@ namespace Steamfitter.Api.Services
     public class GroupService : IGroupService
     {
         private readonly SteamfitterContext _context;
-        private readonly IAuthorizationService _authorizationService;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
         private readonly ITaskService _taskService;
         private readonly IStackStormService _stackstormService;
 
         public GroupService(SteamfitterContext context,
-                                IAuthorizationService authorizationService,
                                 IPrincipal user,
                                 IMapper mapper,
                                 ITaskService taskService,
                                 IStackStormService stackstormService)
         {
             _context = context;
-            _authorizationService = authorizationService;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
             _taskService = taskService;

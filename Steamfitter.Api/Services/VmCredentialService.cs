@@ -9,13 +9,11 @@ using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Extensions;
-using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
 
@@ -35,20 +33,17 @@ namespace Steamfitter.Api.Services
     public class VmCredentialService : IVmCredentialService
     {
         private readonly SteamfitterContext _context;
-        private readonly IAuthorizationService _authorizationService;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
         private readonly ILogger<TaskService> _logger;
 
         public VmCredentialService(
             SteamfitterContext context,
-            IAuthorizationService authorizationService,
             IPrincipal user,
             IMapper mapper,
             ILogger<TaskService> logger)
         {
             _context = context;
-            _authorizationService = authorizationService;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
             _logger = logger;
@@ -56,19 +51,13 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<SAVM.VmCredential>> GetAsync(CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
+            var items = await _context.VmCredentials.ToListAsync(ct);
 
-            var items = await _context.VmCredentials.ToListAsync(ct);         
-            
             return _mapper.Map<IEnumerable<SAVM.VmCredential>>(items);
         }
 
         public async STT.Task<SAVM.VmCredential> GetAsync(Guid id, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var item = await _context.VmCredentials
                 .SingleOrDefaultAsync(o => o.Id == id, ct);
             if (item == null)
@@ -79,9 +68,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<SAVM.VmCredential>> GetByScenarioTemplateIdAsync(Guid scenarioTemplateId, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var vmCredentials = _context.VmCredentials.Where(x => x.ScenarioTemplateId == scenarioTemplateId);
 
             return _mapper.Map<IEnumerable<SAVM.VmCredential>>(vmCredentials);
@@ -89,9 +75,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<SAVM.VmCredential>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var vmCredentials = _context.VmCredentials.Where(x => x.ScenarioId == scenarioId);
 
             return _mapper.Map<IEnumerable<SAVM.VmCredential>>(vmCredentials);
@@ -99,9 +82,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.VmCredential> CreateAsync(SAVM.VmCredential vmCredential, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             if (vmCredential.ScenarioTemplateId == null && vmCredential.ScenarioId == null)
                 throw new ArgumentException("A VmCredential MUST be associated to either a Scenario Template or a Scenario.");
 
@@ -118,9 +98,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.VmCredential> UpdateAsync(Guid id, SAVM.VmCredential vmCredential, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var vmCredentialToUpdate = await _context.VmCredentials.SingleOrDefaultAsync(v => v.Id == id, ct);
 
             if (vmCredentialToUpdate == null)
@@ -141,9 +118,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var vmCredentialToDelete = await _context.VmCredentials.SingleOrDefaultAsync(v => v.Id == id, ct);
             if (vmCredentialToDelete == null)
                 throw new EntityNotFoundException<SAVM.VmCredential>();
@@ -157,4 +131,3 @@ namespace Steamfitter.Api.Services
     }
 
 }
-

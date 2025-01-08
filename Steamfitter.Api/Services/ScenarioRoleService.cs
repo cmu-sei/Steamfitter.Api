@@ -3,16 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
-using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
 using Steamfitter.Api.ViewModels;
@@ -28,14 +25,12 @@ namespace Steamfitter.Api.Services
     public class ScenarioRoleService : IScenarioRoleService
     {
         private readonly SteamfitterContext _context;
-        private readonly IAuthorizationService _authorizationService;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
 
-        public ScenarioRoleService(SteamfitterContext context, IAuthorizationService authorizationService, IPrincipal user, IMapper mapper)
+        public ScenarioRoleService(SteamfitterContext context, IPrincipal user, IMapper mapper)
         {
             _context = context;
-            _authorizationService = authorizationService;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
         }

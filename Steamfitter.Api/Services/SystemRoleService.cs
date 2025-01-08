@@ -9,7 +9,6 @@ using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
@@ -30,14 +29,12 @@ namespace Steamfitter.Api.Services
     public class SystemRoleService : ISystemRoleService
     {
         private readonly SteamfitterContext _context;
-        private readonly IAuthorizationService _authorizationService;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
 
-        public SystemRoleService(SteamfitterContext context, IAuthorizationService authorizationService, IPrincipal user, IMapper mapper)
+        public SystemRoleService(SteamfitterContext context, IPrincipal user, IMapper mapper)
         {
             _context = context;
-            _authorizationService = authorizationService;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
         }
