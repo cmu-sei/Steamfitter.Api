@@ -3,8 +3,6 @@
 
 using System;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +13,6 @@ namespace Steamfitter.Api.Infrastructure.Identity
     {
         ClaimsPrincipal GetClaimsPrincipal();
         Guid GetId();
-        Task<bool> IsAdminAsync();
     }
 
     public class IdentityResolver : IIdentityResolver
@@ -41,19 +38,5 @@ namespace Steamfitter.Api.Infrastructure.Identity
             return this.GetClaimsPrincipal().GetId();
         }
 
-        public async Task<bool> IsAdminAsync()
-        {
-            if ((await _authorizationService.AuthorizeAsync(
-                this.GetClaimsPrincipal(),
-                null,
-                new FullRightsRequirement())).Succeeded)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
     }
 }

@@ -21,12 +21,12 @@ namespace Steamfitter.Api.Hubs
     public class EngineHub : Hub
     {
         private readonly SteamfitterContext _db;
-        private readonly IAuthorizationService _authorizationService;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
         private readonly ClaimsPrincipal _user;
 
         public EngineHub(
             SteamfitterContext db,
-            IAuthorizationService authorizationService,
+            ISteamfitterAuthorizationService authorizationService,
             IPrincipal user)
         {
             _db = db;
@@ -36,10 +36,11 @@ namespace Steamfitter.Api.Hubs
 
         public async STT.Task JoinSystem()
         {
-            if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, EngineGroups.SystemGroup);
-            }
+            // TODO: add the correct authorization
+            // if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
+            // {
+            await Groups.AddToGroupAsync(Context.ConnectionId, EngineGroups.SystemGroup);
+            // }
         }
 
         public async STT.Task LeaveSystem()
