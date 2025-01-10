@@ -1,4 +1,4 @@
-// Copyright 2021 Carnegie Mellon University. All Rights Reserved.
+// Copyright 2024 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
@@ -56,4 +56,55 @@ public class ScenarioMembershipsController : BaseController
         var result = await _scenarioMembershipService.GetByScenarioAsync(id, ct);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Create a new Scenario Membership.
+    /// </summary>
+    /// <param name="scenarioId"></param>
+    /// <param name="scenarioMembership"></param>
+    /// <returns></returns>
+    [HttpPost("scenarios/{scenarioId}/memberships")]
+    [ProducesResponseType(typeof(ScenarioMembership), (int)HttpStatusCode.Created)]
+    [SwaggerOperation(OperationId = "CreateScenarioMembership")]
+    public async Task<IActionResult> CreateMembership([FromRoute] Guid scenarioId, ScenarioMembership scenarioMembership, CancellationToken ct)
+    {
+        var result = await _scenarioMembershipService.CreateAsync(scenarioMembership, ct);
+        return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
+    }
+
+    /// <summary>
+    /// Updates a ScenarioMembership
+    /// </summary>
+    /// <remarks>
+    /// Updates a ScenarioMembership with the attributes specified
+    /// </remarks>
+    /// <param name="id">The Id of the Exericse to update</param>
+    /// <param name="scenarioMembership">The updated ScenarioMembership values</param>
+    /// <param name="ct"></param>
+    [HttpPut("Scenarios/Memberships/{id}")]
+    [ProducesResponseType(typeof(ScenarioMembership), (int)HttpStatusCode.OK)]
+    [SwaggerOperation(OperationId = "updateScenarioMembership")]
+    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] ScenarioMembership scenarioMembership, CancellationToken ct)
+    {
+        if (!await _authorizationService.AuthorizeAsync<ScenarioMembership>(id, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
+            throw new ForbiddenException();
+
+        var updatedScenarioMembership = await _scenarioMembershipService.UpdateAsync(id, scenarioMembership, ct);
+        return Ok(updatedScenarioMembership);
+    }
+
+    /// <summary>
+    /// Delete a Scenario Membership.
+    /// </summary>
+    /// <returns></returns>
+    [HttpDelete("scenarios/memberships/{id}")]
+    [ProducesResponseType((int)HttpStatusCode.NoContent)]
+    [SwaggerOperation(OperationId = "DeleteScenarioMembership")]
+    public async Task<IActionResult> DeleteMembership([FromRoute] Guid id, CancellationToken ct)
+    {
+        await _scenarioMembershipService.DeleteAsync(id, ct);
+        return NoContent();
+    }
+
+
 }

@@ -21,7 +21,7 @@ namespace Steamfitter.Api.Services
     public interface IScenarioTemplateMembershipService
     {
         STT.Task<ViewModels.ScenarioTemplateMembership> GetAsync(Guid id, CancellationToken ct);
-        STT.Task<IEnumerable<ViewModels.ScenarioTemplateMembership>> GetByScenarioAsync(Guid scenarioTemplateId, CancellationToken ct);
+        STT.Task<IEnumerable<ViewModels.ScenarioTemplateMembership>> GetByScenarioTemplateAsync(Guid scenarioTemplateId, CancellationToken ct);
         STT.Task<ViewModels.ScenarioTemplateMembership> CreateAsync(ViewModels.ScenarioTemplateMembership scenarioTemplateMembership, CancellationToken ct);
         STT.Task<ViewModels.ScenarioTemplateMembership> UpdateAsync(Guid id, ViewModels.ScenarioTemplateMembership scenarioTemplateMembership, CancellationToken ct);
         STT.Task DeleteAsync(Guid id, CancellationToken ct);
@@ -51,7 +51,7 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<SAVM.ScenarioTemplateMembership>(item);
         }
 
-        public async STT.Task<IEnumerable<ViewModels.ScenarioTemplateMembership>> GetByScenarioAsync(Guid scenarioTemplateId, CancellationToken ct)
+        public async STT.Task<IEnumerable<ViewModels.ScenarioTemplateMembership>> GetByScenarioTemplateAsync(Guid scenarioTemplateId, CancellationToken ct)
         {
             var items = await _context.ScenarioTemplateMemberships
                 .Where(m => m.ScenarioTemplateId == scenarioTemplateId)
