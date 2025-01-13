@@ -100,6 +100,28 @@ namespace Steamfitter.Api.Controllers
         }
 
         /// <summary>
+        /// Updates a User
+        /// </summary>
+        /// <remarks>
+        /// Updates a User with the attributes specified
+        /// </remarks>
+        /// <param name="id">The Id of the Exericse to update</param>
+        /// <param name="user">The updated User values</param>
+        /// <param name="ct"></param>
+        [HttpPut("Users/{id}")]
+        [ProducesResponseType(typeof(SAVM.User), (int)HttpStatusCode.OK)]
+        [SwaggerOperation(OperationId = "updateUser")]
+        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.User user, CancellationToken ct)
+        {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ManageUsers], ct))
+                throw new ForbiddenException();
+
+            var updatedUser = await _userService.UpdateAsync(id, user, ct);
+            return Ok(updatedUser);
+        }
+
+
+        /// <summary>
         /// Deletes a User
         /// </summary>
         /// <remarks>
