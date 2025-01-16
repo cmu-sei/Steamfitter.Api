@@ -124,11 +124,11 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task DeleteMembershipAsync(Guid id, CancellationToken ct)
         {
-            var groupMembershipToDelete = await _context.Groups.SingleOrDefaultAsync(v => v.Id == id, ct);
+            var groupMembershipToDelete = await _context.GroupMemberships.SingleOrDefaultAsync(v => v.Id == id, ct);
             if (groupMembershipToDelete == null)
                 throw new EntityNotFoundException<SAVM.Group>();
 
-            _context.Groups.Remove(groupMembershipToDelete);
+            _context.GroupMemberships.Remove(groupMembershipToDelete);
             await _context.SaveChangesAsync(ct);
         }
 
