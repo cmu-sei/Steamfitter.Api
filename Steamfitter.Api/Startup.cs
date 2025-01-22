@@ -32,6 +32,7 @@ using Steamfitter.Api.Infrastructure.JsonConverters;
 using Steamfitter.Api.Infrastructure.Mapping;
 using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Services;
+using Steamfitter.Api.ViewModels;
 
 namespace Steamfitter.Api;
 
@@ -197,10 +198,12 @@ public class Startup
         services.AddMemoryCache();
 
         services.AddScoped<IScenarioService, ScenarioService>();
+        services.AddScoped<IScenarioMembershipService, ScenarioMembershipService>();
         services.AddScoped<IScenarioRoleService, ScenarioRoleService>();
         services.AddScoped<ITaskService, TaskService>();
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<IScenarioTemplateService, ScenarioTemplateService>();
+        services.AddScoped<IScenarioTemplateMembershipService, ScenarioTemplateMembershipService>();
         services.AddScoped<IScenarioTemplateRoleService, ScenarioTemplateRoleService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IVmCredentialService, VmCredentialService>();

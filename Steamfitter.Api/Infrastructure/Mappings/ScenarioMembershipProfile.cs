@@ -12,6 +12,7 @@ namespace Steamfitter.Api.Infrastructure.Mapping
         public ScenarioMembershipProfile()
         {
             CreateMap<ScenarioMembershipEntity, ScenarioMembership>();
+            CreateMap<ScenarioMembership, ScenarioMembershipEntity>();
         }
     }
 }

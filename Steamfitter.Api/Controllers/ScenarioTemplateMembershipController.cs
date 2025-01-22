@@ -13,6 +13,7 @@ using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Services;
 using Steamfitter.Api.ViewModels;
 using System.Threading;
+using System.Data;
 
 namespace Steamfitter.Api.Controllers;
 
@@ -68,6 +69,12 @@ public class ScenarioTemplateMembershipsController : BaseController
     [SwaggerOperation(OperationId = "CreateScenarioTemplateMembership")]
     public async Task<IActionResult> CreateMembership([FromRoute] Guid scenarioTemplateId, ScenarioTemplateMembership scenarioTemplateMembership, CancellationToken ct)
     {
+        if (!await _authorizationService.AuthorizeAsync<ScenarioTemplate>(scenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct))
+            throw new ForbiddenException();
+
+        if (scenarioTemplateMembership.ScenarioTemplateId != scenarioTemplateId)
+            throw new DataException("The ScenarioTemplateId of the membership must match the ScenarioTemplateId of the URL.");
+
         var result = await _scenarioTemplateMembershipService.CreateAsync(scenarioTemplateMembership, ct);
         return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
