@@ -73,7 +73,7 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<ViewModels.Result>> GetByUserIdAsync(Guid userId, CancellationToken ct)
         {
-            var results = _context.Results.Where(r => r.CreatedBy == _user.GetId());
+            var results = _context.Results.Where(r => r.CreatedBy == userId);
 
             return _mapper.Map<IEnumerable<ViewModels.Result>>(results.OrderByDescending(r => r.StatusDate));
         }
