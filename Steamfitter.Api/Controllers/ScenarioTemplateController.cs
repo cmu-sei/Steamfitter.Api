@@ -41,11 +41,23 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarioTemplates")]
         public async STT.Task<IActionResult> Get(CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarioTemplates], ct))
+            // get ALL scenario templates
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarioTemplates], ct))
+            {
+                var list = await _scenarioTemplateService.GetAsync(ct);
+                return Ok(list);
+            }
+            // get scenario templates the user can access
+            else if (await _authorizationService.AuthorizeAsync([SystemPermission.CreateScenarioTemplates], ct))
+            {
+                var list = await _scenarioTemplateService.GetMineAsync(ct);
+                return Ok(list);
+            }
+            // return forbidden exception
+            else
+            {
                 throw new ForbiddenException();
-
-            var list = await _scenarioTemplateService.GetAsync(ct);
-            return Ok(list);
+            }
         }
 
         /// <summary>

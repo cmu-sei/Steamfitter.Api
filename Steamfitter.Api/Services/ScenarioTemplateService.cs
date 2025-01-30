@@ -24,6 +24,7 @@ namespace Steamfitter.Api.Services
     public interface IScenarioTemplateService
     {
         STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetAsync(CancellationToken ct);
+        STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetMineAsync(CancellationToken ct);
         STT.Task<ViewModels.ScenarioTemplate> GetAsync(Guid id, CancellationToken ct);
         STT.Task<ViewModels.ScenarioTemplate> CreateAsync(ViewModels.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct);
         STT.Task<ViewModels.ScenarioTemplate> CopyAsync(Guid id, CancellationToken ct);
@@ -56,6 +57,19 @@ namespace Steamfitter.Api.Services
         public async STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetAsync(CancellationToken ct)
         {
             var items = await _context.ScenarioTemplates.Include(st => st.VmCredentials)
+                .ToListAsync(ct);
+
+            return _mapper.Map<IEnumerable<SAVM.ScenarioTemplate>>(items);
+        }
+
+        public async STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetMineAsync(CancellationToken ct)
+        {
+            var userId = _user.GetId();
+            var items = await _context.ScenarioTemplateMemberships
+                .Where(m => m.ScenarioTemplate.CreatedBy == userId || m.UserId == userId)
+                .Include(m => m.ScenarioTemplate)
+                .ThenInclude(m => m.VmCredentials)
+                .Select(m => m.ScenarioTemplate)
                 .ToListAsync(ct);
 
             return _mapper.Map<IEnumerable<SAVM.ScenarioTemplate>>(items);

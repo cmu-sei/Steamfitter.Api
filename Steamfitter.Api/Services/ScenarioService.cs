@@ -21,9 +21,10 @@ namespace Steamfitter.Api.Services
     public interface IScenarioService
     {
         STT.Task<IEnumerable<ViewModels.Scenario>> GetAsync(CancellationToken ct);
+        STT.Task<IEnumerable<ViewModels.Scenario>> GetByUserAsync(CancellationToken ct);
         STT.Task<IEnumerable<ViewModels.Scenario>> GetByViewIdAsync(Guid viewId, CancellationToken ct);
         STT.Task<ViewModels.Scenario> GetAsync(Guid Id, CancellationToken ct);
-        STT.Task<ViewModels.Scenario> GetMineAsync(CancellationToken ct);
+        STT.Task<ViewModels.Scenario> GetMyScenarioAsync(CancellationToken ct);
         STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioForm scenarioForm, CancellationToken ct);
         STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, SAVM.ScenarioCloneOptions options, CancellationToken ct);
         STT.Task<ViewModels.Scenario> CreateFromScenarioAsync(Guid scenarioId, CancellationToken ct);
@@ -65,6 +66,19 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<SAVM.Scenario>>(items);
         }
 
+        public async STT.Task<IEnumerable<ViewModels.Scenario>> GetByUserAsync(CancellationToken ct)
+        {
+            var userId = _user.GetId();
+            var items = await _context.ScenarioMemberships
+                .Where(m => m.Scenario.CreatedBy == userId || m.UserId == userId)
+                .Include(m => m.Scenario)
+                .ThenInclude(m => m.VmCredentials)
+                .Select(m => m.Scenario)
+                .ToListAsync(ct);
+
+            return _mapper.Map<IEnumerable<SAVM.Scenario>>(items);
+        }
+
         public async STT.Task<IEnumerable<ViewModels.Scenario>> GetByViewIdAsync(Guid viewId, CancellationToken ct)
         {
             var items = await _context.Scenarios
@@ -83,7 +97,7 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<SAVM.Scenario>(item);
         }
 
-        public async STT.Task<ViewModels.Scenario> GetMineAsync(CancellationToken ct)
+        public async STT.Task<ViewModels.Scenario> GetMyScenarioAsync(CancellationToken ct)
         {
             var item = await _context.Scenarios.Include(st => st.VmCredentials)
                 .SingleOrDefaultAsync(o => o.Id == _user.GetId(), ct);
