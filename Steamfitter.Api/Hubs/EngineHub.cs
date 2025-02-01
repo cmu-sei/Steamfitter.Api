@@ -2,18 +2,13 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using System.Threading;
 using STT = System.Threading.Tasks;
 using Steamfitter.Api.Data;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Security.Principal;
-using System.Linq;
 using Steamfitter.Api.Infrastructure.Authorization;
-using Steamfitter.Api.Infrastructure.Extensions;
 
 namespace Steamfitter.Api.Hubs
 {
@@ -64,6 +59,15 @@ namespace Steamfitter.Api.Hubs
         public const string ResultUpdated = "ResultUpdated";
         public const string ResultsUpdated = "ResultsUpdated";
         public const string ResultDeleted = "ResultDeleted";
+        public const string GroupMembershipCreated = "GroupMembershipCreated";
+        public const string GroupMembershipUpdated = "GroupMembershipUpdated";
+        public const string GroupMembershipDeleted = "GroupMembershipDeleted";
+        public const string ScenarioTemplateMembershipCreated = "ScenarioTemplateMembershipCreated";
+        public const string ScenarioTemplateMembershipUpdated = "ScenarioTemplateMembershipUpdated";
+        public const string ScenarioTemplateMembershipDeleted = "ScenarioTemplateMembershipDeleted";
+        public const string ScenarioMembershipCreated = "ScenarioMembershipCreated";
+        public const string ScenarioMembershipUpdated = "ScenarioMembershipUpdated";
+        public const string ScenarioMembershipDeleted = "ScenarioMembershipDeleted";
     }
 
     public static class EngineGroups
