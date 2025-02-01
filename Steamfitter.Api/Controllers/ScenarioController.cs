@@ -13,6 +13,7 @@ using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Services;
 using SAVM = Steamfitter.Api.ViewModels;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Linq;
 
 namespace Steamfitter.Api.Controllers
 {
@@ -41,23 +42,26 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarios")]
         public async STT.Task<IActionResult> Get(CancellationToken ct)
         {
+            IEnumerable<SAVM.Scenario> list;
             // get ALL scenarios
             if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
             {
-                var list = await _scenarioService.GetAsync(ct);
-                return Ok(list);
+                list = await _scenarioService.GetAsync(ct);
             }
             // get scenarios  the user can access
             else if (await _authorizationService.AuthorizeAsync([SystemPermission.CreateScenarios], ct))
             {
-                var list = await _scenarioService.GetByUserAsync(ct);
-                return Ok(list);
+                list = await _scenarioService.GetByUserAsync(ct);
             }
             // return forbidden exception
             else
             {
                 throw new ForbiddenException();
             }
+
+            AddPermissions(list);
+
+            return Ok(list);
         }
 
         /// <summary>
@@ -78,6 +82,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var list = await _scenarioService.GetByViewIdAsync(viewId, ct);
+            AddPermissions(list);
+
             return Ok(list);
         }
 
@@ -100,9 +106,10 @@ namespace Steamfitter.Api.Controllers
             if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
                 throw new ForbiddenException();
 
-            var Scenario = await _scenarioService.GetAsync(id, ct);
+            var scenario = await _scenarioService.GetAsync(id, ct);
+            AddPermissions(scenario);
 
-            return Ok(Scenario);
+            return Ok(scenario);
         }
 
         /// <summary>
@@ -123,12 +130,14 @@ namespace Steamfitter.Api.Controllers
             if (!await _authorizationService.AuthorizeAsync([SystemPermission.ManageTasks], ct))
                 throw new ForbiddenException();
 
-            var Scenario = await _scenarioService.GetMyScenarioAsync(ct);
+            var scenario = await _scenarioService.GetMyScenarioAsync(ct);
 
-            if (Scenario == null)
+            if (scenario == null)
                 throw new EntityNotFoundException<SAVM.Scenario>();
 
-            return Ok(Scenario);
+            AddPermissions(scenario);
+
+            return Ok(scenario);
         }
 
         /// <summary>
@@ -150,6 +159,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var createdScenario = await _scenarioService.CreateAsync(scenarioForm, ct);
+            AddPermissions(createdScenario);
+
             return CreatedAtAction(nameof(this.Get), new { id = createdScenario.Id }, createdScenario);
         }
 
@@ -174,6 +185,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var createdScenario = await _scenarioService.CreateFromScenarioTemplateAsync(id, options, ct);
+            AddPermissions(createdScenario);
+
             return CreatedAtAction(nameof(this.Get), new { id = createdScenario.Id }, createdScenario);
         }
 
@@ -197,6 +210,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var createdScenario = await _scenarioService.CreateFromScenarioAsync(id, ct);
+            AddPermissions(createdScenario);
+
             return CreatedAtAction(nameof(this.Get), new { id = createdScenario.Id }, createdScenario);
         }
 
@@ -220,6 +235,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var updatedScenario = await _scenarioService.UpdateAsync(id, scenarioForm, ct);
+            AddPermissions(updatedScenario);
+
             return Ok(updatedScenario);
         }
 
@@ -242,6 +259,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var updatedScenario = await _scenarioService.StartAsync(id, ct);
+            AddPermissions(updatedScenario);
+
             return Ok(updatedScenario);
         }
 
@@ -264,6 +283,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var updatedScenario = await _scenarioService.PauseAsync(id, ct);
+            AddPermissions(updatedScenario);
+
             return Ok(updatedScenario);
         }
 
@@ -286,6 +307,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var updatedScenario = await _scenarioService.ContinueAsync(id, ct);
+            AddPermissions(updatedScenario);
+
             return Ok(updatedScenario);
         }
 
@@ -308,6 +331,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var updatedScenario = await _scenarioService.EndAsync(id, ct);
+            AddPermissions(updatedScenario);
+
             return Ok(updatedScenario);
         }
 
@@ -331,6 +356,21 @@ namespace Steamfitter.Api.Controllers
 
             await _scenarioService.DeleteAsync(id, ct);
             return NoContent();
+        }
+
+        private void AddPermissions(IEnumerable<SAVM.Scenario> list)
+        {
+            foreach (var item in list)
+            {
+                AddPermissions(item);
+            }
+        }
+
+        private void AddPermissions(SAVM.Scenario item)
+        {
+            item.ScenarioPermissions =
+            _authorizationService.GetScenarioPermissions(item.Id).Select((m) => m.ToString())
+            .Concat(_authorizationService.GetSystemPermissions().Select((m) => m.ToString()));
         }
 
     }

@@ -13,6 +13,8 @@ using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Services;
 using SAVM = Steamfitter.Api.ViewModels;
 using Swashbuckle.AspNetCore.Annotations;
+using Steamfitter.Api.ViewModels;
+using System.Linq;
 
 namespace Steamfitter.Api.Controllers
 {
@@ -41,23 +43,27 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarioTemplates")]
         public async STT.Task<IActionResult> Get(CancellationToken ct)
         {
+            IEnumerable<SAVM.ScenarioTemplate> list;
             // get ALL scenario templates
             if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarioTemplates], ct))
             {
-                var list = await _scenarioTemplateService.GetAsync(ct);
-                return Ok(list);
+                list = await _scenarioTemplateService.GetAsync(ct);
             }
             // get scenario templates the user can access
             else if (await _authorizationService.AuthorizeAsync([SystemPermission.CreateScenarioTemplates], ct))
             {
-                var list = await _scenarioTemplateService.GetMineAsync(ct);
-                return Ok(list);
+                list = await _scenarioTemplateService.GetMineAsync(ct);
             }
             // return forbidden exception
             else
             {
                 throw new ForbiddenException();
             }
+
+            AddPermissions(list);
+
+            return Ok(list);
+
         }
 
         /// <summary>
@@ -81,6 +87,8 @@ namespace Steamfitter.Api.Controllers
 
             var scenarioTemplate = await _scenarioTemplateService.GetAsync(id, ct);
 
+            AddPermissions(scenarioTemplate);
+
             return Ok(scenarioTemplate);
         }
 
@@ -103,6 +111,8 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var createdScenarioTemplate = await _scenarioTemplateService.CreateAsync(scenarioTemplateForm, ct);
+            AddPermissions(createdScenarioTemplate);
+
             return CreatedAtAction(nameof(this.Get), new { id = createdScenarioTemplate.Id }, createdScenarioTemplate);
         }
 
@@ -126,14 +136,16 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var newScenarioTemplate = await _scenarioTemplateService.CopyAsync(id, ct);
+            AddPermissions(newScenarioTemplate);
+
             return CreatedAtAction(nameof(this.Get), new { id = newScenarioTemplate.Id }, newScenarioTemplate);
         }
 
         /// <summary>
-        /// Updates an ScenarioTemplate
+        /// Updates a ScenarioTemplate
         /// </summary>
         /// <remarks>
-        /// Updates an ScenarioTemplate with the attributes specified
+        /// Updates a ScenarioTemplate with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified ScenarioTemplate
         /// </remarks>
@@ -149,14 +161,16 @@ namespace Steamfitter.Api.Controllers
                 throw new ForbiddenException();
 
             var updatedScenarioTemplate = await _scenarioTemplateService.UpdateAsync(id, scenarioTemplateForm, ct);
+            AddPermissions(updatedScenarioTemplate);
+
             return Ok(updatedScenarioTemplate);
         }
 
         /// <summary>
-        /// Deletes an ScenarioTemplate
+        /// Deletes a ScenarioTemplate
         /// </summary>
         /// <remarks>
-        /// Deletes an ScenarioTemplate with the specified id
+        /// Deletes a ScenarioTemplate with the specified id
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified ScenarioTemplate
         /// </remarks>
@@ -172,6 +186,21 @@ namespace Steamfitter.Api.Controllers
 
             await _scenarioTemplateService.DeleteAsync(id, ct);
             return NoContent();
+        }
+
+        private void AddPermissions(IEnumerable<SAVM.ScenarioTemplate> list)
+        {
+            foreach (var item in list)
+            {
+                AddPermissions(item);
+            }
+        }
+
+        private void AddPermissions(SAVM.ScenarioTemplate item)
+        {
+            item.ScenarioTemplatePermissions =
+            _authorizationService.GetScenarioTemplatePermissions(item.Id).Select((m) => m.ToString())
+            .Concat(_authorizationService.GetSystemPermissions().Select((m) => m.ToString()));
         }
 
     }

@@ -16,6 +16,7 @@ namespace Steamfitter.Api.ViewModels
         public List<VmCredential> VmCredentials { get; set; }
         public int Score { get; set; }
         public int ScoreEarned { get; set; }
+        public IEnumerable<string> ScenarioTemplatePermissions { get; set; }
     }
 
     public class ScenarioTemplateForm

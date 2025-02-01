@@ -24,6 +24,7 @@ namespace Steamfitter.Api.ViewModels
         public List<Guid> Users { get; set; }
         public int Score { get; set; }
         public int ScoreEarned { get; set; }
+        public IEnumerable<string> ScenarioPermissions { get; set; }
     }
 
     /// <summary>

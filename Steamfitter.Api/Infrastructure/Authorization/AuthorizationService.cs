@@ -114,7 +114,9 @@ public class AuthorizationService(
 
     public IEnumerable<SystemPermission> GetSystemPermissions()
     {
-        return identityResolver.GetClaimsPrincipal().Claims
+        var principal = identityResolver.GetClaimsPrincipal();
+        var claims = principal.Claims;
+        var permissions = claims
            .Where(x => x.Type == AuthorizationConstants.PermissionClaimType)
            .Select(x =>
            {
@@ -126,6 +128,7 @@ public class AuthorizationService(
            .Where(x => x.HasValue)
            .Select(x => x.Value)
            .ToList();
+        return permissions;
     }
 
     public IEnumerable<ScenarioPermissionClaim> GetScenarioPermissions(Guid? scenarioId = null)
