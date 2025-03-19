@@ -19,13 +19,26 @@ This project provides a restful api for steamfitter functionality in the Crucibl
 
 ## Reporting bugs and requesting features
 
-Think you found a bug? Please report all Crucible bugs - including bugs for the individual Crucible apps - in the [cmu-sei/crucible issue tracker](https://github.com/cmu-sei/crucible/issues). 
+Think you found a bug? Please report all Crucible bugs - including bugs for the individual Crucible apps - in the [cmu-sei/crucible issue tracker](https://github.com/cmu-sei/crucible/issues).
 
 Include as much detail as possible including steps to reproduce, specific app involved, and any error messages you may have received.
 
-Have a good idea for a new feature? Submit all new feature requests through the [cmu-sei/crucible issue tracker](https://github.com/cmu-sei/crucible/issues). 
+Have a good idea for a new feature? Submit all new feature requests through the [cmu-sei/crucible issue tracker](https://github.com/cmu-sei/crucible/issues).
 
 Include the reasons why you're requesting the new feature and how it might benefit other Crucible users.
+
+# Database Migrations
+
+When the data model is changed, a new database migration must be created.  All dayabase migration commands are run from the Steamfitter.Api directory.
+- Create a new migration:
+    - dotnet ef migrations add <new_migration_name> --project ../Steamfitter.Api.Migrations.PostgreSQL/Steamfitter.Api.Migrations.PostgreSQL.csproj
+- Update the database
+    - Running the app updates the database.
+- Roll back a migration
+    - update the database to the previous migration
+        - dotnet ef database update <previous_migration_name> --project ../Steamfitter.Api.Migrations.PostgreSQL/Steamfitter.Api.Migrations.PostgreSQL.csproj
+    - Remove the migration
+        - dotnet ef migrations remove --project ../Steamfitter.Api.Migrations.PostgreSQL/Steamfitter.Api.Migrations.PostgreSQL.csproj
 
 ## License
 

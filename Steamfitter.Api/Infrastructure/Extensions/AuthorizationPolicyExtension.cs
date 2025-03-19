@@ -21,11 +21,9 @@ namespace Steamfitter.Api.Infrastructure.Extensions
                 options.DefaultPolicy = policyBuilder.Build();
             });
 
-            services.AddSingleton<IAuthorizationHandler, FullRightsHandler>();
-            services.AddSingleton<IAuthorizationHandler, ContentDeveloperHandler>();
-            services.AddSingleton<IAuthorizationHandler, OperatorHandler>();
-            services.AddSingleton<IAuthorizationHandler, UserAccessHandler>();
-            services.AddSingleton<IAuthorizationHandler, BaseUserHandler>();
+            services.AddSingleton<IAuthorizationHandler, SystemPermissionHandler>();
+            services.AddSingleton<IAuthorizationHandler, ScenarioPermissionHandler>();
+            services.AddSingleton<IAuthorizationHandler, ScenarioTemplatePermissionHandler>();
         }
 
 

@@ -35,15 +35,6 @@ namespace Steamfitter.Api.Data.Models
         public void Configure(EntityTypeBuilder<UserScenarioEntity> builder)
         {
             builder.HasIndex(x => new { x.UserId, x.ScenarioId }).IsUnique();
-
-            builder
-                .HasOne(u => u.User)
-                .WithMany(p => p.UserScenarios)
-                .HasForeignKey(x => x.UserId);
-            builder
-                .HasOne(u => u.Scenario)
-                .WithMany(p => p.Users)
-                .HasForeignKey(x => x.ScenarioId);
         }
     }
 }

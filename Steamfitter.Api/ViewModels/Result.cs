@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Steamfitter.Api.ViewModels
 {
-    public interface IResult
+    public interface IResult : IAuthorizationType
     {
         Guid Id { get; set; }
         Guid? TaskId { get; set; }

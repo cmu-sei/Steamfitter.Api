@@ -9,35 +9,24 @@ using STT = System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Steamfitter.Api.Services;
 using SAVM = Steamfitter.Api.ViewModels;
+using Steamfitter.Api.Data;
+using Steamfitter.Api.Infrastructure.Authorization;
+using Steamfitter.Api.Infrastructure.Exceptions;
 using Swashbuckle.AspNetCore.Annotations;
+using Steamfitter.Api.ViewModels;
+using System.IO;
 
 namespace Steamfitter.Api.Controllers
 {
     public class VmCredentialController : BaseController
     {
-        private readonly IVmCredentialService _VmCredentialService;
+        private readonly IVmCredentialService _vmCredentialService;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
 
-        public VmCredentialController(IVmCredentialService VmCredentialService)
+        public VmCredentialController(IVmCredentialService vmCredentialService, ISteamfitterAuthorizationService authorizationService)
         {
-            _VmCredentialService = VmCredentialService;
-        }
-
-        /// <summary>
-        /// Gets all VmCredentials in the system
-        /// </summary>
-        /// <remarks>
-        /// Returns a list of all of the VmCredentials in the system.
-        /// <para />
-        /// Only accessible to a SuperUser
-        /// </remarks>       
-        /// <returns></returns>
-        [HttpGet("VmCredentials")]
-        [ProducesResponseType(typeof(IEnumerable<SAVM.VmCredential>), (int)HttpStatusCode.OK)]
-        [SwaggerOperation(OperationId = "getVmCredentials")]
-        public async STT.Task<IActionResult> Get(CancellationToken ct)
-        {
-            var list = await _VmCredentialService.GetAsync(ct);
-            return Ok(list);
+            _vmCredentialService = vmCredentialService;
+            _authorizationService = authorizationService;
         }
 
         /// <summary>
@@ -52,7 +41,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarioTemplateVmCredentials")]
         public async STT.Task<IActionResult> GetByScenarioTemplateId(Guid id, CancellationToken ct)
         {
-            var list = await _VmCredentialService.GetByScenarioTemplateIdAsync(id, ct);
+            if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                throw new ForbiddenException();
+
+            var list = await _vmCredentialService.GetByScenarioTemplateIdAsync(id, ct);
             return Ok(list);
         }
 
@@ -68,7 +60,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarioVmCredentials")]
         public async STT.Task<IActionResult> GetByScenarioId(Guid id, CancellationToken ct)
         {
-            var list = await _VmCredentialService.GetByScenarioIdAsync(id, ct);
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                throw new ForbiddenException();
+
+            var list = await _vmCredentialService.GetByScenarioIdAsync(id, ct);
             return Ok(list);
         }
 
@@ -88,7 +83,14 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getVmCredential")]
         public async STT.Task<IActionResult> Get(Guid id, CancellationToken ct)
         {
-            var vmCredential = await _VmCredentialService.GetAsync(id, ct);
+            var vmCredential = await _vmCredentialService.GetAsync(id, ct);
+            if (vmCredential == null)
+                throw new EntityNotFoundException<VmCredential>();
+
+            if (!(vmCredential.ScenarioTemplateId != null && await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(vmCredential.ScenarioTemplateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+               && !(vmCredential.ScenarioId != null && await _authorizationService.AuthorizeAsync<SAVM.Scenario>(vmCredential.ScenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct)))
+                throw new ForbiddenException();
+
             return Ok(vmCredential);
         }
 
@@ -99,7 +101,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new VmCredential with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or an Administrator
-        /// </remarks>    
+        /// </remarks>
         /// <param name="vmCredential">The data to create the VmCredential with</param>
         /// <param name="ct"></param>
         [HttpPost("VmCredentials")]
@@ -107,7 +109,11 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createVmCredential")]
         public async STT.Task<IActionResult> Create([FromBody] SAVM.VmCredential vmCredential, CancellationToken ct)
         {
-            var createdVmCredential = await _VmCredentialService.CreateAsync(vmCredential, ct);
+            if (!(vmCredential.ScenarioTemplateId != null && await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(vmCredential.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
+               && !(vmCredential.ScenarioId != null && await _authorizationService.AuthorizeAsync<SAVM.Scenario>(vmCredential.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)))
+                throw new ForbiddenException();
+
+            var createdVmCredential = await _vmCredentialService.CreateAsync(vmCredential, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdVmCredential.Id }, createdVmCredential);
         }
 
@@ -118,7 +124,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates a VmCredential with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified VmCredential
-        /// </remarks>  
+        /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="vmCredential">The updated VmCredential values</param>
         /// <param name="ct"></param>
@@ -127,7 +133,15 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "updateVmCredential")]
         public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.VmCredential vmCredential, CancellationToken ct)
         {
-            var updatedVmCredential = await _VmCredentialService.UpdateAsync(id, vmCredential, ct);
+            if (!(vmCredential.ScenarioTemplateId != null && await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(vmCredential.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
+               && !(vmCredential.ScenarioId != null && await _authorizationService.AuthorizeAsync<SAVM.Scenario>(vmCredential.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)))
+                throw new ForbiddenException();
+
+            var updatedVmCredential = await _vmCredentialService.UpdateAsync(id, vmCredential, ct);
+            if (vmCredential.ScenarioTemplateId != updatedVmCredential.ScenarioTemplateId ||
+                vmCredential.ScenarioId != updatedVmCredential.ScenarioId)
+                throw new InvalidDataException("You cannot change the ScenarioTemplateId or the ScenarioId with a VmCredential update operation.");
+
             return Ok(updatedVmCredential);
         }
 
@@ -138,7 +152,7 @@ namespace Steamfitter.Api.Controllers
         /// Deletes a VmCredential with the specified id
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified VmCredential
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The id of the VmCredential to delete</param>
         /// <param name="ct"></param>
         [HttpDelete("VmCredentials/{id}")]
@@ -146,10 +160,17 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteVmCredential")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
-            await _VmCredentialService.DeleteAsync(id, ct);
+            var vmCredential = await _vmCredentialService.GetAsync(id, ct);
+            if (vmCredential == null)
+                throw new EntityNotFoundException<VmCredential>();
+
+            if (!(vmCredential.ScenarioTemplateId != null && await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(vmCredential.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
+               && !(vmCredential.ScenarioId != null && await _authorizationService.AuthorizeAsync<SAVM.Scenario>(vmCredential.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)))
+                throw new ForbiddenException();
+
+            await _vmCredentialService.DeleteAsync(id, ct);
             return NoContent();
         }
 
     }
 }
-

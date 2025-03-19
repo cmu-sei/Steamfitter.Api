@@ -2,14 +2,18 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Data;
 
 namespace Steamfitter.Api.ViewModels
 {
-    public class UserPermission : Base
+    public class ScenarioRole
     {
+
         public Guid Id { get; set; }
-        public Guid UserId { get; set; }
-        public Guid PermissionId { get; set; }
+
+        public string Name { get; set; }
+        public bool AllPermissions { get; set; }
+
+        public ScenarioPermission[] Permissions { get; set; }
     }
 }
-

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Steamfitter.Api.ViewModels
 {
-    public class ScenarioTemplate : Base
+    public class ScenarioTemplate : Base, IAuthorizationType
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
@@ -16,6 +16,7 @@ namespace Steamfitter.Api.ViewModels
         public List<VmCredential> VmCredentials { get; set; }
         public int Score { get; set; }
         public int ScoreEarned { get; set; }
+        public IEnumerable<string> ScenarioTemplatePermissions { get; set; }
     }
 
     public class ScenarioTemplateForm

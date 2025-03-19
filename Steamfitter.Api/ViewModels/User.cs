@@ -11,7 +11,7 @@ namespace Steamfitter.Api.ViewModels
 
         public string Name { get; set; }
 
-        public Permission[] Permissions { get; set; }
+        public string RoleId { get; set; }
 
     }
 }

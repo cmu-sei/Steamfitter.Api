@@ -16,8 +16,12 @@ namespace Steamfitter.Api.Data.Models
 
         public string Name { get; set; }
 
-        public ICollection<UserPermissionEntity> UserPermissions { get; set; } = new List<UserPermissionEntity>();
-        public ICollection<UserScenarioEntity> UserScenarios { get; set; } = new List<UserScenarioEntity>();
+        public Guid? RoleId { get; set; }
+        public virtual SystemRoleEntity Role { get; set; }
+
+        public ICollection<ScenarioMembershipEntity> ScenarioMemberships { get; set; } = new List<ScenarioMembershipEntity>();
+        public ICollection<ScenarioTemplateMembershipEntity> ScenarioTemplateMemberships { get; set; } = new List<ScenarioTemplateMembershipEntity>();
+        public ICollection<GroupMembershipEntity> GroupMemberships { get; set; } = new List<GroupMembershipEntity>();
     }
 
     public class UserConfiguration : IEntityTypeConfiguration<UserEntity>

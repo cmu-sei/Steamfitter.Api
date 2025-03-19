@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Steamfitter.Api.Data;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Services;
@@ -19,9 +20,9 @@ namespace Steamfitter.Api.Controllers
     public class UserController : BaseController
     {
         private readonly IUserService _userService;
-        private readonly IAuthorizationService _authorizationService;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
 
-        public UserController(IUserService userService, IAuthorizationService authorizationService)
+        public UserController(IUserService userService, ISteamfitterAuthorizationService authorizationService)
         {
             _userService = userService;
             _authorizationService = authorizationService;
@@ -34,13 +35,16 @@ namespace Steamfitter.Api.Controllers
         /// Returns a list of all of the Users in the system.
         /// <para />
         /// Only accessible to a SuperUser
-        /// </remarks>       
+        /// </remarks>
         /// <returns></returns>
         [HttpGet("users")]
         [ProducesResponseType(typeof(IEnumerable<SAVM.User>), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "getUsers")]
         public async STT.Task<IActionResult> Get(CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewUsers, SystemPermission.ViewScenarioTemplates, SystemPermission.ViewScenarios], ct))
+                throw new ForbiddenException();
+
             var list = await _userService.GetAsync(ct);
             return Ok(list);
         }
@@ -61,6 +65,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getUser")]
         public async STT.Task<IActionResult> Get(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewUsers], ct))
+                throw new ForbiddenException();
+
             var user = await _userService.GetAsync(id, ct);
 
             if (user == null)
@@ -76,7 +83,7 @@ namespace Steamfitter.Api.Controllers
         /// Creates a new User with the attributes specified
         /// <para />
         /// Accessible only to a SuperUser
-        /// </remarks>    
+        /// </remarks>
         /// <param name="user">The data to create the User with</param>
         /// <param name="ct"></param>
         [HttpPost("users")]
@@ -84,10 +91,35 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createUser")]
         public async STT.Task<IActionResult> Create([FromBody] SAVM.User user, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ManageUsers], ct))
+                throw new ForbiddenException();
+
             user.CreatedBy = User.GetId();
             var createdUser = await _userService.CreateAsync(user, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdUser.Id }, createdUser);
         }
+
+        /// <summary>
+        /// Updates a User
+        /// </summary>
+        /// <remarks>
+        /// Updates a User with the attributes specified
+        /// </remarks>
+        /// <param name="id">The Id of the Exericse to update</param>
+        /// <param name="user">The updated User values</param>
+        /// <param name="ct"></param>
+        [HttpPut("Users/{id}")]
+        [ProducesResponseType(typeof(SAVM.User), (int)HttpStatusCode.OK)]
+        [SwaggerOperation(OperationId = "updateUser")]
+        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.User user, CancellationToken ct)
+        {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ManageUsers], ct))
+                throw new ForbiddenException();
+
+            var updatedUser = await _userService.UpdateAsync(id, user, ct);
+            return Ok(updatedUser);
+        }
+
 
         /// <summary>
         /// Deletes a User
@@ -96,7 +128,7 @@ namespace Steamfitter.Api.Controllers
         /// Deletes a User with the specified id
         /// <para />
         /// Accessible only to a SuperUser
-        /// </remarks>    
+        /// </remarks>
         /// <param name="id">The id of the User to delete</param>
         /// <param name="ct"></param>
         [HttpDelete("users/{id}")]
@@ -104,6 +136,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteUser")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ManageUsers], ct))
+                throw new ForbiddenException();
+
             await _userService.DeleteAsync(id, ct);
             return NoContent();
         }
@@ -111,4 +146,3 @@ namespace Steamfitter.Api.Controllers
 
     }
 }
-

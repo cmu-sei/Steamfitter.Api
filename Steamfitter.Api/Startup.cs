@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,11 +27,12 @@ using Steamfitter.Api.Infrastructure.DbInterceptors;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.Filters;
 using Steamfitter.Api.Infrastructure.HealthChecks;
+using Steamfitter.Api.Infrastructure.Identity;
 using Steamfitter.Api.Infrastructure.JsonConverters;
 using Steamfitter.Api.Infrastructure.Mapping;
 using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Services;
-using MediatR;
+using Steamfitter.Api.ViewModels;
 
 namespace Steamfitter.Api;
 
@@ -198,26 +198,29 @@ public class Startup
         services.AddMemoryCache();
 
         services.AddScoped<IScenarioService, ScenarioService>();
+        services.AddScoped<IScenarioMembershipService, ScenarioMembershipService>();
+        services.AddScoped<IScenarioRoleService, ScenarioRoleService>();
         services.AddScoped<ITaskService, TaskService>();
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<IScenarioTemplateService, ScenarioTemplateService>();
-        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<IScenarioTemplateMembershipService, ScenarioTemplateMembershipService>();
+        services.AddScoped<IScenarioTemplateRoleService, ScenarioTemplateRoleService>();
         services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IUserPermissionService, UserPermissionService>();
-        services.AddScoped<IFilesService, FilesService>();
-        services.AddScoped<IBondAgentService, BondAgentService>();
         services.AddScoped<IVmCredentialService, VmCredentialService>();
+        services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>().HttpContext.User);
+        services.AddScoped<IScoringService, ScoringService>();
+        services.AddScoped<ISteamfitterAuthorizationService, AuthorizationService>();
+        services.AddScoped<IIdentityResolver, IdentityResolver>();
+        services.AddScoped<IGroupService, GroupService>();
+        services.AddScoped<ISystemRoleService, SystemRoleService>();
         services.AddSingleton<StackStormService>();
         services.AddSingleton<IHostedService>(x => x.GetService<StackStormService>());
         services.AddSingleton<IStackStormService>(x => x.GetService<StackStormService>());
-        services.AddSingleton<BondAgentStore>();
         services.AddSingleton<ITaskExecutionQueue, TaskExecutionQueue>();
         services.AddHostedService<TaskExecutionService>();
         services.AddHostedService<TaskMaintenanceService>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>().HttpContext.User);
         services.AddHttpClient();
-        services.AddScoped<IScoringService, ScoringService>();
 
         ApplyPolicies(services);
 

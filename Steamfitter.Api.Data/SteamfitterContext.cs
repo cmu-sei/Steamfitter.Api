@@ -33,6 +33,13 @@ namespace Steamfitter.Api.Data
         public DbSet<FileEntity> Files { get; set; }
         public DbSet<BondAgent> BondAgents { get; set; }
         public DbSet<VmCredentialEntity> VmCredentials { get; set; }
+        public DbSet<SystemRoleEntity> SystemRoles { get; set; }
+        public DbSet<ScenarioRoleEntity> ScenarioRoles { get; set; }
+        public DbSet<ScenarioMembershipEntity> ScenarioMemberships { get; set; }
+        public DbSet<ScenarioTemplateRoleEntity> ScenarioTemplateRoles { get; set; }
+        public DbSet<ScenarioTemplateMembershipEntity> ScenarioTemplateMemberships { get; set; }
+        public DbSet<GroupEntity> Groups { get; set; }
+        public DbSet<GroupMembershipEntity> GroupMemberships { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

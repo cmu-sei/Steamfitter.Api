@@ -3,29 +3,26 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Extensions;
-using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
 
 namespace Steamfitter.Api.Services
 {
-    public interface IUserService 
+    public interface IUserService
     {
         STT.Task<IEnumerable<ViewModels.User>> GetAsync(CancellationToken ct);
-        STT.Task<ViewModels.User> GetAsync(Guid id, CancellationToken ct);             
+        STT.Task<ViewModels.User> GetAsync(Guid id, CancellationToken ct);
         STT.Task<ViewModels.User> CreateAsync(ViewModels.User user, CancellationToken ct);
         STT.Task<ViewModels.User> UpdateAsync(Guid id, ViewModels.User user, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct);
@@ -52,31 +49,20 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<ViewModels.User>> GetAsync(CancellationToken ct)
         {
-            if(!(await _authorizationService.AuthorizeAsync(_user, null, new FullRightsRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var items = await _context.Users
-                .ProjectTo<ViewModels.User>(_mapper.ConfigurationProvider, dest => dest.Permissions)
                 .ToArrayAsync(ct);
-            return items;
+            return _mapper.Map<IEnumerable<SAVM.User>>(items);
         }
 
         public async STT.Task<ViewModels.User> GetAsync(Guid id, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new UserAccessRequirement(id))).Succeeded)
-                throw new ForbiddenException();
-
             var item = await _context.Users
-                .ProjectTo<ViewModels.User>(_mapper.ConfigurationProvider, dest => dest.Permissions)
                 .SingleOrDefaultAsync(o => o.Id == id, ct);
-            return item;
+            return _mapper.Map<SAVM.User>(item);
         }
-        
+
         public async STT.Task<ViewModels.User> CreateAsync(ViewModels.User user, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new FullRightsRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var userEntity = _mapper.Map<UserEntity>(user);
 
             _context.Users.Add(userEntity);
@@ -87,9 +73,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.User> UpdateAsync(Guid id, ViewModels.User user, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new FullRightsRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             // Don't allow changing your own Id
             if (id == _user.GetId() && id != user.Id)
             {
@@ -111,9 +94,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new FullRightsRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             if (id == _user.GetId())
             {
                 throw new ForbiddenException("You cannot delete your own account");
@@ -132,4 +112,3 @@ namespace Steamfitter.Api.Services
 
     }
 }
-

@@ -35,8 +35,7 @@ namespace Steamfitter.Api.Data.Models
         public string View { get; set; }
         public Guid? DefaultVmCredentialId { get; set; }
         public virtual ICollection<VmCredentialEntity> VmCredentials { get; set; } = new HashSet<VmCredentialEntity>();
-        public virtual ICollection<UserScenarioEntity> Users { get; set; } = new HashSet<UserScenarioEntity>();
-
+        public virtual ICollection<ScenarioMembershipEntity> Memberships { get; set; } = new List<ScenarioMembershipEntity>();
         /// <summary>
         /// Flag that denotes if this Scenario's Scores need to be Updated
         /// </summary>
@@ -70,35 +69,6 @@ namespace Steamfitter.Api.Data.Models
             UpdateScores = false;
         }
 
-        public void AddUsers(IEnumerable<Guid> userIds)
-        {
-            if (Users == null)
-                throw new InvalidOperationException("Users must be populated before being modified.");
-
-            foreach (var userId in userIds)
-            {
-                if (!Users.Any(x => x.UserId == userId))
-                {
-                    Users.Add(new UserScenarioEntity(userId, Id));
-                }
-            }
-        }
-
-        public void RemoveUsers(IEnumerable<Guid> userIds)
-        {
-            if (Users == null)
-                throw new InvalidOperationException("Users must be populated before being modified.");
-
-            foreach (var userId in userIds)
-            {
-                var user = Users.FirstOrDefault(x => x.UserId == userId);
-
-                if (user != null)
-                {
-                    Users.Remove(user);
-                }
-            }
-        }
     }
 
     public class ScenarioEntityConfiguration : IEntityTypeConfiguration<ScenarioEntity>

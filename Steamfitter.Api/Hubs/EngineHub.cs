@@ -2,18 +2,13 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using System.Threading;
 using STT = System.Threading.Tasks;
 using Steamfitter.Api.Data;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Security.Principal;
-using System.Linq;
 using Steamfitter.Api.Infrastructure.Authorization;
-using Steamfitter.Api.Infrastructure.Extensions;
 
 namespace Steamfitter.Api.Hubs
 {
@@ -21,12 +16,12 @@ namespace Steamfitter.Api.Hubs
     public class EngineHub : Hub
     {
         private readonly SteamfitterContext _db;
-        private readonly IAuthorizationService _authorizationService;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
         private readonly ClaimsPrincipal _user;
 
         public EngineHub(
             SteamfitterContext db,
-            IAuthorizationService authorizationService,
+            ISteamfitterAuthorizationService authorizationService,
             IPrincipal user)
         {
             _db = db;
@@ -34,38 +29,13 @@ namespace Steamfitter.Api.Hubs
             _user = user as ClaimsPrincipal;
         }
 
-        public async STT.Task JoinScenario(Guid scenarioId)
-        {
-            if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"{EngineGroups.GetSystemGroup(scenarioId)}");
-            }
-            else
-            {
-                var scenario = await _db.Scenarios
-                    .Include(x => x.Users)
-                    .Where(x => x.Id == scenarioId)
-                    .SingleOrDefaultAsync();
-
-                if (scenario.Users.Any(x => x.UserId == _user.GetId()))
-                {
-                    await Groups.AddToGroupAsync(Context.ConnectionId, $"{scenario.Id}");
-                }
-            }
-        }
-
-        public async STT.Task LeaveScenario(Guid scenarioId)
-        {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{EngineGroups.GetSystemGroup(scenarioId)}");
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, scenarioId.ToString());
-        }
-
         public async STT.Task JoinSystem()
         {
-            if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, EngineGroups.SystemGroup);
-            }
+            // TODO: add the correct authorization
+            // if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
+            // {
+            await Groups.AddToGroupAsync(Context.ConnectionId, EngineGroups.SystemGroup);
+            // }
         }
 
         public async STT.Task LeaveSystem()
@@ -89,6 +59,15 @@ namespace Steamfitter.Api.Hubs
         public const string ResultUpdated = "ResultUpdated";
         public const string ResultsUpdated = "ResultsUpdated";
         public const string ResultDeleted = "ResultDeleted";
+        public const string GroupMembershipCreated = "GroupMembershipCreated";
+        public const string GroupMembershipUpdated = "GroupMembershipUpdated";
+        public const string GroupMembershipDeleted = "GroupMembershipDeleted";
+        public const string ScenarioTemplateMembershipCreated = "ScenarioTemplateMembershipCreated";
+        public const string ScenarioTemplateMembershipUpdated = "ScenarioTemplateMembershipUpdated";
+        public const string ScenarioTemplateMembershipDeleted = "ScenarioTemplateMembershipDeleted";
+        public const string ScenarioMembershipCreated = "ScenarioMembershipCreated";
+        public const string ScenarioMembershipUpdated = "ScenarioMembershipUpdated";
+        public const string ScenarioMembershipDeleted = "ScenarioMembershipDeleted";
     }
 
     public static class EngineGroups

@@ -12,13 +12,8 @@ namespace Steamfitter.Api.Infrastructure.Mappings
     {
         public UserProfile()
         {
-            CreateMap<UserEntity, User>()
-                .ForMember(m => m.Permissions, opt => opt.MapFrom(x => x.UserPermissions.Select(y => y.Permission)))
-                .ForMember(m => m.Permissions, opt => opt.ExplicitExpansion());
-            CreateMap<User, UserEntity>()
-                .ForMember(m => m.UserPermissions, opt => opt.Ignore());
+            CreateMap<UserEntity, User>();
+            CreateMap<User, UserEntity>();
         }
     }
 }
-
-

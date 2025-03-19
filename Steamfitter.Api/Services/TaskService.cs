@@ -10,14 +10,12 @@ using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Extensions;
-using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Infrastructure.Options;
 using SAVM = Steamfitter.Api.ViewModels;
@@ -45,15 +43,14 @@ namespace Steamfitter.Api.Services
         STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct);
         STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.TaskForm taskForm, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
-        STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct);
-        STT.Task<SAVM.Task> CreateFromResultAsync(Guid resultId, Guid? newLocationId, string newLocationType, CancellationToken ct);
-        STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct);
+        STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct);
+        STT.Task<SAVM.Task> CreateFromResultAsync(Guid resultId, Guid newLocationId, string newLocationType, CancellationToken ct);
+        STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct);
     }
 
     public class TaskService : ITaskService
     {
         private readonly SteamfitterContext _context;
-        private readonly IAuthorizationService _authorizationService;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
         private readonly IStackStormService _stackStormService;
@@ -69,7 +66,6 @@ namespace Steamfitter.Api.Services
 
         public TaskService(
             SteamfitterContext context,
-            IAuthorizationService authorizationService,
             IPrincipal user,
             IMapper mapper,
             IStackStormService stackStormService,
@@ -84,7 +80,6 @@ namespace Steamfitter.Api.Services
             IServiceScopeFactory scopeFactory)
         {
             _context = context;
-            _authorizationService = authorizationService;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
             _stackStormService = stackStormService;
@@ -101,9 +96,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetAsync(CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var items = await _context.Tasks.ToListAsync(ct);
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(items);
@@ -111,9 +103,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.Task> GetAsync(Guid id, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var item = await _context.Tasks
                 .SingleOrDefaultAsync(o => o.Id == id, ct);
             if (item == null)
@@ -124,9 +113,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByScenarioTemplateIdAsync(Guid scenarioTemplateId, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var Tasks = _context.Tasks.Where(x => x.ScenarioTemplateId == scenarioTemplateId);
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
@@ -134,52 +120,19 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct)
         {
-            if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-            {
-                var tasks = await _context.Tasks
-                    .Where(x => x.ScenarioId == scenarioId)
-                    .ToListAsync();
+            var tasks = await _context.Tasks
+                .Where(x => x.ScenarioId == scenarioId)
+                .ToListAsync();
 
-                return _mapper.Map<IEnumerable<SAVM.Task>>(tasks);
-            }
-            else
-            {
-                var tasks = await _context.Tasks
-                    .Include(x => x.Scenario)
-                        .ThenInclude(y => y.Users)
-                    .Where(x => x.ScenarioId == scenarioId && x.UserExecutable)
-                    .ToListAsync();
-
-                // TODO: use auth service
-                if (tasks.Any() && tasks.FirstOrDefault().Scenario.Users.Any(x => x.UserId == _user.GetId()))
-                {
-                    return _mapper.Map<IEnumerable<SAVM.Task>>(_mapper.Map<IEnumerable<SAVM.TaskSummary>>(tasks));
-                }
-                else
-                {
-                    throw new ForbiddenException();
-                }
-            }
+            return _mapper.Map<IEnumerable<SAVM.Task>>(tasks);
         }
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByViewIdAsync(Guid viewId, CancellationToken ct)
         {
             var fullAccess = false;
-            var scenarioIdListQuery = _context.Scenarios
-                .Where(s => s.ViewId == viewId);
 
-            if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-            {
-                fullAccess = true;
-            }
-            else
-            {
-                scenarioIdListQuery = scenarioIdListQuery
-                    .Include(x => x.Users)
-                    .Where(x => x.Users.Any(y => y.UserId == _user.GetId()));
-            }
-
-            var scenarioIdList = await scenarioIdListQuery
+            var scenarioIdList = await _context.Scenarios
+                .Where(s => s.ViewId == viewId)
                 .Select(x => x.Id.ToString())
                 .ToListAsync(ct);
 
@@ -187,20 +140,11 @@ namespace Steamfitter.Api.Services
                     .Where(x => scenarioIdList.Contains(x.ScenarioId.ToString()) && (fullAccess || x.UserExecutable))
                     .ToListAsync(ct);
 
-            if (fullAccess)
-            {
-                return _mapper.Map<IEnumerable<SAVM.Task>>(tasks);
-            }
-            else
-            {
-                return _mapper.Map<IEnumerable<SAVM.Task>>(_mapper.Map<IEnumerable<SAVM.TaskSummary>>(tasks));
-            }
+            return _mapper.Map<IEnumerable<SAVM.Task>>(tasks);
         }
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByUserIdAsync(Guid userId, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
             // the user's personal scenario used in Task Builder is the user ID.
             var Tasks = _context.Tasks.Where(dt => dt.UserId == userId && dt.ScenarioTemplateId == null && (dt.ScenarioId == null || dt.ScenarioId == userId));
 
@@ -209,9 +153,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByVmIdAsync(Guid vmId, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var vmIdList = _context.Results.Where(r => r.VmId == vmId).Select(r => r.Id.ToString()).ToList();
             var Tasks = _context.Tasks.Where(dt => vmIdList.Contains(dt.Id.ToString()));
 
@@ -220,9 +161,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetSubtasksAsync(Guid triggerTaskId, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var Tasks = _context.Tasks.Where(x => x.TriggerTaskId == triggerTaskId);
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
@@ -230,8 +168,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.Task> CreateAsync(SAVM.TaskForm taskForm, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
             var vmListCount = taskForm.VmList != null ? taskForm.VmList.Count : 0;
             if (vmListCount > 0)
             {
@@ -306,7 +242,6 @@ namespace Steamfitter.Api.Services
 
                 taskToExecute = await dbContext.Tasks
                     .Include(x => x.Scenario)
-                        .ThenInclude(x => x.Users)
                     .Include(x => x.Scenario)
                         .ThenInclude(x => x.Tasks)
                     .SingleOrDefaultAsync(x => x.Id == id, ct);
@@ -314,12 +249,6 @@ namespace Steamfitter.Api.Services
                 if (!taskToExecute.Executable)
                 {
                     throw new ForbiddenException("Task cannot be executed in it's current state");
-                }
-
-                if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                {
-                    if (!taskToExecute.Scenario.Users.Any(x => x.UserId == _user.GetId()))
-                        throw new ForbiddenException();
                 }
 
                 taskToExecute.ResetTree(_user.GetId());
@@ -365,9 +294,7 @@ namespace Steamfitter.Api.Services
             var scenarioId = gradedExecutionInfo.ScenarioId;
             var scenario = await _context.Scenarios.FindAsync(scenarioId);
             // verify permissions and scenario to be graded
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new BaseUserRequirement())).Succeeded)
-                throw new ForbiddenException();
-            else if (scenario == null)
+            if (scenario == null)
                 throw new ApplicationException("No Scenario found for grading.");
             // get the start task to be executed
             var tasks = await _context.Tasks.Where(t =>
@@ -408,9 +335,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.Task> UpdateAsync(Guid id, SAVM.TaskForm taskForm, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var taskToUpdate = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == id, ct);
 
             if (taskToUpdate == null)
@@ -443,9 +367,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct)
         {
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var taskToDelete = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == id, ct);
             if (taskToDelete == null)
                 throw new EntityNotFoundException<SAVM.Task>();
@@ -456,34 +377,22 @@ namespace Steamfitter.Api.Services
             return true;
         }
 
-        public async STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        public async STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct)
         {
-            // check user authorization
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var items = await CopyTaskAsync(id, newLocationId, newLocationType, ct);
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(items);
         }
 
-        public async STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        public async STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct)
         {
-            // check user authorization
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             var items = await MoveTaskAsync(id, newLocationId, newLocationType, ct);
 
             return _mapper.Map<IEnumerable<SAVM.Task>>(items);
         }
 
-        public async STT.Task<SAVM.Task> CreateFromResultAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        public async STT.Task<SAVM.Task> CreateFromResultAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct)
         {
-            // check user authorization
-            if (!(await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-                throw new ForbiddenException();
-
             // check for existing result
             var resultEntity = await _context.Results.SingleAsync(v => v.Id == id, ct);
             if (resultEntity == null)
@@ -544,7 +453,7 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<SAVM.Task>(newTask);
         }
 
-        private async STT.Task<IEnumerable<TaskEntity>> CopyTaskAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        private async STT.Task<IEnumerable<TaskEntity>> CopyTaskAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct)
         {
             // check for existing task
             var existingTaskEntity = await _context.Tasks.SingleAsync(v => v.Id == id, ct);
@@ -615,7 +524,7 @@ namespace Steamfitter.Api.Services
             return subEntities;
         }
 
-        private async STT.Task<IEnumerable<TaskEntity>> MoveTaskAsync(Guid id, Guid? newLocationId, string newLocationType, CancellationToken ct)
+        private async STT.Task<IEnumerable<TaskEntity>> MoveTaskAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct)
         {
             // check for existing task
             var existingTaskEntity = await _context.Tasks.SingleAsync(v => v.Id == id, ct);
@@ -717,5 +626,10 @@ namespace Steamfitter.Api.Services
         public Dictionary<string, string> TaskSubstitutions { get; set; }
     }
 
+    public class NewLocation
+    {
+        public Guid Id { get; set; }
+        public string LocationType { get; set; }
+    }
 
 }
