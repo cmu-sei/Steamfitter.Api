@@ -12,7 +12,7 @@ on:
     # The branches below must be a subset of the branches above
     branches: [development]
   schedule:
-    - cron: "0 5 * * 5"
+    - cron: '0 5 * * 5'
 
 jobs:
   analyze:
@@ -24,7 +24,7 @@ jobs:
       matrix:
         # Override automatic language detection by changing the below list
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
-        language: ["csharp"]
+        language: ['csharp']
         # Learn more...
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
@@ -38,7 +38,7 @@ jobs:
       - name: Load dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: '8.0.x'
 
       # If this run was triggered by a pull request event, then checkout
       # the head of the pull request instead of the merge commit.
