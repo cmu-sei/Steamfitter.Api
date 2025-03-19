@@ -138,7 +138,6 @@ namespace Steamfitter.Api.Services
                     };
 
                     _context.Users.Add(user);
-                    await _context.SaveChangesAsync();
                 }
                 else
                 {
@@ -146,9 +145,14 @@ namespace Steamfitter.Api.Services
                     {
                         user.Name = nameClaim;
                         _context.Update(user);
-                        await _context.SaveChangesAsync();
                     }
                 }
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception) { }
             }
 
             return user;
@@ -197,7 +201,8 @@ namespace Steamfitter.Api.Services
                         x.Value == permission))
                     {
                         claims.Add(new Claim(AuthorizationConstants.PermissionClaimType, permission));
-                    };
+                    }
+                    ;
                 }
             }
 
