@@ -28,9 +28,7 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
         {
             var scenarioTemplateMembership = _mapper.Map<ViewModels.ScenarioTemplateMembership>(notification.Entity);
             await _engineHub.Clients
-                .Groups(
-                    EngineGroups.GetSystemGroup(notification.Entity.Id),
-                    EngineGroups.SystemGroup)
+                .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
                 .SendAsync(EngineMethods.ScenarioTemplateMembershipCreated, scenarioTemplateMembership);
         }
     }
@@ -48,11 +46,7 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
         public async Task Handle(EntityDeleted<ScenarioTemplateMembershipEntity> notification, CancellationToken cancellationToken)
         {
             await _engineHub.Clients
-                .Groups(
-                    notification.Entity.Id.ToString(),
-                    EngineGroups.GetSystemGroup(notification.Entity.Id),
-                    EngineGroups.SystemGroup
-                    )
+                .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
                 .SendAsync(EngineMethods.ScenarioTemplateMembershipDeleted, notification.Entity.Id);
         }
     }
@@ -74,9 +68,7 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
         {
             var scenarioTemplateMembership = _mapper.Map<ViewModels.ScenarioTemplateMembership>(notification.Entity);
             await _engineHub.Clients
-                .Groups(
-                    EngineGroups.GetSystemGroup(notification.Entity.Id),
-                    EngineGroups.SystemGroup)
+                .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
                 .SendAsync(EngineMethods.ScenarioTemplateMembershipUpdated, scenarioTemplateMembership);
         }
     }

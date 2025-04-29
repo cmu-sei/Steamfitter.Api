@@ -3,11 +3,13 @@
 
 using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Steamfitter.Api.Data;
+using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Hubs;
 using Steamfitter.Api.Infrastructure.HealthChecks;
 using System;
@@ -105,7 +107,7 @@ namespace Steamfitter.Api.Services
                             resultEntity.Status = TaskStatus.expired;
                             resultEntity.StatusDate = now;
                             await steamfitterContext.SaveChangesAsync();
-                            _ = _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
+                            await SendNotificationAsync(resultEntity);
                             _logger.LogDebug($"TaskMaintenanceService expired Result {resultEntity.Id}.");
                         }
                     }
@@ -134,6 +136,16 @@ namespace Steamfitter.Api.Services
                     }
                 }
             }
+        }
+
+        private async STT.Task SendNotificationAsync(ResultEntity resultEntity)
+        {
+            await _engineHub.Clients.Group(EngineHub.SCENARIO_GROUP)
+                .SendAsync(EngineMethods.ResultsUpdated,
+                _mapper.Map<ViewModels.Result>(resultEntity));
+            await _engineHub.Clients.Group(resultEntity.Task.ScenarioId.ToString())
+                .SendAsync(EngineMethods.ResultsUpdated,
+                _mapper.Map<ViewModels.Result>(resultEntity));
         }
 
     }

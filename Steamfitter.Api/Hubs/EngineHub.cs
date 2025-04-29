@@ -1,14 +1,17 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using System;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using STT = System.Threading.Tasks;
 using Steamfitter.Api.Data;
 using System.Security.Claims;
 using System.Security.Principal;
+using System.Threading;
 using Steamfitter.Api.Infrastructure.Authorization;
+using Steamfitter.Api.Infrastructure.Extensions;
 
 namespace Steamfitter.Api.Hubs
 {
@@ -18,6 +21,11 @@ namespace Steamfitter.Api.Hubs
         private readonly SteamfitterContext _db;
         private readonly ISteamfitterAuthorizationService _authorizationService;
         private readonly ClaimsPrincipal _user;
+        public const string SCENARIO_GROUP = "AdminScenarioGroup";
+        public const string SCENARIO_TEMPLATE_GROUP = "AdminScenarioTemplateGroup";
+        public const string GROUP_GROUP = "AdminGroupGroup";
+        public const string ROLE_GROUP = "AdminRoleGroup";
+        public const string USER_GROUP = "AdminUserGroup";
 
         public EngineHub(
             SteamfitterContext db,
@@ -31,16 +39,89 @@ namespace Steamfitter.Api.Hubs
 
         public async STT.Task JoinSystem()
         {
-            // TODO: add the correct authorization
-            // if ((await _authorizationService.AuthorizeAsync(_user, null, new ContentDeveloperRequirement())).Succeeded)
-            // {
-            await Groups.AddToGroupAsync(Context.ConnectionId, EngineGroups.SystemGroup);
-            // }
+            var userId = _user.GetId();
+            var ct = new CancellationToken();
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, SCENARIO_GROUP);
+            }
+            else
+            {
+                var scenarioIds = await _db.ScenarioMemberships
+                    .Where(x => x.UserId == userId)
+                    .Select(x => x.ScenarioId)
+                    .ToListAsync(ct);
+                foreach (var item in scenarioIds)
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, item.ToString());
+                }
+            }
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarioTemplates], ct))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, SCENARIO_TEMPLATE_GROUP);
+            }
+            else
+            {
+                var scenarioTemplateIds = await _db.ScenarioTemplateMemberships
+                    .Where(x => x.UserId == userId)
+                    .Select(x => x.ScenarioTemplateId)
+                    .ToListAsync(ct);
+                foreach (var item in scenarioTemplateIds)
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, item.ToString());
+                }
+            }
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewGroups], ct))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, GROUP_GROUP);
+            }
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewRoles], ct))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, ROLE_GROUP);
+            }
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewUsers], ct))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, USER_GROUP);
+            }
         }
 
         public async STT.Task LeaveSystem()
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, EngineGroups.SystemGroup);
+            var userId = _user.GetId();
+            var ct = new CancellationToken();
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+            {
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, SCENARIO_GROUP);
+            }
+            else
+            {
+                var scenarioIds = await _db.ScenarioMemberships
+                    .Where(x => x.UserId == userId)
+                    .Select(x => x.ScenarioId)
+                    .ToListAsync(ct);
+                foreach (var item in scenarioIds)
+                {
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, item.ToString());
+                }
+            }
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarioTemplates], ct))
+            {
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, SCENARIO_TEMPLATE_GROUP);
+            }
+            else
+            {
+                var scenarioTemplateIds = await _db.ScenarioTemplateMemberships
+                    .Where(x => x.UserId == userId)
+                    .Select(x => x.ScenarioTemplateId)
+                    .ToListAsync(ct);
+                foreach (var item in scenarioTemplateIds)
+                {
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, item.ToString());
+                }
+            }
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, GROUP_GROUP);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, ROLE_GROUP);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, USER_GROUP);
         }
     }
 
@@ -68,15 +149,5 @@ namespace Steamfitter.Api.Hubs
         public const string ScenarioMembershipCreated = "ScenarioMembershipCreated";
         public const string ScenarioMembershipUpdated = "ScenarioMembershipUpdated";
         public const string ScenarioMembershipDeleted = "ScenarioMembershipDeleted";
-    }
-
-    public static class EngineGroups
-    {
-        public const string SystemGroup = "System";
-
-        public static string GetSystemGroup(Guid groupId)
-        {
-            return $"{groupId}-{SystemGroup}";
-        }
     }
 }

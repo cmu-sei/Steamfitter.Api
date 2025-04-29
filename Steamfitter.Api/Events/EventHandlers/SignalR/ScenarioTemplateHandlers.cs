@@ -28,9 +28,10 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
         {
             var scenarioTemplate = _mapper.Map<ViewModels.ScenarioTemplate>(notification.Entity);
             await _engineHub.Clients
-                .Groups(
-                    EngineGroups.GetSystemGroup(notification.Entity.Id),
-                    EngineGroups.SystemGroup)
+                .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
+                .SendAsync(EngineMethods.ScenarioTemplateCreated, scenarioTemplate);
+            await _engineHub.Clients
+                .Groups(scenarioTemplate.Id.ToString())
                 .SendAsync(EngineMethods.ScenarioTemplateCreated, scenarioTemplate);
         }
     }
@@ -48,9 +49,10 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
         public async Task Handle(EntityDeleted<ScenarioTemplateEntity> notification, CancellationToken cancellationToken)
         {
             await _engineHub.Clients
-                .Groups(
-                    EngineGroups.GetSystemGroup(notification.Entity.Id),
-                    EngineGroups.SystemGroup)
+                .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
+                .SendAsync(EngineMethods.ScenarioTemplateDeleted, notification.Entity.Id);
+            await _engineHub.Clients
+                .Groups(notification.Entity.Id.ToString())
                 .SendAsync(EngineMethods.ScenarioTemplateDeleted, notification.Entity.Id);
         }
     }
@@ -72,9 +74,10 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
         {
             var scenarioTemplate = _mapper.Map<ViewModels.ScenarioTemplate>(notification.Entity);
             await _engineHub.Clients
-                .Groups(
-                    EngineGroups.GetSystemGroup(notification.Entity.Id),
-                    EngineGroups.SystemGroup)
+                .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
+                .SendAsync(EngineMethods.ScenarioTemplateUpdated, scenarioTemplate);
+            await _engineHub.Clients
+                .Groups(scenarioTemplate.Id.ToString())
                 .SendAsync(EngineMethods.ScenarioTemplateUpdated, scenarioTemplate);
         }
     }

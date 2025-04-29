@@ -211,7 +211,7 @@ namespace Steamfitter.Api.Services
                             // save the current iteration
                             taskToSave.CurrentIteration = taskToExecute.CurrentIteration;
                             await steamfitterContext.SaveChangesAsync(ct);
-                            await _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultsUpdated, _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
+                            await SendNotificationAsync(resultEntityList);
                         }
                         // make sure there were no errors creating the results before continuing
                         if (resultEntityList.Where(r => r.Status == Data.TaskStatus.error).Count() == 0)
@@ -426,7 +426,7 @@ namespace Steamfitter.Api.Services
                 tasks.Add(task);
                 xref[task.Id] = resultEntity;
                 await steamfitterContext.SaveChangesAsync();
-                await _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
+                await SendNotificationAsync(new List<ResultEntity>{resultEntity});
             }
             foreach (var bucket in AsCompletedBuckets(tasks))
             {
@@ -445,7 +445,7 @@ namespace Steamfitter.Api.Services
                         }
                     }
                     await steamfitterContext.SaveChangesAsync();
-                    await _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.ResultUpdated, _mapper.Map<ViewModels.Result>(resultEntity));
+                    await SendNotificationAsync(new List<ResultEntity>{resultEntity});
                 }
                 catch (OperationCanceledException)
                 {
@@ -790,6 +790,16 @@ namespace Steamfitter.Api.Services
             }
 
             return clientObject;
+        }
+
+        private async STT.Task SendNotificationAsync(List<ResultEntity> resultEntityList)
+        {
+            await _engineHub.Clients.Group(EngineHub.SCENARIO_GROUP)
+                .SendAsync(EngineMethods.ResultsUpdated,
+                _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
+            await _engineHub.Clients.Group(resultEntityList[0].Task.ScenarioId.ToString())
+                .SendAsync(EngineMethods.ResultsUpdated,
+                _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
         }
 
     }
