@@ -8,6 +8,8 @@ namespace Steamfitter.Api.Infrastructure.Options
 {
     public class SeedDataOptions
     {
-        public List<UserEntity> Users { get; set; } = new List<UserEntity>();
+        public List<SystemRoleEntity> Roles { get; set; }
+        public List<UserEntity> Users { get; set; }
+        public List<GroupEntity> Groups { get; set; }
     }
 }
