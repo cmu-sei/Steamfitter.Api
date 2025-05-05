@@ -9,7 +9,6 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Linq;
 using System.Reflection;
-using Microsoft.AspNetCore.Hosting;
 using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
@@ -70,15 +69,60 @@ namespace Steamfitter.Api.Infrastructure.Extensions
 
         private static void ProcessSeedDataOptions(SeedDataOptions options, SteamfitterContext context)
         {
-            if (options.Users.Any())
+            if (options.Roles?.Any() == true)
             {
-                var dbUsers = context.Users.ToList();
+                var dbRoles = context.SystemRoles.ToHashSet();
+
+                foreach (var role in options.Roles)
+                {
+                    if (!dbRoles.Any(x => x.Name == role.Name))
+                    {
+                        context.SystemRoles.Add(role);
+                    }
+                }
+
+                context.SaveChanges();
+            }
+
+            if (options.Users?.Any() == true)
+            {
+                var dbUserIds = context.Users.Select(x => x.Id).ToHashSet();
 
                 foreach (UserEntity user in options.Users)
                 {
-                    if (!dbUsers.Where(x => x.Id == user.Id).Any())
+                    if (!dbUserIds.Contains(user.Id))
                     {
+                        if (user.Role?.Id == Guid.Empty && !string.IsNullOrEmpty(user.Role.Name))
+                        {
+                            var role = context.SystemRoles.FirstOrDefault(x => x.Name == user.Role.Name);
+                            if (role != null)
+                            {
+                                user.RoleId = role.Id;
+                                user.Role = role;
+                            }
+                            else
+                            {
+                                user.RoleId = null;
+                                user.Role = null;
+                            }
+                        }
+
                         context.Users.Add(user);
+                    }
+                }
+
+                context.SaveChanges();
+            }
+
+            if (options.Groups?.Any() == true)
+            {
+                var dbGroup = context.Groups.ToHashSet();
+
+                foreach (var group in options.Groups)
+                {
+                    if (!dbGroup.Any(x => x.Name == group.Name))
+                    {
+                        context.Groups.Add(group);
                     }
                 }
 

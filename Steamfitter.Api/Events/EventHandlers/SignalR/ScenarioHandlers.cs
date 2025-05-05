@@ -36,9 +36,10 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
 
             var scenario = _mapper.Map<ViewModels.Scenario>(notification.Entity);
             await _engineHub.Clients
-                .Groups(
-                    EngineGroups.GetSystemGroup(notification.Entity.Id),
-                    EngineGroups.SystemGroup)
+                .Groups(EngineHub.SCENARIO_GROUP)
+                .SendAsync(EngineMethods.ScenarioCreated, scenario);
+            await _engineHub.Clients
+                .Group(notification.Entity.Id.ToString())
                 .SendAsync(EngineMethods.ScenarioCreated, scenario);
         }
     }
@@ -56,11 +57,10 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
         public async Task Handle(EntityDeleted<ScenarioEntity> notification, CancellationToken cancellationToken)
         {
             await _engineHub.Clients
-                .Groups(
-                    notification.Entity.Id.ToString(),
-                    EngineGroups.GetSystemGroup(notification.Entity.Id),
-                    EngineGroups.SystemGroup
-                    )
+                .Groups(EngineHub.SCENARIO_GROUP)
+                .SendAsync(EngineMethods.ScenarioDeleted, notification.Entity.Id);
+            await _engineHub.Clients
+                .Group(notification.Entity.Id.ToString())
                 .SendAsync(EngineMethods.ScenarioDeleted, notification.Entity.Id);
         }
     }
@@ -87,9 +87,10 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
 
             var scenario = _mapper.Map<ViewModels.Scenario>(notification.Entity);
             await _engineHub.Clients
-                .Groups(
-                    EngineGroups.GetSystemGroup(notification.Entity.Id),
-                    EngineGroups.SystemGroup)
+                .Groups(EngineHub.SCENARIO_GROUP)
+                .SendAsync(EngineMethods.ScenarioUpdated, scenario);
+            await _engineHub.Clients
+                .Group(notification.Entity.Id.ToString())
                 .SendAsync(EngineMethods.ScenarioUpdated, scenario);
         }
     }

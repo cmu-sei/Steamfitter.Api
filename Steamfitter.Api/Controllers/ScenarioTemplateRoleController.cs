@@ -53,6 +53,9 @@ public class ScenarioTemplateRolesController : BaseController
     [SwaggerOperation(OperationId = "GetAllScenarioTemplateRoles")]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
+        if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewRoles], ct))
+            throw new ForbiddenException();
+
         var result = await _scenarioRoleService.GetAsync(ct);
         return Ok(result);
     }

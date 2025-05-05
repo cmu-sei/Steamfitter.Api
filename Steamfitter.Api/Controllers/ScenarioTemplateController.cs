@@ -50,14 +50,9 @@ namespace Steamfitter.Api.Controllers
                 list = await _scenarioTemplateService.GetAsync(ct);
             }
             // get scenario templates the user can access
-            else if (await _authorizationService.AuthorizeAsync([SystemPermission.CreateScenarioTemplates], ct))
-            {
-                list = await _scenarioTemplateService.GetMineAsync(ct);
-            }
-            // return forbidden exception
             else
             {
-                throw new ForbiddenException();
+                list = await _scenarioTemplateService.GetMineAsync(ct);
             }
 
             AddPermissions(list);

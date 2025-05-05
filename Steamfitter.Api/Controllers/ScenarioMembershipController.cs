@@ -37,10 +37,10 @@ public class ScenarioMembershipsController : BaseController
     [SwaggerOperation(OperationId = "GetScenarioMembership")]
     public async Task<IActionResult> Get([FromRoute] Guid id, CancellationToken ct)
     {
-        if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+        var result = await _scenarioMembershipService.GetAsync(id, ct);
+        if (!await _authorizationService.AuthorizeAsync<Scenario>(result.ScenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
             throw new ForbiddenException();
 
-        var result = await _scenarioMembershipService.GetAsync(id, ct);
         return Ok(result);
     }
 
@@ -53,6 +53,9 @@ public class ScenarioMembershipsController : BaseController
     [SwaggerOperation(OperationId = "GetAllScenarioMemberships")]
     public async Task<IActionResult> GetAll(Guid id, CancellationToken ct)
     {
+        if (!await _authorizationService.AuthorizeAsync<Scenario>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+            throw new ForbiddenException();
+
         var result = await _scenarioMembershipService.GetByScenarioAsync(id, ct);
         return Ok(result);
     }
@@ -68,6 +71,9 @@ public class ScenarioMembershipsController : BaseController
     [SwaggerOperation(OperationId = "CreateScenarioMembership")]
     public async Task<IActionResult> CreateMembership([FromRoute] Guid scenarioId, ScenarioMembership scenarioMembership, CancellationToken ct)
     {
+        if (!await _authorizationService.AuthorizeAsync<Scenario>(scenarioMembership.ScenarioId, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
+            throw new ForbiddenException();
+
         var result = await _scenarioMembershipService.CreateAsync(scenarioMembership, ct);
         return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
@@ -86,7 +92,7 @@ public class ScenarioMembershipsController : BaseController
     [SwaggerOperation(OperationId = "updateScenarioMembership")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] ScenarioMembership scenarioMembership, CancellationToken ct)
     {
-        if (!await _authorizationService.AuthorizeAsync<ScenarioMembership>(id, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
+        if (!await _authorizationService.AuthorizeAsync<ScenarioMembership>(scenarioMembership.ScenarioId, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
             throw new ForbiddenException();
 
         var updatedScenarioMembership = await _scenarioMembershipService.UpdateAsync(id, scenarioMembership, ct);
@@ -102,6 +108,10 @@ public class ScenarioMembershipsController : BaseController
     [SwaggerOperation(OperationId = "DeleteScenarioMembership")]
     public async Task<IActionResult> DeleteMembership([FromRoute] Guid id, CancellationToken ct)
     {
+        var scenarioMembership = await _scenarioMembershipService.GetAsync(id, ct);
+        if (!await _authorizationService.AuthorizeAsync<Scenario>(scenarioMembership.ScenarioId, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
+            throw new ForbiddenException();
+
         await _scenarioMembershipService.DeleteAsync(id, ct);
         return NoContent();
     }

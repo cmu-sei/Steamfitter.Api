@@ -34,7 +34,8 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
 
             if (notification.Entity.ScenarioTemplateId.HasValue)
             {
-                await _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.TaskCreated, task);
+                await _engineHub.Clients.Group(EngineHub.SCENARIO_TEMPLATE_GROUP).SendAsync(EngineMethods.TaskCreated, task);
+                await _engineHub.Clients.Group(notification.Entity.ScenarioTemplateId.Value.ToString()).SendAsync(EngineMethods.TaskCreated, task);
             }
             else if (notification.Entity.ScenarioId.HasValue)
             {
@@ -42,13 +43,11 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
                     _mapper.Map<ViewModels.TaskSummary>(notification.Entity));
 
                 await _engineHub.Clients
-                    .Groups(
-                        EngineGroups.GetSystemGroup(notification.Entity.ScenarioId.Value),
-                        EngineGroups.SystemGroup)
+                    .Group(EngineHub.SCENARIO_GROUP)
                     .SendAsync(EngineMethods.TaskCreated, task);
 
                 await _engineHub.Clients
-                    .Group(notification.Entity.Id.ToString())
+                    .Group(notification.Entity.ScenarioId.Value.ToString())
                     .SendAsync(EngineMethods.TaskCreated, taskSummary);
             }
         }
@@ -66,15 +65,16 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
 
         public async Task Handle(EntityDeleted<TaskEntity> notification, CancellationToken cancellationToken)
         {
-            var groups = new List<string>() { EngineGroups.SystemGroup };
+            var groups = new List<string>();
 
             if (notification.Entity.ScenarioTemplateId.HasValue)
             {
-                groups.Add(EngineGroups.GetSystemGroup(notification.Entity.ScenarioTemplateId.Value));
+                groups.Add(EngineHub.SCENARIO_TEMPLATE_GROUP);
+                groups.Add(notification.Entity.ScenarioTemplateId.Value.ToString());
             }
             else if (notification.Entity.ScenarioId.HasValue)
             {
-                groups.Add(EngineGroups.GetSystemGroup(notification.Entity.ScenarioId.Value));
+                groups.Add(EngineHub.SCENARIO_GROUP);
                 groups.Add(notification.Entity.ScenarioId.Value.ToString());
             }
 
@@ -103,7 +103,7 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
 
             if (notification.Entity.ScenarioTemplateId.HasValue)
             {
-                await _engineHub.Clients.Group(EngineGroups.SystemGroup).SendAsync(EngineMethods.TaskUpdated, task);
+                await _engineHub.Clients.Group(EngineHub.SCENARIO_TEMPLATE_GROUP).SendAsync(EngineMethods.TaskUpdated, task);
             }
             else if (notification.Entity.ScenarioId.HasValue)
             {
@@ -111,13 +111,11 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
                     _mapper.Map<ViewModels.TaskSummary>(notification.Entity));
 
                 await _engineHub.Clients
-                    .Groups(
-                        EngineGroups.GetSystemGroup(notification.Entity.ScenarioId.Value),
-                        EngineGroups.SystemGroup)
+                    .Groups(EngineHub.SCENARIO_GROUP)
                     .SendAsync(EngineMethods.TaskUpdated, task);
 
                 await _engineHub.Clients
-                    .Group(notification.Entity.ScenarioId.ToString())
+                    .Group(notification.Entity.ScenarioId.Value.ToString())
                     .SendAsync(EngineMethods.TaskUpdated, taskSummary);
             }
         }

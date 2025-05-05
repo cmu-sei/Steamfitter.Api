@@ -94,6 +94,13 @@ namespace Steamfitter.Api.Services
 
             _context.ScenarioTemplates.Add(scenarioTemplateEntity);
             await _context.SaveChangesAsync(ct);
+            var createOwnerMembership = new ScenarioTemplateMembershipEntity() {
+                UserId = _user.GetId(),
+                ScenarioTemplateId = scenarioTemplateEntity.Id,
+                RoleId = ScenarioTemplateRoleEntityDefaults.ScenarioTemplateCreatorRoleId
+            };
+            await _context.ScenarioTemplateMemberships.AddAsync(createOwnerMembership, ct);
+            await _context.SaveChangesAsync(ct);
             var scenarioTemplate = await GetAsync(scenarioTemplateEntity.Id, ct);
 
             return scenarioTemplate;
