@@ -73,12 +73,11 @@ namespace Steamfitter.Api.Services
         public async STT.Task<ViewModels.ScenarioMembership> UpdateAsync(Guid id, ViewModels.ScenarioMembership scenarioMembership, CancellationToken ct)
         {
             var scenarioMembershipToUpdate = await _context.ScenarioMemberships.SingleOrDefaultAsync(v => v.Id == id, ct);
-
             if (scenarioMembershipToUpdate == null)
                 throw new EntityNotFoundException<SAVM.Scenario>();
 
-            _mapper.Map(scenarioMembership, scenarioMembershipToUpdate);
-
+            scenarioMembershipToUpdate.Role = null;
+            scenarioMembershipToUpdate.RoleId = scenarioMembership.RoleId;
             await _context.SaveChangesAsync(ct);
 
             return _mapper.Map<SAVM.ScenarioMembership>(scenarioMembershipToUpdate);
