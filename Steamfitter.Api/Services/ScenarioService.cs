@@ -132,6 +132,8 @@ namespace Steamfitter.Api.Services
             var scenarioEntity = _mapper.Map<ScenarioEntity>(scenarioForm);
             scenarioEntity.DateCreated = DateTime.UtcNow;
             scenarioEntity.CreatedBy = _user.GetId();
+            scenarioEntity.StartDate = scenarioEntity.StartDate.ToUniversalTime();
+            scenarioEntity.EndDate = scenarioEntity.EndDate.ToUniversalTime();
 
             _context.Scenarios.Add(scenarioEntity);
             await _context.SaveChangesAsync(ct);
