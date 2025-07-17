@@ -134,8 +134,15 @@ namespace Steamfitter.Api.Services
             scenarioEntity.CreatedBy = _user.GetId();
             scenarioEntity.StartDate = scenarioEntity.StartDate.ToUniversalTime();
             scenarioEntity.EndDate = scenarioEntity.EndDate.ToUniversalTime();
-
+            scenarioEntity.Status = ScenarioStatus.ready;
             _context.Scenarios.Add(scenarioEntity);
+            await _context.SaveChangesAsync(ct);
+            var createOwnerMembership = new ScenarioMembershipEntity() {
+                UserId = _user.GetId(),
+                ScenarioId = scenarioEntity.Id,
+                RoleId = ScenarioRoleDefaults.ScenarioCreatorRoleId
+            };
+            await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
             await _context.SaveChangesAsync(ct);
             var scenario = await GetAsync(scenarioEntity.Id, ct);
 
@@ -155,7 +162,8 @@ namespace Steamfitter.Api.Services
                 Name = $"{scenarioTemplateEntity.Name} - {_user.Claims.FirstOrDefault(c => c.Type == "name").Value}",
                 Description = scenarioTemplateEntity.Description,
                 OnDemand = true,
-                ScenarioTemplateId = scenarioTemplateId
+                ScenarioTemplateId = scenarioTemplateId,
+                Status = ScenarioStatus.ready
             };
 
             var durationHours = scenarioTemplateEntity.DurationHours != null ? (int)scenarioTemplateEntity.DurationHours : 720;
@@ -197,7 +205,13 @@ namespace Steamfitter.Api.Services
 
                 await _context.SaveChangesAsync(ct);
             }
-
+            var createOwnerMembership = new ScenarioMembershipEntity() {
+                UserId = _user.GetId(),
+                ScenarioId = scenarioEntity.Id,
+                RoleId = ScenarioRoleDefaults.ScenarioCreatorRoleId
+            };
+            await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
+            await _context.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
             var scenario = _mapper.Map<SAVM.Scenario>(scenarioEntity);
 
@@ -233,7 +247,13 @@ namespace Steamfitter.Api.Services
             {
                 await _taskService.CopyAsync(oldTaskEntity.Id, newScenarioEntity.Id, "scenario", ct);
             }
-
+            var createOwnerMembership = new ScenarioMembershipEntity() {
+                UserId = _user.GetId(),
+                ScenarioId = newScenarioEntity.Id,
+                RoleId = ScenarioRoleDefaults.ScenarioCreatorRoleId
+            };
+            await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
+            await _context.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
             var scenario = await GetAsync(newScenarioEntity.Id, ct);
 

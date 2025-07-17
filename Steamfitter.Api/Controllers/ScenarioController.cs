@@ -368,9 +368,8 @@ namespace Steamfitter.Api.Controllers
 
         private void AddPermissions(SAVM.Scenario item)
         {
-            item.ScenarioPermissions =
-            _authorizationService.GetScenarioPermissions(item.Id).Select((m) => m.ToString())
-            .Concat(_authorizationService.GetSystemPermissions().Select((m) => m.ToString()));
+            item.ScenarioPermissions = _authorizationService.GetScenarioPermissions(item.Id).SelectMany(m => m.Permissions).Select(m => m.ToString()).ToList();
+
         }
 
     }
