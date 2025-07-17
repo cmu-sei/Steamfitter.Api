@@ -421,7 +421,7 @@ namespace Steamfitter.Api.Controllers
                 if (task == null)
                     throw new EntityNotFoundException<SAVM.Task>();
             }
-            if (locationType == "scenario")
+            else if (locationType == "scenario")
             {
                 if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                     throw new ForbiddenException();
