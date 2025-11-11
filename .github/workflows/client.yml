@@ -43,7 +43,7 @@ jobs:
         run: |
           cd ${{ steps.package_name.outputs.name }}
           npm install
-          ./node_modules/.bin/nswag run /runtime:Net60
+          ./node_modules/.bin/nswag run /runtime:Net80
 
       - name: Create NuGet Package
         run: |

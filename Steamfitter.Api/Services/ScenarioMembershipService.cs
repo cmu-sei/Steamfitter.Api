@@ -63,6 +63,9 @@ namespace Steamfitter.Api.Services
         public async STT.Task<ViewModels.ScenarioMembership> CreateAsync(ViewModels.ScenarioMembership scenarioMembership, CancellationToken ct)
         {
             var scenarioMembershipEntity = _mapper.Map<ScenarioMembershipEntity>(scenarioMembership);
+            var userExists = await _context.Users.AnyAsync(u => u.Id == scenarioMembership.UserId, ct);
+            if (!userExists)
+                throw new ArgumentException("The requested user is not a Steamfitter user.");
 
             _context.ScenarioMemberships.Add(scenarioMembershipEntity);
             await _context.SaveChangesAsync(ct);
