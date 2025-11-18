@@ -12,6 +12,8 @@ using System.Security.Principal;
 using System.Threading;
 using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Extensions;
+using Steamfitter.Api.ViewModels;
+using System;
 
 namespace Steamfitter.Api.Hubs
 {
@@ -35,6 +37,19 @@ namespace Steamfitter.Api.Hubs
             _db = db;
             _authorizationService = authorizationService;
             _user = user as ClaimsPrincipal;
+        }
+
+        public async STT.Task JoinScenario(Guid scenarioId)
+        {
+            if (await _authorizationService.AuthorizeAsync<Scenario>(scenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], new CancellationToken()))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, scenarioId.ToString());
+            }
+        }
+
+        public async STT.Task LeaveScenario(Guid scenarioId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, scenarioId.ToString());
         }
 
         public async STT.Task JoinSystem()
