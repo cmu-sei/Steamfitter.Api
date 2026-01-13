@@ -207,7 +207,7 @@ public class Startup
         services.AddScoped<IScenarioTemplateRoleService, ScenarioTemplateRoleService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IVmCredentialService, VmCredentialService>();
-        services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>().HttpContext.User);
+        services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>()?.HttpContext?.User);
         services.AddScoped<IScoringService, ScoringService>();
         services.AddScoped<ISteamfitterAuthorizationService, AuthorizationService>();
         services.AddScoped<IIdentityResolver, IdentityResolver>();
