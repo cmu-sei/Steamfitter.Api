@@ -10,16 +10,19 @@ using System.Threading.Tasks;
 using System;
 using System.Data;
 using System.Collections.Generic;
+using MediatR;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Steamfitter.Api.Data
 {
     public class SteamfitterContext : DbContext
     {
-        public List<Entry> Entries { get; set; } = new List<Entry>();
-
         // Needed for EventInterceptor
         public IServiceProvider ServiceProvider;
+
+        // Entity Events collected by EventTransactionInterceptor and published in SaveChanges
+        public List<INotification> Events { get; } = [];
 
         public SteamfitterContext(DbContextOptions<SteamfitterContext> options) : base(options) { }
 
@@ -54,11 +57,36 @@ namespace Steamfitter.Api.Data
 
         }
 
+        public override int SaveChanges()
+        {
+            CheckForScoreUpdates(default).Wait();
+            var result = base.SaveChanges();
+            PublishEvents().Wait();
+            return result;
+        }
+
         public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
         {
             await CheckForScoreUpdates(ct);
-            SaveEntries();
-            return await base.SaveChangesAsync(ct);
+            var result = await base.SaveChangesAsync(ct);
+            await PublishEvents(ct);
+            return result;
+        }
+
+        private async Task PublishEvents(CancellationToken cancellationToken = default)
+        {
+            // Publish deferred events after transaction is committed and cleared
+            if (Events.Count > 0 && ServiceProvider is not null)
+            {
+                var mediator = ServiceProvider.GetRequiredService<IMediator>();
+                var eventsToPublish = Events.ToArray();
+                Events.Clear();
+
+                foreach (var evt in eventsToPublish)
+                {
+                    await mediator.Publish(evt, cancellationToken);
+                }
+            }
         }
 
         private async Task CheckForScoreUpdates(CancellationToken ct)
@@ -150,51 +178,6 @@ namespace Steamfitter.Api.Data
                         .Where(x => x.Metadata.Name == nameof(ScenarioTemplateEntity.UpdateScores))
                         .FirstOrDefault()
                     .IsModified = true;
-                }
-            }
-        }
-
-        /// <summary>
-        /// keep track of changes across multiple savechanges in a transaction, without duplicates
-        /// </summary>
-        private void SaveEntries()
-        {
-            foreach (var entry in ChangeTracker.Entries())
-            {
-                // find value of id property
-                var id = entry.Properties
-                    .FirstOrDefault(x =>
-                        x.Metadata.ValueGenerated == Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAdd)?.CurrentValue;
-
-                // find matching existing entry, if any
-                var e = Entries.FirstOrDefault(x => x.Properties.FirstOrDefault(y =>
-                    y.Metadata.ValueGenerated == Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAdd)?.CurrentValue == id);
-
-                if (e != null)
-                {
-                    // if entry already exists, mark which properties were previously modified,
-                    // remove old entry and add new one, to avoid duplicates
-                    var modifiedProperties = e.Properties
-                        .Where(x => x.IsModified)
-                        .Select(x => x.Metadata.Name)
-                        .ToArray();
-
-                    var newEntry = new Entry(entry);
-
-                    foreach (var property in newEntry.Properties)
-                    {
-                        if (modifiedProperties.Contains(property.Metadata.Name))
-                        {
-                            property.IsModified = true;
-                        }
-                    }
-
-                    Entries.Remove(e);
-                    Entries.Add(newEntry);
-                }
-                else
-                {
-                    Entries.Add(new Entry(entry));
                 }
             }
         }
