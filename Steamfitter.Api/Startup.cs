@@ -33,6 +33,7 @@ using Steamfitter.Api.Infrastructure.Mapping;
 using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Services;
 using Steamfitter.Api.ViewModels;
+using Crucible.Common.ServiceDefaults;
 
 namespace Steamfitter.Api;
 
@@ -44,9 +45,11 @@ public class Startup
     private const string _routePrefix = "api";
     private IConfiguration Configuration { get; }
     private string _pathbase;
+    private readonly IWebHostEnvironment _env;
 
-    public Startup(IConfiguration configuration)
+    public Startup(IConfiguration configuration, IWebHostEnvironment env)
     {
+        _env = env;
         Configuration = configuration;
         Configuration.GetSection("Authorization").Bind(_authOptions);
         Configuration.GetSection("VmTaskProcessing").Bind(_vmTaskProcessingOptions);
@@ -240,6 +243,17 @@ public class Startup
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Startup>());
 
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(Startup).Assembly));
+
+        // add Crucible Common Service Defaults with configuration from appsettings
+        services.AddServiceDefaults(_env, Configuration, openTelemetryOptions =>
+        {
+            // Bind configuration from appsettings.json "OpenTelemetry" section
+            var telemetrySection = Configuration.GetSection("OpenTelemetry");
+            if (telemetrySection.Exists())
+            {
+                telemetrySection.Bind(openTelemetryOptions);
+            }
+        });
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
