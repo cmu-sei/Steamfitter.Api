@@ -228,6 +228,16 @@ namespace Steamfitter.Api.Services
                             taskToSave.Status = taskToExecute.Status;
                             await steamfitterContext.SaveChangesAsync(ct);
 
+                            // Log xAPI task executed statement
+                            if (taskToExecute.ScenarioId.HasValue)
+                            {
+                                var xApiService = scope.ServiceProvider.GetService<IXApiService>();
+                                if (xApiService != null)
+                                {
+                                    await xApiService.TaskExecutedAsync(taskToExecute.Id, taskToExecute.ScenarioId.Value, taskToExecute.UserId, ct);
+                                }
+                            }
+
                             // Start the next Task (iteration or subtask)
                             if (IsAnotherIteration(taskToExecute))
                             {

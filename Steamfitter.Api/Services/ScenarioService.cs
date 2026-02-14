@@ -43,18 +43,21 @@ namespace Steamfitter.Api.Services
         private readonly IMapper _mapper;
         private readonly ITaskService _taskService;
         private readonly IStackStormService _stackstormService;
+        private readonly IXApiService _xApiService;
 
         public ScenarioService(SteamfitterContext context,
                                 IPrincipal user,
                                 IMapper mapper,
                                 ITaskService taskService,
-                                IStackStormService stackstormService)
+                                IStackStormService stackstormService,
+                                IXApiService xApiService)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
             _taskService = taskService;
             _stackstormService = stackstormService;
+            _xApiService = xApiService;
         }
 
         public async STT.Task<IEnumerable<ViewModels.Scenario>> GetAsync(CancellationToken ct)
@@ -301,6 +304,10 @@ namespace Steamfitter.Api.Services
             scenario.Status = ScenarioStatus.active;
 
             await _context.SaveChangesAsync(ct);
+
+            // Log xAPI scenario started statement
+            await _xApiService.ScenarioStartedAsync(scenario.Id, ct);
+
             // TODO:  create a better way to do this that doesn't require getting ALL of the VM's
             // We just need to grab all of the VM's from the scenario view
             await _stackstormService.GetStackstormVms();
@@ -339,6 +346,9 @@ namespace Steamfitter.Api.Services
             scenario.EndDate = endDateTime;
 
             await _context.SaveChangesAsync(ct);
+
+            // Log xAPI scenario ended statement
+            await _xApiService.ScenarioEndedAsync(scenario.Id, ct);
 
             var updatedScenario = _mapper.Map<SAVM.Scenario>(scenario);
 

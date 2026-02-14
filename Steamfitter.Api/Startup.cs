@@ -85,14 +85,16 @@ public class Startup
             case "InMemory":
                 services.AddPooledDbContextFactory<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
                     .AddInterceptors(serviceProvider.GetRequiredService<EventInterceptor>())
-                    .UseInMemoryDatabase("api"));
+                    .UseInMemoryDatabase("api")
+                    .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
                 break;
             case "Sqlite":
             case "SqlServer":
             case "PostgreSQL":
                 services.AddPooledDbContextFactory<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
                     .AddInterceptors(serviceProvider.GetRequiredService<EventInterceptor>())
-                    .UseConfiguredDatabase(Configuration));
+                    .UseConfiguredDatabase(Configuration)
+                    .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
                 break;
         }
 
@@ -128,10 +130,16 @@ public class Startup
             .Configure<FilesOptions>(Configuration.GetSection("Files"))
             .AddScoped(config => config.GetService<IOptionsMonitor<FilesOptions>>().CurrentValue);
 
+        services
+            .Configure<Infrastructure.Options.XApiOptions>(Configuration.GetSection("XApiOptions"))
+            .AddScoped(config => config.GetService<IOptionsMonitor<Infrastructure.Options.XApiOptions>>().CurrentValue);
+
         services.AddScoped<IPlayerVmService, PlayerVmService>();
         services.AddScoped<IPlayerService, PlayerService>();
         services.AddScoped<IClaimsTransformation, AuthorizationClaimsTransformer>();
         services.AddScoped<IUserClaimsService, UserClaimsService>();
+        services.AddScoped<IXApiService, XApiService>();
+        services.AddScoped<IXApiQueueService, XApiQueueService>();
 
         services.AddScoped<SteamfitterContextFactory>();
         services.AddScoped(sp => sp.GetRequiredService<SteamfitterContextFactory>().CreateDbContext());
@@ -222,6 +230,7 @@ public class Startup
         services.AddSingleton<ITaskExecutionQueue, TaskExecutionQueue>();
         services.AddHostedService<TaskExecutionService>();
         services.AddHostedService<TaskMaintenanceService>();
+        services.AddHostedService<XApiBackgroundService>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddHttpClient();
 
