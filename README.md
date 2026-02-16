@@ -6,7 +6,7 @@ This project provides a restful api for steamfitter functionality in the Crucibl
 
 **ScenarioTemplate:** A definition of a series of dispatch tasks that can be instantiated as a Scenario.
 
-**Scenario:** An instantiation of a series of dispatch tasks that run in a particular view..
+**Scenario:** An instantiation of a series of dispatch tasks that run in a particular view.
 
 **Task:** An individual task that is defined to run on a group of VM's (defined by a VM mask) or that runs against an external API.
 
@@ -36,7 +36,7 @@ Include the reasons why you're requesting the new feature and how it might benef
 
 # Database Migrations
 
-When the data model is changed, a new database migration must be created.  All dayabase migration commands are run from the Steamfitter.Api directory.
+When the data model is changed, a new database migration must be created. All database migration commands are run from the Steamfitter.Api directory.
 - Create a new migration:
     - dotnet ef migrations add <new_migration_name> --project ../Steamfitter.Api.Migrations.PostgreSQL/Steamfitter.Api.Migrations.PostgreSQL.csproj
 - Update the database
