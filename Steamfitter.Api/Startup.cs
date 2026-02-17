@@ -236,8 +236,6 @@ public class Startup
 
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Startup>());
 
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(Startup).Assembly));
-
         // add Crucible Common Service Defaults with configuration from appsettings
         services.AddServiceDefaults(_env, Configuration, openTelemetryOptions =>
         {
