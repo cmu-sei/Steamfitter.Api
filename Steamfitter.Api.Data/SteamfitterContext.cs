@@ -13,16 +13,14 @@ using System.Collections.Generic;
 using MediatR;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.DependencyInjection;
+using Crucible.Common.EntityEvents;
+using Crucible.Common.EntityEvents.Abstractions;
 
 namespace Steamfitter.Api.Data
 {
-    public class SteamfitterContext : DbContext
+    [GenerateEntityEventInterfaces(typeof(INotification))]
+    public partial class SteamfitterContext : EventPublishingDbContext
     {
-        // Needed for EventInterceptor
-        public IServiceProvider ServiceProvider;
-
-        // Entity Events collected by EventTransactionInterceptor and published in SaveChanges
-        public List<INotification> Events { get; } = [];
 
         public SteamfitterContext(DbContextOptions<SteamfitterContext> options) : base(options) { }
 
@@ -60,29 +58,21 @@ namespace Steamfitter.Api.Data
         public override int SaveChanges()
         {
             CheckForScoreUpdates(default).Wait();
-            var result = base.SaveChanges();
-            PublishEvents().Wait();
-            return result;
+            return base.SaveChanges();
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
         {
             await CheckForScoreUpdates(ct);
-            var result = await base.SaveChangesAsync(ct);
-            await PublishEvents(ct);
-            return result;
+            return await base.SaveChangesAsync(ct);
         }
 
-        private async Task PublishEvents(CancellationToken cancellationToken = default)
+        protected override async Task PublishEventsAsync(CancellationToken cancellationToken)
         {
-            // Publish deferred events after transaction is committed and cleared
-            if (Events.Count > 0 && ServiceProvider is not null)
+            if (EntityEvents.Count > 0 && ServiceProvider is not null)
             {
                 var mediator = ServiceProvider.GetRequiredService<IMediator>();
-                var eventsToPublish = Events.ToArray();
-                Events.Clear();
-
-                foreach (var evt in eventsToPublish)
+                foreach (var evt in EntityEvents.Cast<INotification>())
                 {
                     await mediator.Publish(evt, cancellationToken);
                 }
