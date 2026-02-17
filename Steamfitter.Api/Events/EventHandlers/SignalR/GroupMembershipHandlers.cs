@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using MediatR;
+using Crucible.Common.EntityEvents.Events;
 using Microsoft.AspNetCore.SignalR;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Hubs;

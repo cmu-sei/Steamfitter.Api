@@ -23,8 +23,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Infrastructure.Authorization;
-using Steamfitter.Api.Infrastructure.DbInterceptors;
 using Steamfitter.Api.Infrastructure.Extensions;
+using Crucible.Common.EntityEvents.Extensions;
 using Steamfitter.Api.Infrastructure.Filters;
 using Steamfitter.Api.Infrastructure.HealthChecks;
 using Steamfitter.Api.Infrastructure.Identity;
@@ -83,16 +83,14 @@ public class Startup
         switch (provider)
         {
             case "InMemory":
-                services.AddPooledDbContextFactory<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
-                    .AddInterceptors(serviceProvider.GetRequiredService<EventInterceptor>())
-                    .UseInMemoryDatabase("api"));
+                services.AddEventPublishingDbContextFactory<SteamfitterContext>((sp, builder) =>
+                    builder.UseInMemoryDatabase("api"));
                 break;
             case "Sqlite":
             case "SqlServer":
             case "PostgreSQL":
-                services.AddPooledDbContextFactory<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
-                    .AddInterceptors(serviceProvider.GetRequiredService<EventInterceptor>())
-                    .UseConfiguredDatabase(Configuration));
+                services.AddEventPublishingDbContextFactory<SteamfitterContext>((sp, builder) =>
+                    builder.UseConfiguredDatabase(Configuration));
                 break;
         }
 
@@ -132,9 +130,6 @@ public class Startup
         services.AddScoped<IPlayerService, PlayerService>();
         services.AddScoped<IClaimsTransformation, AuthorizationClaimsTransformer>();
         services.AddScoped<IUserClaimsService, UserClaimsService>();
-
-        services.AddScoped<SteamfitterContextFactory>();
-        services.AddScoped(sp => sp.GetRequiredService<SteamfitterContextFactory>().CreateDbContext());
 
         services.AddCors(options => options.UseConfiguredCors(Configuration.GetSection("CorsPolicy")));
 
@@ -239,10 +234,7 @@ public class Startup
             .Configure<ResourceOwnerAuthorizationOptions>(Configuration.GetSection("ResourceOwnerAuthorization"))
             .AddScoped(config => config.GetService<IOptionsMonitor<ResourceOwnerAuthorizationOptions>>().CurrentValue);
 
-        services.AddTransient<EventInterceptor>();
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Startup>());
-
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(Startup).Assembly));
 
         // add Crucible Common Service Defaults with configuration from appsettings
         services.AddServiceDefaults(_env, Configuration, openTelemetryOptions =>
