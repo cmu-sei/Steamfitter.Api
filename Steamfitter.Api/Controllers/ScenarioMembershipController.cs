@@ -31,6 +31,7 @@ public class ScenarioMembershipsController : BaseController
     /// Get a single ScenarioMembership.
     /// </summary>
     /// <param name="id">ID of a ScenarioMembership.</param>
+    /// <param name="ct"></param>
     /// <returns></returns>
     [HttpGet("scenarios/memberships/{id}")]
     [ProducesResponseType(typeof(ScenarioMembership), (int)HttpStatusCode.OK)]
@@ -65,6 +66,7 @@ public class ScenarioMembershipsController : BaseController
     /// </summary>
     /// <param name="scenarioId"></param>
     /// <param name="scenarioMembership"></param>
+    /// <param name="ct"></param>
     /// <returns></returns>
     [HttpPost("scenarios/{scenarioId}/memberships")]
     [ProducesResponseType(typeof(ScenarioMembership), (int)HttpStatusCode.Created)]

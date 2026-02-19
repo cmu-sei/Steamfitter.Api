@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Version>3.9.3</Version>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>CS1591;NU1902</NoWarn>
     <ProjectGuid>{F4047D97-1F7B-4B2D-8751-02C5AACF20FE}</ProjectGuid>
     <LangVersion>latest</LangVersion>
     <UserSecretsId>cmu-sei-crucible-steamfitter-api</UserSecretsId>
@@ -28,8 +28,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.2" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.1" />
+
+
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.0" />
     <PackageReference Include="Player.Api.Client" Version="3.4.3" />
@@ -42,7 +43,7 @@
     <PackageReference Include="Stackstorm.Connector" Version="2.5.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
     <PackageReference Include="Crucible.Common.ServiceDefaults" Version="0.0.2" />
-    <PackageReference Include="TinCan" Version="1.3.0" />
+    <PackageReference Include="TinCan" Version="1.3.0" NoWarn="NU1701" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Steamfitter.Api.Data\Steamfitter.Api.Data.csproj" />

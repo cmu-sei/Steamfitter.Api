@@ -85,16 +85,14 @@ public class Startup
             case "InMemory":
                 services.AddPooledDbContextFactory<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
                     .AddInterceptors(serviceProvider.GetRequiredService<EventInterceptor>())
-                    .UseInMemoryDatabase("api")
-                    .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+                    .UseInMemoryDatabase("api"));
                 break;
             case "Sqlite":
             case "SqlServer":
             case "PostgreSQL":
                 services.AddPooledDbContextFactory<SteamfitterContext>((serviceProvider, optionsBuilder) => optionsBuilder
                     .AddInterceptors(serviceProvider.GetRequiredService<EventInterceptor>())
-                    .UseConfiguredDatabase(Configuration)
-                    .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+                    .UseConfiguredDatabase(Configuration));
                 break;
         }
 
