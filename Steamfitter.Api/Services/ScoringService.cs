@@ -115,7 +115,7 @@ namespace Steamfitter.Api.Services
                 }
                 else
                 {
-                    throw ex;
+                    throw;
                 }
             }
         }

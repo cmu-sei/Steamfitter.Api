@@ -39,7 +39,7 @@ namespace Steamfitter.Api.Services
         STT.Task<SAVM.Task> CreateAsync(SAVM.TaskForm taskForm, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskForm taskForm, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> ExecuteAsync(Guid id, CancellationToken ct);
-        STT.Task<Guid?>  ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct);
+        STT.Task<Guid?> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct);
         STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct);
         STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.TaskForm taskForm, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
@@ -271,7 +271,7 @@ namespace Steamfitter.Api.Services
                 }
                 else
                 {
-                    throw ex;
+                    throw;
                 }
             }
 
