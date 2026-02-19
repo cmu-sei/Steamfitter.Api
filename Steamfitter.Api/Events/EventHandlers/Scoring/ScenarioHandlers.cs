@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using Crucible.Common.EntityEvents.Events;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Services;
