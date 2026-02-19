@@ -41,6 +41,7 @@ namespace Steamfitter.Api.Data
         public DbSet<ScenarioTemplateMembershipEntity> ScenarioTemplateMemberships { get; set; }
         public DbSet<GroupEntity> Groups { get; set; }
         public DbSet<GroupMembershipEntity> GroupMemberships { get; set; }
+        public DbSet<XApiQueuedStatementEntity> XApiQueuedStatements { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

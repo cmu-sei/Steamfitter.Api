@@ -126,10 +126,16 @@ public class Startup
             .Configure<FilesOptions>(Configuration.GetSection("Files"))
             .AddScoped(config => config.GetService<IOptionsMonitor<FilesOptions>>().CurrentValue);
 
+        services
+            .Configure<Infrastructure.Options.XApiOptions>(Configuration.GetSection("XApiOptions"))
+            .AddScoped(config => config.GetService<IOptionsMonitor<Infrastructure.Options.XApiOptions>>().CurrentValue);
+
         services.AddScoped<IPlayerVmService, PlayerVmService>();
         services.AddScoped<IPlayerService, PlayerService>();
         services.AddScoped<IClaimsTransformation, AuthorizationClaimsTransformer>();
         services.AddScoped<IUserClaimsService, UserClaimsService>();
+        services.AddScoped<IXApiService, XApiService>();
+        services.AddScoped<IXApiQueueService, XApiQueueService>();
 
         services.AddCors(options => options.UseConfiguredCors(Configuration.GetSection("CorsPolicy")));
 
@@ -217,6 +223,7 @@ public class Startup
         services.AddSingleton<ITaskExecutionQueue, TaskExecutionQueue>();
         services.AddHostedService<TaskExecutionService>();
         services.AddHostedService<TaskMaintenanceService>();
+        services.AddHostedService<XApiBackgroundService>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddHttpClient();
 

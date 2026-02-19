@@ -1,12 +1,12 @@
 # Steamfitter.api Readme
 
-This project provides a restful api for steamfitter functionality in the Crucible ecosystem. By default, steamfitter.api is available at `localhost:4400`, with the Swagger page at `localhost:4400/swagger/index.html`.
+This project provides a restful api for steamfitter functionality in the Crucible ecosystem. By default, steamfitter.api is available at `localhost:4400`, with the Swagger page at `localhost:4400/api`.
 
 ## Entity Description
 
-**ScenarioTemplate:** A definition of a series of dispatch tasks that can be used to run a view.
+**ScenarioTemplate:** A definition of a series of dispatch tasks that can be instantiated as a Scenario.
 
-**Scenario:** An instantiation of a series of dispatch tasks that run a particular view.
+**Scenario:** An instantiation of a series of dispatch tasks that run in a particular view.
 
 **Task:** An individual task that is defined to run on a group of VM's (defined by a VM mask) or that runs against an external API.
 
@@ -14,8 +14,15 @@ This project provides a restful api for steamfitter functionality in the Crucibl
 
 ## Task Execution
 
-1. An Ad-hoc Task must have a VmList associated with it.
-2. A Scenario can have a Task that uses a VmMask, **only** if the Scenario is associated with a Player View.
+Tasks can be executed in multiple ways:
+
+1. **VM Tasks:** Tasks that run against virtual machines using either:
+   - **VmMask:** Pattern-based VM selection (requires Scenario to be associated with a Player View)
+   - **VmList:** Explicit list of VM IDs (for ad-hoc tasks or specific VM targeting)
+
+2. **API Tasks:** Tasks that execute against external APIs without requiring VMs.
+
+3. **Manual Tasks:** Tasks that are marked as manual execution and do not automatically execute.
 
 ## Reporting bugs and requesting features
 
@@ -29,7 +36,7 @@ Include the reasons why you're requesting the new feature and how it might benef
 
 # Database Migrations
 
-When the data model is changed, a new database migration must be created.  All dayabase migration commands are run from the Steamfitter.Api directory.
+When the data model is changed, a new database migration must be created. All database migration commands are run from the Steamfitter.Api directory.
 - Create a new migration:
     - dotnet ef migrations add <new_migration_name> --project ../Steamfitter.Api.Migrations.PostgreSQL/Steamfitter.Api.Migrations.PostgreSQL.csproj
 - Update the database

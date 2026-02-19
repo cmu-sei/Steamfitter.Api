@@ -31,6 +31,7 @@ public class ScenarioTemplateRolesController : BaseController
     /// Get a single ScenarioTemplateRole.
     /// </summary>
     /// <param name="id">ID of a ScenarioTemplateRole.</param>
+    /// <param name="ct"></param>
     /// <returns></returns>
     [HttpGet("scenarioTemplate-roles/{id}")]
     [ProducesResponseType(typeof(ScenarioTemplateRole), (int)HttpStatusCode.OK)]

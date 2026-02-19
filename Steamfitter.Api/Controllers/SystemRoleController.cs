@@ -31,6 +31,7 @@ namespace Steamfitter.Api.Controllers
         /// Get a single SystemRole.
         /// </summary>
         /// <param name="id">ID of a SystemRole.</param>
+        /// <param name="ct"></param>
         /// <returns></returns>
         [HttpGet("system-roles/{id}")]
         [ProducesResponseType(typeof(SystemRole), (int)HttpStatusCode.OK)]
@@ -64,6 +65,7 @@ namespace Steamfitter.Api.Controllers
         /// Create a new SystemRole.
         /// </summary>
         /// <param name="systemRole"></param>
+        /// <param name="ct"></param>
         /// <returns></returns>
         [HttpPost("system-roles")]
         [ProducesResponseType(typeof(SystemRole), (int)HttpStatusCode.Created)]
@@ -82,6 +84,7 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <param name="id">ID of an SystemRole.</param>
         /// <param name="systemRole"></param>
+        /// <param name="ct"></param>
         /// <returns></returns>
         [HttpPut("system-roles/{id}")]
         [ProducesResponseType(typeof(SystemRole), (int)HttpStatusCode.OK)]
@@ -99,6 +102,7 @@ namespace Steamfitter.Api.Controllers
         /// Delete a SystemRole.
         /// </summary>
         /// <param name="id">ID of an SystemRole.</param>
+        /// <param name="ct"></param>
         /// <returns></returns>
         [HttpDelete("system-roles/{id}")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]

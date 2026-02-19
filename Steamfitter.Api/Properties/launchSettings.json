@@ -3,7 +3,7 @@
     "Steamfitter.Api": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "http://localhost:4400/swagger",
+      "launchUrl": "http://localhost:4400/api",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
