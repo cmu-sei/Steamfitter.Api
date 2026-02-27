@@ -15,6 +15,8 @@ using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Steamfitter.Api.Services
 {
@@ -44,13 +46,15 @@ namespace Steamfitter.Api.Services
         private readonly ITaskService _taskService;
         private readonly IStackStormService _stackstormService;
         private readonly IXApiService _xApiService;
+        private readonly ILogger<ScenarioService> _logger;
 
         public ScenarioService(SteamfitterContext context,
                                 IPrincipal user,
                                 IMapper mapper,
                                 ITaskService taskService,
                                 IStackStormService stackstormService,
-                                IXApiService xApiService)
+                                IXApiService xApiService,
+                                ILogger<ScenarioService> logger)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
@@ -58,6 +62,7 @@ namespace Steamfitter.Api.Services
             _taskService = taskService;
             _stackstormService = stackstormService;
             _xApiService = xApiService;
+            _logger = logger;
         }
 
         public async STT.Task<IEnumerable<ViewModels.Scenario>> GetAsync(CancellationToken ct)
@@ -132,24 +137,90 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioForm scenarioForm, CancellationToken ct)
         {
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(scenarioForm.Name))
+            {
+                _logger.LogWarning("CreateScenario failed: Name is required");
+                throw new ArgumentException("Scenario Name is required and cannot be empty.");
+            }
+
+            if (scenarioForm.StartDate == default)
+            {
+                _logger.LogWarning("CreateScenario failed: StartDate is required");
+                throw new ArgumentException("Scenario StartDate is required.");
+            }
+
+            if (scenarioForm.EndDate == default)
+            {
+                _logger.LogWarning("CreateScenario failed: EndDate is required");
+                throw new ArgumentException("Scenario EndDate is required.");
+            }
+
+            if (scenarioForm.EndDate <= scenarioForm.StartDate)
+            {
+                _logger.LogWarning("CreateScenario failed: EndDate must be after StartDate");
+                throw new ArgumentException("Scenario EndDate must be after StartDate.");
+            }
+
+            // Validate ViewId if provided
+            if (scenarioForm.ViewId.HasValue && scenarioForm.ViewId.Value != Guid.Empty)
+            {
+                // Note: View validation would require Player API integration, so we skip this check
+                _logger.LogInformation($"CreateScenario: Using ViewId {scenarioForm.ViewId.Value}");
+            }
+
             var scenarioEntity = _mapper.Map<ScenarioEntity>(scenarioForm);
             scenarioEntity.DateCreated = DateTime.UtcNow;
             scenarioEntity.CreatedBy = _user.GetId();
             scenarioEntity.StartDate = scenarioEntity.StartDate.ToUniversalTime();
             scenarioEntity.EndDate = scenarioEntity.EndDate.ToUniversalTime();
             scenarioEntity.Status = ScenarioStatus.ready;
-            _context.Scenarios.Add(scenarioEntity);
-            await _context.SaveChangesAsync(ct);
-            var createOwnerMembership = new ScenarioMembershipEntity() {
-                UserId = _user.GetId(),
-                ScenarioId = scenarioEntity.Id,
-                RoleId = ScenarioRoleDefaults.ScenarioCreatorRoleId
-            };
-            await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
-            await _context.SaveChangesAsync(ct);
-            var scenario = await GetAsync(scenarioEntity.Id, ct);
 
-            return scenario;
+            try
+            {
+                _context.Scenarios.Add(scenarioEntity);
+                await _context.SaveChangesAsync(ct);
+
+                var createOwnerMembership = new ScenarioMembershipEntity() {
+                    UserId = _user.GetId(),
+                    ScenarioId = scenarioEntity.Id,
+                    RoleId = ScenarioRoleDefaults.ScenarioCreatorRoleId
+                };
+                await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
+                await _context.SaveChangesAsync(ct);
+
+                _logger.LogInformation($"Successfully created Scenario {scenarioEntity.Id} ('{scenarioEntity.Name}')");
+                var scenario = await GetAsync(scenarioEntity.Id, ct);
+
+                return scenario;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx)
+            {
+                _logger.LogError(ex, $"Database error creating Scenario '{scenarioForm.Name}': {pgEx.MessageText}");
+
+                // Handle specific PostgreSQL errors
+                switch (pgEx.SqlState)
+                {
+                    case "23505": // unique_violation
+                        throw new InvalidOperationException($"A Scenario with the ID '{scenarioEntity.Id}' already exists.", ex);
+                    case "23503": // foreign_key_violation
+                        var constraintName = pgEx.ConstraintName ?? "unknown";
+                        if (constraintName.Contains("ViewId", StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new InvalidOperationException($"Invalid ViewId '{scenarioForm.ViewId}'. The View does not exist in Player.", ex);
+                        }
+                        throw new InvalidOperationException($"Foreign key constraint violated: {constraintName}. Please verify all referenced entities exist.", ex);
+                    case "23514": // check_violation
+                        throw new InvalidOperationException($"Data validation failed: {pgEx.MessageText}", ex);
+                    default:
+                        throw new InvalidOperationException($"Database error creating Scenario: {pgEx.MessageText}", ex);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Unexpected error creating Scenario '{scenarioForm.Name}'");
+                throw new InvalidOperationException($"An unexpected error occurred while creating the Scenario: {ex.Message}", ex);
+            }
         }
 
         public async STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, SAVM.ScenarioCloneOptions options, CancellationToken ct)

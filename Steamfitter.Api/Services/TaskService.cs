@@ -23,6 +23,7 @@ using System.Data;
 using Steamfitter.Api.Data.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
+using Npgsql;
 
 namespace Steamfitter.Api.Services
 {
@@ -168,6 +169,46 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.Task> CreateAsync(SAVM.TaskForm taskForm, CancellationToken ct)
         {
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(taskForm.Name))
+            {
+                _logger.LogWarning("CreateTask failed: Name is required");
+                throw new ArgumentException("Task Name is required and cannot be empty.");
+            }
+
+            // Validate ScenarioId if provided
+            if (taskForm.ScenarioId.HasValue && taskForm.ScenarioId.Value != Guid.Empty)
+            {
+                var scenarioExists = await _context.Scenarios.AnyAsync(s => s.Id == taskForm.ScenarioId.Value, ct);
+                if (!scenarioExists)
+                {
+                    _logger.LogWarning($"CreateTask failed: Scenario {taskForm.ScenarioId.Value} does not exist");
+                    throw new ArgumentException($"Invalid ScenarioId '{taskForm.ScenarioId.Value}'. The Scenario does not exist.");
+                }
+            }
+
+            // Validate ScenarioTemplateId if provided
+            if (taskForm.ScenarioTemplateId.HasValue && taskForm.ScenarioTemplateId.Value != Guid.Empty)
+            {
+                var templateExists = await _context.ScenarioTemplates.AnyAsync(st => st.Id == taskForm.ScenarioTemplateId.Value, ct);
+                if (!templateExists)
+                {
+                    _logger.LogWarning($"CreateTask failed: ScenarioTemplate {taskForm.ScenarioTemplateId.Value} does not exist");
+                    throw new ArgumentException($"Invalid ScenarioTemplateId '{taskForm.ScenarioTemplateId.Value}'. The ScenarioTemplate does not exist.");
+                }
+            }
+
+            // Validate TriggerTaskId if provided
+            if (taskForm.TriggerTaskId.HasValue && taskForm.TriggerTaskId.Value != Guid.Empty)
+            {
+                var triggerTaskExists = await _context.Tasks.AnyAsync(t => t.Id == taskForm.TriggerTaskId.Value, ct);
+                if (!triggerTaskExists)
+                {
+                    _logger.LogWarning($"CreateTask failed: TriggerTask {taskForm.TriggerTaskId.Value} does not exist");
+                    throw new ArgumentException($"Invalid TriggerTaskId '{taskForm.TriggerTaskId.Value}'. The TriggerTask does not exist.");
+                }
+            }
+
             var vmListCount = taskForm.VmList != null ? taskForm.VmList.Count : 0;
             if (vmListCount > 0)
             {
@@ -197,11 +238,51 @@ namespace Steamfitter.Api.Services
             taskEntity.Iterations = taskForm.Iterations > 0 ? taskForm.Iterations : 1;
             taskEntity.CurrentIteration = 0;
 
-            _context.Tasks.Add(taskEntity);
-            await _context.SaveChangesAsync(ct);
-            var task = await GetAsync(taskEntity.Id, ct);
+            try
+            {
+                _context.Tasks.Add(taskEntity);
+                await _context.SaveChangesAsync(ct);
 
-            return task;
+                _logger.LogInformation($"Successfully created Task {taskEntity.Id} ('{taskEntity.Name}') for Scenario {taskForm.ScenarioId}");
+                var task = await GetAsync(taskEntity.Id, ct);
+
+                return task;
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx)
+            {
+                _logger.LogError(ex, $"Database error creating Task '{taskForm.Name}': {pgEx.MessageText}");
+
+                // Handle specific PostgreSQL errors
+                switch (pgEx.SqlState)
+                {
+                    case "23505": // unique_violation
+                        throw new InvalidOperationException($"A Task with the ID '{taskEntity.Id}' already exists.", ex);
+                    case "23503": // foreign_key_violation
+                        var constraintName = pgEx.ConstraintName ?? "unknown";
+                        if (constraintName.Contains("ScenarioId", StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new InvalidOperationException($"Invalid ScenarioId '{taskForm.ScenarioId}'. The Scenario does not exist.", ex);
+                        }
+                        if (constraintName.Contains("ScenarioTemplateId", StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new InvalidOperationException($"Invalid ScenarioTemplateId '{taskForm.ScenarioTemplateId}'. The ScenarioTemplate does not exist.", ex);
+                        }
+                        if (constraintName.Contains("TriggerTaskId", StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new InvalidOperationException($"Invalid TriggerTaskId '{taskForm.TriggerTaskId}'. The TriggerTask does not exist.", ex);
+                        }
+                        throw new InvalidOperationException($"Foreign key constraint violated: {constraintName}. Please verify all referenced entities exist.", ex);
+                    case "23514": // check_violation
+                        throw new InvalidOperationException($"Data validation failed: {pgEx.MessageText}", ex);
+                    default:
+                        throw new InvalidOperationException($"Database error creating Task: {pgEx.MessageText}", ex);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Unexpected error creating Task '{taskForm.Name}'");
+                throw new InvalidOperationException($"An unexpected error occurred while creating the Task: {ex.Message}", ex);
+            }
         }
 
         public async STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskForm taskForm, CancellationToken ct)
