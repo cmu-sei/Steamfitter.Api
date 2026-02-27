@@ -181,7 +181,7 @@ namespace Steamfitter.Api.Services
                 var scenarioExists = await _context.Scenarios.AnyAsync(s => s.Id == taskForm.ScenarioId.Value, ct);
                 if (!scenarioExists)
                 {
-                    _logger.LogWarning($"CreateTask failed: Scenario {taskForm.ScenarioId.Value} does not exist");
+                    _logger.LogWarning("CreateTask failed: Scenario {ScenarioId} does not exist", taskForm.ScenarioId.Value);
                     throw new ArgumentException($"Invalid ScenarioId '{taskForm.ScenarioId.Value}'. The Scenario does not exist.");
                 }
             }
@@ -192,7 +192,7 @@ namespace Steamfitter.Api.Services
                 var templateExists = await _context.ScenarioTemplates.AnyAsync(st => st.Id == taskForm.ScenarioTemplateId.Value, ct);
                 if (!templateExists)
                 {
-                    _logger.LogWarning($"CreateTask failed: ScenarioTemplate {taskForm.ScenarioTemplateId.Value} does not exist");
+                    _logger.LogWarning("CreateTask failed: ScenarioTemplate {ScenarioTemplateId} does not exist", taskForm.ScenarioTemplateId.Value);
                     throw new ArgumentException($"Invalid ScenarioTemplateId '{taskForm.ScenarioTemplateId.Value}'. The ScenarioTemplate does not exist.");
                 }
             }
@@ -203,7 +203,7 @@ namespace Steamfitter.Api.Services
                 var triggerTaskExists = await _context.Tasks.AnyAsync(t => t.Id == taskForm.TriggerTaskId.Value, ct);
                 if (!triggerTaskExists)
                 {
-                    _logger.LogWarning($"CreateTask failed: TriggerTask {taskForm.TriggerTaskId.Value} does not exist");
+                    _logger.LogWarning("CreateTask failed: TriggerTask {TriggerTaskId} does not exist", taskForm.TriggerTaskId.Value);
                     throw new ArgumentException($"Invalid TriggerTaskId '{taskForm.TriggerTaskId.Value}'. The TriggerTask does not exist.");
                 }
             }
@@ -240,7 +240,8 @@ namespace Steamfitter.Api.Services
             _context.Tasks.Add(taskEntity);
             await _context.SaveChangesAsync(ct);
 
-            _logger.LogInformation($"Successfully created Task {taskEntity.Id} ('{taskEntity.Name}') for Scenario {taskForm.ScenarioId}");
+            _logger.LogInformation("Successfully created Task {TaskId} ('{TaskName}') for Scenario {ScenarioId}",
+                taskEntity.Id, taskEntity.Name, taskForm.ScenarioId);
             var task = await GetAsync(taskEntity.Id, ct);
 
             return task;
