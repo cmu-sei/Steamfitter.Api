@@ -160,7 +160,7 @@ namespace Steamfitter.Api.Services
             // taskToExecute is not tracked by the DB context and may have substitutions in its InputString.
             // Therefore we also use taskToSave to make updates to the DB context.
             var taskToExecute = taskEntityAsObject == null ? (TaskEntity)null : (TaskEntity)taskEntityAsObject;
-            _logger.LogDebug($"Processing Task '{taskToExecute.Name}' ({taskToExecute.Id}).");
+            _logger.LogDebug("Processing Task '{TaskName}' ({TaskId})", taskToExecute.Name, taskToExecute.Id);
             // When adding a Task to the TaskExecutionQueue, the UserId MUST be changed to the current UserId, so that all results can be assigned to the correct user
             var userId = taskToExecute.UserId != null ? (Guid)taskToExecute.UserId : new Guid();
             try
@@ -406,7 +406,7 @@ namespace Steamfitter.Api.Services
                         // The problem is that this task did not have a scenario or a viewId
                         resultEntity.ActualOutput = $"There was no scenario associated with this task!  {taskToExecute.Name} ({taskToExecute.Id})";
                     }
-                    _logger.LogError($"CreateResultsAsync - {resultEntity.ActualOutput}");
+                    _logger.LogError("CreateResultsAsync - {ActualOutput}", resultEntity.ActualOutput);
                     resultEntity.Status = Data.TaskStatus.error;
                     resultEntity.StatusDate = DateTime.UtcNow;
                     resultEntities.Add(resultEntity);

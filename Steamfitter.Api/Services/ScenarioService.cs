@@ -186,7 +186,8 @@ namespace Steamfitter.Api.Services
             await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
             await _context.SaveChangesAsync(ct);
 
-            _logger.LogInformation($"Successfully created Scenario {scenarioEntity.Id} ('{scenarioEntity.Name}')");
+            _logger.LogInformation("Successfully created Scenario {ScenarioId} ('{ScenarioName}')",
+                scenarioEntity.Id, scenarioEntity.Name);
             var scenario = await GetAsync(scenarioEntity.Id, ct);
 
             return scenario;
