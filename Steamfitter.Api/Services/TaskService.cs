@@ -23,7 +23,6 @@ using System.Data;
 using Steamfitter.Api.Data.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
-using Npgsql;
 
 namespace Steamfitter.Api.Services
 {
@@ -238,51 +237,13 @@ namespace Steamfitter.Api.Services
             taskEntity.Iterations = taskForm.Iterations > 0 ? taskForm.Iterations : 1;
             taskEntity.CurrentIteration = 0;
 
-            try
-            {
-                _context.Tasks.Add(taskEntity);
-                await _context.SaveChangesAsync(ct);
+            _context.Tasks.Add(taskEntity);
+            await _context.SaveChangesAsync(ct);
 
-                _logger.LogInformation($"Successfully created Task {taskEntity.Id} ('{taskEntity.Name}') for Scenario {taskForm.ScenarioId}");
-                var task = await GetAsync(taskEntity.Id, ct);
+            _logger.LogInformation($"Successfully created Task {taskEntity.Id} ('{taskEntity.Name}') for Scenario {taskForm.ScenarioId}");
+            var task = await GetAsync(taskEntity.Id, ct);
 
-                return task;
-            }
-            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx)
-            {
-                _logger.LogError(ex, $"Database error creating Task '{taskForm.Name}': {pgEx.MessageText}");
-
-                // Handle specific PostgreSQL errors
-                switch (pgEx.SqlState)
-                {
-                    case "23505": // unique_violation
-                        throw new InvalidOperationException($"A Task with the ID '{taskEntity.Id}' already exists.", ex);
-                    case "23503": // foreign_key_violation
-                        var constraintName = pgEx.ConstraintName ?? "unknown";
-                        if (constraintName.Contains("ScenarioId", StringComparison.OrdinalIgnoreCase))
-                        {
-                            throw new InvalidOperationException($"Invalid ScenarioId '{taskForm.ScenarioId}'. The Scenario does not exist.", ex);
-                        }
-                        if (constraintName.Contains("ScenarioTemplateId", StringComparison.OrdinalIgnoreCase))
-                        {
-                            throw new InvalidOperationException($"Invalid ScenarioTemplateId '{taskForm.ScenarioTemplateId}'. The ScenarioTemplate does not exist.", ex);
-                        }
-                        if (constraintName.Contains("TriggerTaskId", StringComparison.OrdinalIgnoreCase))
-                        {
-                            throw new InvalidOperationException($"Invalid TriggerTaskId '{taskForm.TriggerTaskId}'. The TriggerTask does not exist.", ex);
-                        }
-                        throw new InvalidOperationException($"Foreign key constraint violated: {constraintName}. Please verify all referenced entities exist.", ex);
-                    case "23514": // check_violation
-                        throw new InvalidOperationException($"Data validation failed: {pgEx.MessageText}", ex);
-                    default:
-                        throw new InvalidOperationException($"Database error creating Task: {pgEx.MessageText}", ex);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Unexpected error creating Task '{taskForm.Name}'");
-                throw new InvalidOperationException($"An unexpected error occurred while creating the Task: {ex.Message}", ex);
-            }
+            return task;
         }
 
         public async STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskForm taskForm, CancellationToken ct)

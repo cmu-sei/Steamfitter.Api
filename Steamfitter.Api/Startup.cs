@@ -148,7 +148,6 @@ public class Startup
         services.AddMvc(options =>
         {
             options.Filters.Add(typeof(ValidateModelStateFilter));
-            options.Filters.Add(typeof(JsonExceptionFilter));
 
             // Require all scopes in authOptions
             var policyBuilder = new AuthorizationPolicyBuilder().RequireAuthenticatedUser();
@@ -258,11 +257,7 @@ public class Startup
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
-        if (env.IsDevelopment())
-        {
-            app.UseDeveloperExceptionPage();
-        }
-
+        app.UseMiddleware<Steamfitter.Api.Infrastructure.Exceptions.Middleware.ExceptionMiddleware>();
         app.UsePathBase(_pathbase);
 
         app.UseRouting();

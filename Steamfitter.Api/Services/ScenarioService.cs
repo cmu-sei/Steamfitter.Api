@@ -16,7 +16,6 @@ using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace Steamfitter.Api.Services
 {
@@ -176,51 +175,21 @@ namespace Steamfitter.Api.Services
             scenarioEntity.EndDate = scenarioEntity.EndDate.ToUniversalTime();
             scenarioEntity.Status = ScenarioStatus.ready;
 
-            try
-            {
-                _context.Scenarios.Add(scenarioEntity);
-                await _context.SaveChangesAsync(ct);
+            _context.Scenarios.Add(scenarioEntity);
+            await _context.SaveChangesAsync(ct);
 
-                var createOwnerMembership = new ScenarioMembershipEntity() {
-                    UserId = _user.GetId(),
-                    ScenarioId = scenarioEntity.Id,
-                    RoleId = ScenarioRoleDefaults.ScenarioCreatorRoleId
-                };
-                await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
-                await _context.SaveChangesAsync(ct);
+            var createOwnerMembership = new ScenarioMembershipEntity() {
+                UserId = _user.GetId(),
+                ScenarioId = scenarioEntity.Id,
+                RoleId = ScenarioRoleDefaults.ScenarioCreatorRoleId
+            };
+            await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
+            await _context.SaveChangesAsync(ct);
 
-                _logger.LogInformation($"Successfully created Scenario {scenarioEntity.Id} ('{scenarioEntity.Name}')");
-                var scenario = await GetAsync(scenarioEntity.Id, ct);
+            _logger.LogInformation($"Successfully created Scenario {scenarioEntity.Id} ('{scenarioEntity.Name}')");
+            var scenario = await GetAsync(scenarioEntity.Id, ct);
 
-                return scenario;
-            }
-            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx)
-            {
-                _logger.LogError(ex, $"Database error creating Scenario '{scenarioForm.Name}': {pgEx.MessageText}");
-
-                // Handle specific PostgreSQL errors
-                switch (pgEx.SqlState)
-                {
-                    case "23505": // unique_violation
-                        throw new InvalidOperationException($"A Scenario with the ID '{scenarioEntity.Id}' already exists.", ex);
-                    case "23503": // foreign_key_violation
-                        var constraintName = pgEx.ConstraintName ?? "unknown";
-                        if (constraintName.Contains("ViewId", StringComparison.OrdinalIgnoreCase))
-                        {
-                            throw new InvalidOperationException($"Invalid ViewId '{scenarioForm.ViewId}'. The View does not exist in Player.", ex);
-                        }
-                        throw new InvalidOperationException($"Foreign key constraint violated: {constraintName}. Please verify all referenced entities exist.", ex);
-                    case "23514": // check_violation
-                        throw new InvalidOperationException($"Data validation failed: {pgEx.MessageText}", ex);
-                    default:
-                        throw new InvalidOperationException($"Database error creating Scenario: {pgEx.MessageText}", ex);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Unexpected error creating Scenario '{scenarioForm.Name}'");
-                throw new InvalidOperationException($"An unexpected error occurred while creating the Scenario: {ex.Message}", ex);
-            }
+            return scenario;
         }
 
         public async STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, SAVM.ScenarioCloneOptions options, CancellationToken ct)
