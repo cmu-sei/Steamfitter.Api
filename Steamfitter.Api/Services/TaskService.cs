@@ -240,8 +240,8 @@ namespace Steamfitter.Api.Services
             _context.Tasks.Add(taskEntity);
             await _context.SaveChangesAsync(ct);
 
-            _logger.LogInformation("Successfully created Task {TaskId} ('{TaskName}') for Scenario {ScenarioId}",
-                taskEntity.Id, taskEntity.Name, taskForm.ScenarioId);
+            _logger.LogInformation("Successfully created Task {TaskId} for Scenario {ScenarioId}",
+                taskEntity.Id, taskForm.ScenarioId);
             var task = await GetAsync(taskEntity.Id, ct);
 
             return task;

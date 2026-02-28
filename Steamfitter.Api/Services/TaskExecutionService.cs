@@ -160,7 +160,7 @@ namespace Steamfitter.Api.Services
             // taskToExecute is not tracked by the DB context and may have substitutions in its InputString.
             // Therefore we also use taskToSave to make updates to the DB context.
             var taskToExecute = taskEntityAsObject == null ? (TaskEntity)null : (TaskEntity)taskEntityAsObject;
-            _logger.LogDebug("Processing Task '{TaskName}' ({TaskId})", taskToExecute.Name, taskToExecute.Id);
+            _logger.LogDebug("Processing Task ({TaskId})", taskToExecute.Id);
             // When adding a Task to the TaskExecutionQueue, the UserId MUST be changed to the current UserId, so that all results can be assigned to the correct user
             var userId = taskToExecute.UserId != null ? (Guid)taskToExecute.UserId : new Guid();
             try
@@ -269,7 +269,7 @@ namespace Steamfitter.Api.Services
 
         private async STT.Task<bool> VerifyTaskToExecuteAsync(TaskEntity taskToExecute, SteamfitterContext steamfitterContext, CancellationToken ct)
         {
-            var message = $"Task '{taskToExecute.Name}' ({taskToExecute.Id}) was not executed.  ";
+            var message = $"Task ({taskToExecute.Id}) was not executed.  ";
             if (taskToExecute == null || taskToExecute.ScenarioTemplateId != null)
             {
                 message = message + $"It is a scenario template task.";
@@ -399,12 +399,12 @@ namespace Steamfitter.Api.Services
                     else if (scenarioEntity != null)
                     {
                         // The problem is that this task did not have a scenario or a viewId
-                        resultEntity.ActualOutput = $"There was no view associated with this task's scenario!  {taskToExecute.Name} ({taskToExecute.Id})";
+                        resultEntity.ActualOutput = $"There was no view associated with this task's scenario!  Task ({taskToExecute.Id})";
                     }
                     else
                     {
                         // The problem is that this task did not have a scenario or a viewId
-                        resultEntity.ActualOutput = $"There was no scenario associated with this task!  {taskToExecute.Name} ({taskToExecute.Id})";
+                        resultEntity.ActualOutput = $"There was no scenario associated with this task!  Task ({taskToExecute.Id})";
                     }
                     _logger.LogError("CreateResultsAsync - {ActualOutput}", resultEntity.ActualOutput);
                     resultEntity.Status = Data.TaskStatus.error;
