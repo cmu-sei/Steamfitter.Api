@@ -263,7 +263,7 @@ namespace Steamfitter.Api.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error processing Task {taskToExecute.Id}", ex);
+                _logger.LogError(ex, $"Error processing Task {taskToExecute.Id}");
             }
         }
 
