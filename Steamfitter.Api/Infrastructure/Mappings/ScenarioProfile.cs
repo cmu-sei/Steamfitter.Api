@@ -20,7 +20,11 @@ namespace Steamfitter.Api.Infrastructure.Mappings
             CreateMap<ScenarioSummary, Scenario>();
             CreateMap<ScenarioEntity, ScenarioSummary>();
             CreateMap<ScenarioEntity, Scenario>();
-            CreateMap<Scenario, ScenarioEntity>();
+            CreateMap<Scenario, ScenarioEntity>()
+                .ForMember(e => e.Tasks, opt => opt.Ignore())
+                .ForMember(e => e.ScenarioTemplate, opt => opt.Ignore())
+                .ForMember(e => e.VmCredentials, opt => opt.Ignore())
+                .ForMember(e => e.Memberships, opt => opt.Ignore());
 
             CreateMap<ScenarioEntity, ScenarioEntity>()
                 .ForMember(e => e.Id, opt => opt.Ignore());

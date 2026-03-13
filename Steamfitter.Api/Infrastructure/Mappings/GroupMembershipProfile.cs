@@ -13,7 +13,9 @@ namespace Steamfitter.Api.Infrastructure.Mappings
         public GroupMembershipProfile()
         {
             CreateMap<GroupMembershipEntity, GroupMembership>();
-            CreateMap<GroupMembership, GroupMembershipEntity>();
+            CreateMap<GroupMembership, GroupMembershipEntity>()
+                .ForMember(dest => dest.Group, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore());
         }
     }
 }

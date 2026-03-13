@@ -18,6 +18,14 @@ namespace Steamfitter.Api.Infrastructure.Mappings
             CreateMap<TaskEntity, Task>()
                 .ForMember(dest => dest.ActionParameters, m => m.MapFrom(src => ConvertToActionParameters(src)));
 
+            CreateMap<Task, TaskEntity>()
+                .ForMember(dest => dest.ScenarioTemplate, opt => opt.Ignore())
+                .ForMember(dest => dest.Scenario, opt => opt.Ignore())
+                .ForMember(dest => dest.TriggerTask, opt => opt.Ignore())
+                .ForMember(dest => dest.Children, opt => opt.Ignore())
+                .ForMember(dest => dest.Results, opt => opt.Ignore())
+                .ForMember(dest => dest.InputString, m => m.MapFrom(src => ConvertToInputString(src.ActionParameters)));
+
             CreateMap<TaskForm, TaskEntity>()
                 .ForMember(dest => dest.InputString, m => m.MapFrom(src => ConvertToInputString(src.ActionParameters)));
 

@@ -13,7 +13,11 @@ namespace Steamfitter.Api.Infrastructure.Mappings
         public UserProfile()
         {
             CreateMap<UserEntity, User>();
-            CreateMap<User, UserEntity>();
+            CreateMap<User, UserEntity>()
+                .ForMember(dest => dest.Role, opt => opt.Ignore())
+                .ForMember(dest => dest.ScenarioMemberships, opt => opt.Ignore())
+                .ForMember(dest => dest.ScenarioTemplateMemberships, opt => opt.Ignore())
+                .ForMember(dest => dest.GroupMemberships, opt => opt.Ignore());
         }
     }
 }

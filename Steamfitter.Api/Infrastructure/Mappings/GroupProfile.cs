@@ -13,7 +13,10 @@ namespace Steamfitter.Api.Infrastructure.Mappings
         public GroupProfile()
         {
             CreateMap<GroupEntity, Group>();
-            CreateMap<Group, GroupEntity>();
+            CreateMap<Group, GroupEntity>()
+                .ForMember(dest => dest.Memberships, opt => opt.Ignore())
+                .ForMember(dest => dest.ScenarioTemplateMemberships, opt => opt.Ignore())
+                .ForMember(dest => dest.ScenarioMemberships, opt => opt.Ignore());
         }
     }
 }
