@@ -11,6 +11,7 @@ using UserViewModel = Steamfitter.Api.ViewModels.User;
 
 namespace Steamfitter.Api.Tests.Integration.Tests.Controllers;
 
+[Trait("Category", "Integration")]
 public class UserControllerTests : IClassFixture<SteamfitterTestContext>
 {
     private readonly HttpClient _client;
@@ -23,7 +24,7 @@ public class UserControllerTests : IClassFixture<SteamfitterTestContext>
     }
 
     [Fact]
-    public async Task GetUsers_ReturnsOkAndList()
+    public async Task GetUsers_WhenUsersExist_ReturnsOkAndList()
     {
         // Arrange - seed a user
         using var dbContext = _context.GetDbContext();
@@ -46,7 +47,7 @@ public class UserControllerTests : IClassFixture<SteamfitterTestContext>
     }
 
     [Fact]
-    public async Task GetUser_ById_ReturnsOk()
+    public async Task GetUser_ByIdWhenUserExists_ReturnsOk()
     {
         // Arrange
         using var dbContext = _context.GetDbContext();
@@ -70,7 +71,7 @@ public class UserControllerTests : IClassFixture<SteamfitterTestContext>
     }
 
     [Fact]
-    public async Task CreateUser_ReturnsCreated()
+    public async Task CreateUser_WithValidData_ReturnsCreated()
     {
         // Arrange
         var newUser = new UserViewModel
@@ -91,7 +92,7 @@ public class UserControllerTests : IClassFixture<SteamfitterTestContext>
     }
 
     [Fact]
-    public async Task DeleteUser_ReturnsNoContent()
+    public async Task DeleteUser_WhenUserExists_ReturnsNoContent()
     {
         // Arrange
         using var dbContext = _context.GetDbContext();

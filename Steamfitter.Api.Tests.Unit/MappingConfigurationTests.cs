@@ -9,10 +9,11 @@ using Xunit;
 
 namespace Steamfitter.Api.Tests.Unit;
 
+[Trait("Category", "Unit")]
 public class MappingConfigurationTests
 {
     [Fact]
-    public void AutoMapperConfiguration_IsValid()
+    public void CreateMapper_WithAllProfiles_ShouldSucceed()
     {
         // Arrange
         var config = new MapperConfiguration(cfg =>
@@ -39,7 +40,7 @@ public class MappingConfigurationTests
     }
 
     [Fact]
-    public void ScenarioProfile_MapsEntityToViewModel()
+    public void Map_ScenarioEntityToViewModel_MapsProperties()
     {
         // Arrange
         var config = new MapperConfiguration(cfg => cfg.AddProfile<ScenarioProfile>());
@@ -65,7 +66,7 @@ public class MappingConfigurationTests
     }
 
     [Fact]
-    public void UserProfile_MapsEntityToViewModel()
+    public void Map_UserEntityToViewModel_MapsProperties()
     {
         // Arrange
         var config = new MapperConfiguration(cfg => cfg.AddProfile<UserProfile>());
@@ -87,7 +88,7 @@ public class MappingConfigurationTests
     }
 
     [Fact]
-    public void TaskProfile_MapsEntityToViewModel()
+    public void Map_TaskEntityToViewModel_MapsProperties()
     {
         // Arrange
         var config = new MapperConfiguration(cfg => cfg.AddProfile<TaskProfile>());

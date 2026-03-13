@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Steamfitter.Api.Tests.Integration.Tests.Controllers;
 
+[Trait("Category", "Integration")]
 public class HealthCheckTests : IClassFixture<SteamfitterTestContext>
 {
     private readonly HttpClient _client;
@@ -18,7 +19,7 @@ public class HealthCheckTests : IClassFixture<SteamfitterTestContext>
     }
 
     [Fact]
-    public async Task GetReadiness_ReturnsOk()
+    public async Task GetReadiness_WhenHealthy_ReturnsOk()
     {
         // Act
         var response = await _client.GetAsync("/api/health/ready");
@@ -28,7 +29,7 @@ public class HealthCheckTests : IClassFixture<SteamfitterTestContext>
     }
 
     [Fact]
-    public async Task GetLiveliness_ReturnsOk()
+    public async Task GetLiveliness_WhenHealthy_ReturnsOk()
     {
         // Act
         var response = await _client.GetAsync("/api/health/live");

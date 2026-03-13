@@ -20,6 +20,7 @@ using Xunit;
 
 namespace Steamfitter.Api.Tests.Unit.Services;
 
+[Trait("Category", "Unit")]
 public class UserServiceTests
 {
     private readonly IFixture _fixture;
@@ -71,7 +72,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task GetAsync_ReturnsAllUsers()
+    public async Task GetAsync_WhenMultipleUsersExist_ReturnsAllUsers()
     {
         // Arrange
         var entities = _fixture.CreateMany<UserEntity>(3).ToList();
@@ -86,7 +87,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task GetAsync_ById_ReturnsMappedUser()
+    public async Task GetAsync_ByIdWhenUserExists_ReturnsMappedUser()
     {
         // Arrange
         var entity = _fixture.Create<UserEntity>();
@@ -136,7 +137,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_WhenUserExists_RemovesAndReturnsTrue()
+    public async Task DeleteAsync_WhenUserExistsAndNotSelf_RemovesAndReturnsTrue()
     {
         // Arrange
         var currentUserId = Guid.NewGuid();

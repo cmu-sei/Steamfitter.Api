@@ -17,6 +17,7 @@ using Xunit;
 
 namespace Steamfitter.Api.Tests.Unit.Services;
 
+[Trait("Category", "Unit")]
 public class ScenarioServiceTests
 {
     private readonly IFixture _fixture;
@@ -68,7 +69,7 @@ public class ScenarioServiceTests
     }
 
     [Fact]
-    public async Task GetAsync_ReturnsAllScenarios()
+    public async Task GetAsync_WhenMultipleScenariosExist_ReturnsAllScenarios()
     {
         // Arrange
         var entities = _fixture.CreateMany<ScenarioEntity>(3).ToList();
@@ -83,7 +84,7 @@ public class ScenarioServiceTests
     }
 
     [Fact]
-    public async Task GetAsync_ById_ReturnsMappedScenario()
+    public async Task GetAsync_ByIdWhenScenarioExists_ReturnsMappedScenario()
     {
         // Arrange
         var entity = _fixture.Create<ScenarioEntity>();
@@ -113,7 +114,7 @@ public class ScenarioServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_RemovesScenarioAndReturnsTrue()
+    public async Task DeleteAsync_WhenScenarioExists_RemovesScenarioAndReturnsTrue()
     {
         // Arrange
         var entity = _fixture.Create<ScenarioEntity>();
@@ -130,7 +131,7 @@ public class ScenarioServiceTests
     }
 
     [Fact]
-    public async Task GetByViewIdAsync_FiltersCorrectly()
+    public async Task GetByViewIdAsync_WhenViewIdMatches_FiltersCorrectly()
     {
         // Arrange
         var viewId = Guid.NewGuid();

@@ -23,6 +23,7 @@ using SystemTask = System.Threading.Tasks.Task;
 
 namespace Steamfitter.Api.Tests.Unit.Services;
 
+[Trait("Category", "Unit")]
 public class TaskServiceTests
 {
     private readonly IFixture _fixture;
@@ -91,7 +92,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async SystemTask GetAsync_ReturnsAllTasks()
+    public async SystemTask GetAsync_WhenMultipleTasksExist_ReturnsAllTasks()
     {
         // Arrange
         var entities = _fixture.CreateMany<TaskEntity>(3).ToList();
@@ -106,7 +107,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async SystemTask GetAsync_ById_ReturnsMappedTask()
+    public async SystemTask GetAsync_ByIdWhenTaskExists_ReturnsMappedTask()
     {
         // Arrange
         var entity = _fixture.Create<TaskEntity>();
@@ -123,7 +124,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async SystemTask GetByScenarioIdAsync_FiltersCorrectly()
+    public async SystemTask GetByScenarioIdAsync_WhenScenarioIdMatches_FiltersCorrectly()
     {
         // Arrange
         var scenarioId = Guid.NewGuid();
@@ -148,7 +149,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async SystemTask DeleteAsync_RemovesTaskAndReturnsTrue()
+    public async SystemTask DeleteAsync_WhenTaskExists_RemovesTaskAndReturnsTrue()
     {
         // Arrange
         var entity = _fixture.Create<TaskEntity>();
@@ -165,7 +166,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async SystemTask GetSubtasksAsync_ReturnsChildTasks()
+    public async SystemTask GetSubtasksAsync_WhenChildTasksExist_ReturnsChildTasks()
     {
         // Arrange
         var parentId = Guid.NewGuid();
