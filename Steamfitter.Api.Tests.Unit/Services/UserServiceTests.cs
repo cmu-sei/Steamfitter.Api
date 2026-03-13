@@ -9,18 +9,17 @@ using Crucible.Common.Testing.Fixtures;
 using FakeItEasy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
-using Shouldly;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Infrastructure.Mappings;
 using Steamfitter.Api.Services;
 using Steamfitter.Api.Tests.Shared.Fixtures;
-using Xunit;
+using TUnit.Core;
 
 namespace Steamfitter.Api.Tests.Unit.Services;
 
-[Trait("Category", "Unit")]
+[Category("Unit")]
 public class UserServiceTests
 {
     private readonly IFixture _fixture;
@@ -71,8 +70,8 @@ public class UserServiceTests
         return (service, context);
     }
 
-    [Fact]
-    public async Task GetAsync_WhenMultipleUsersExist_ReturnsAllUsers()
+    [Test]
+    public async System.Threading.Tasks.Task GetAsync_WhenMultipleUsersExist_ReturnsAllUsers()
     {
         // Arrange
         var entities = _fixture.CreateMany<UserEntity>(3).ToList();
@@ -82,12 +81,12 @@ public class UserServiceTests
         var result = await service.GetAsync(CancellationToken.None);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Count().ShouldBe(3);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count()).IsEqualTo(3);
     }
 
-    [Fact]
-    public async Task GetAsync_ByIdWhenUserExists_ReturnsMappedUser()
+    [Test]
+    public async System.Threading.Tasks.Task GetAsync_ByIdWhenUserExists_ReturnsMappedUser()
     {
         // Arrange
         var entity = _fixture.Create<UserEntity>();
@@ -98,13 +97,13 @@ public class UserServiceTests
         var result = await service.GetAsync(entity.Id, CancellationToken.None);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Id.ShouldBe(entity.Id);
-        result.Name.ShouldBe(entity.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(entity.Id);
+        await Assert.That(result.Name).IsEqualTo(entity.Name);
     }
 
-    [Fact]
-    public async Task GetAsync_ById_WhenNotFound_ReturnsNull()
+    [Test]
+    public async System.Threading.Tasks.Task GetAsync_ById_WhenNotFound_ReturnsNull()
     {
         // Arrange
         var (service, _) = CreateService(users: new List<UserEntity>());
@@ -113,11 +112,11 @@ public class UserServiceTests
         var result = await service.GetAsync(Guid.NewGuid(), CancellationToken.None);
 
         // Assert
-        result.ShouldBeNull();
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public async Task DeleteAsync_WhenDeletingSelf_ThrowsForbidden()
+    [Test]
+    public async System.Threading.Tasks.Task DeleteAsync_WhenDeletingSelf_ThrowsForbidden()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -132,12 +131,12 @@ public class UserServiceTests
         var (service, _) = CreateService(userId: userId, users: entities);
 
         // Act & Assert
-        await Should.ThrowAsync<ForbiddenException>(
-            () => service.DeleteAsync(userId, CancellationToken.None));
+        await Assert.That(async () => await service.DeleteAsync(userId, CancellationToken.None))
+            .ThrowsExactly<ForbiddenException>();
     }
 
-    [Fact]
-    public async Task DeleteAsync_WhenUserExistsAndNotSelf_RemovesAndReturnsTrue()
+    [Test]
+    public async System.Threading.Tasks.Task DeleteAsync_WhenUserExistsAndNotSelf_RemovesAndReturnsTrue()
     {
         // Arrange
         var currentUserId = Guid.NewGuid();
@@ -149,13 +148,13 @@ public class UserServiceTests
         var result = await service.DeleteAsync(targetEntity.Id, CancellationToken.None);
 
         // Assert
-        result.ShouldBeTrue();
+        await Assert.That(result).IsTrue();
         var deletedUser = await context.Users.FindAsync(targetEntity.Id);
-        deletedUser.ShouldBeNull();
+        await Assert.That(deletedUser).IsNull();
     }
 
-    [Fact]
-    public async Task UpdateAsync_WhenChangingOwnId_ThrowsForbidden()
+    [Test]
+    public async System.Threading.Tasks.Task UpdateAsync_WhenChangingOwnId_ThrowsForbidden()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -172,7 +171,7 @@ public class UserServiceTests
         var updatedUser = new ViewModels.User { Id = Guid.NewGuid(), Name = "Changed" };
 
         // Act & Assert
-        await Should.ThrowAsync<ForbiddenException>(
-            () => service.UpdateAsync(userId, updatedUser, CancellationToken.None));
+        await Assert.That(async () => await service.UpdateAsync(userId, updatedUser, CancellationToken.None))
+            .ThrowsExactly<ForbiddenException>();
     }
 }

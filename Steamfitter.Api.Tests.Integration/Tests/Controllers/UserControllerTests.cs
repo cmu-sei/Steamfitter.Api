@@ -3,28 +3,22 @@
 
 using System.Net;
 using System.Net.Http.Json;
-using Shouldly;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Tests.Integration.Fixtures;
-using Xunit;
+using TUnit.Core;
 using UserViewModel = Steamfitter.Api.ViewModels.User;
 
 namespace Steamfitter.Api.Tests.Integration.Tests.Controllers;
 
-[Trait("Category", "Integration")]
-public class UserControllerTests : IClassFixture<SteamfitterTestContext>
+[Category("Integration")]
+[ClassDataSource<SteamfitterTestContext>(Shared = SharedType.PerTestSession)]
+public class UserControllerTests(SteamfitterTestContext context)
 {
-    private readonly HttpClient _client;
-    private readonly SteamfitterTestContext _context;
+    private readonly HttpClient _client = context.CreateClient();
+    private readonly SteamfitterTestContext _context = context;
 
-    public UserControllerTests(SteamfitterTestContext context)
-    {
-        _context = context;
-        _client = context.CreateClient();
-    }
-
-    [Fact]
-    public async Task GetUsers_WhenUsersExist_ReturnsOkAndList()
+    [Test]
+    public async System.Threading.Tasks.Task GetUsers_WhenUsersExist_ReturnsOkAndList()
     {
         // Arrange - seed a user
         using var dbContext = _context.GetDbContext();
@@ -40,14 +34,14 @@ public class UserControllerTests : IClassFixture<SteamfitterTestContext>
         var response = await _client.GetAsync("/api/users");
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         var users = await response.Content.ReadFromJsonAsync<List<UserViewModel>>();
-        users.ShouldNotBeNull();
-        users.ShouldContain(u => u.Id == userEntity.Id);
+        await Assert.That(users).IsNotNull();
+        await Assert.That(users!.Any(u => u.Id == userEntity.Id)).IsTrue();
     }
 
-    [Fact]
-    public async Task GetUser_ByIdWhenUserExists_ReturnsOk()
+    [Test]
+    public async System.Threading.Tasks.Task GetUser_ByIdWhenUserExists_ReturnsOk()
     {
         // Arrange
         using var dbContext = _context.GetDbContext();
@@ -63,15 +57,15 @@ public class UserControllerTests : IClassFixture<SteamfitterTestContext>
         var response = await _client.GetAsync($"/api/users/{userEntity.Id}");
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         var user = await response.Content.ReadFromJsonAsync<UserViewModel>();
-        user.ShouldNotBeNull();
-        user.Id.ShouldBe(userEntity.Id);
-        user.Name.ShouldBe(userEntity.Name);
+        await Assert.That(user).IsNotNull();
+        await Assert.That(user!.Id).IsEqualTo(userEntity.Id);
+        await Assert.That(user.Name).IsEqualTo(userEntity.Name);
     }
 
-    [Fact]
-    public async Task CreateUser_WithValidData_ReturnsCreated()
+    [Test]
+    public async System.Threading.Tasks.Task CreateUser_WithValidData_ReturnsCreated()
     {
         // Arrange
         var newUser = new UserViewModel
@@ -84,15 +78,15 @@ public class UserControllerTests : IClassFixture<SteamfitterTestContext>
         var response = await _client.PostAsJsonAsync("/api/users", newUser);
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Created);
         var created = await response.Content.ReadFromJsonAsync<UserViewModel>();
-        created.ShouldNotBeNull();
-        created.Id.ShouldBe(newUser.Id);
-        created.Name.ShouldBe(newUser.Name);
+        await Assert.That(created).IsNotNull();
+        await Assert.That(created!.Id).IsEqualTo(newUser.Id);
+        await Assert.That(created.Name).IsEqualTo(newUser.Name);
     }
 
-    [Fact]
-    public async Task DeleteUser_WhenUserExists_ReturnsNoContent()
+    [Test]
+    public async System.Threading.Tasks.Task DeleteUser_WhenUserExists_ReturnsNoContent()
     {
         // Arrange
         using var dbContext = _context.GetDbContext();
@@ -108,6 +102,6 @@ public class UserControllerTests : IClassFixture<SteamfitterTestContext>
         var response = await _client.DeleteAsync($"/api/users/{userEntity.Id}");
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NoContent);
     }
 }

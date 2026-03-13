@@ -2,18 +2,17 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using AutoMapper;
-using Shouldly;
 using Steamfitter.Api.Infrastructure.Mapping;
 using Steamfitter.Api.Infrastructure.Mappings;
-using Xunit;
+using TUnit.Core;
 
 namespace Steamfitter.Api.Tests.Unit;
 
-[Trait("Category", "Unit")]
+[Category("Unit")]
 public class MappingConfigurationTests
 {
-    [Fact]
-    public void CreateMapper_WithAllProfiles_ShouldSucceed()
+    [Test]
+    public async System.Threading.Tasks.Task CreateMapper_WithAllProfiles_ShouldSucceed()
     {
         // Arrange
         var config = new MapperConfiguration(cfg =>
@@ -36,11 +35,11 @@ public class MappingConfigurationTests
         // Act - verify mapper can be created (weaker than AssertConfigurationIsValid
         // because the app has unmapped navigation properties populated elsewhere)
         var mapper = config.CreateMapper();
-        mapper.ShouldNotBeNull();
+        await Assert.That(mapper).IsNotNull();
     }
 
-    [Fact]
-    public void Map_ScenarioEntityToViewModel_MapsProperties()
+    [Test]
+    public async System.Threading.Tasks.Task Map_ScenarioEntityToViewModel_MapsProperties()
     {
         // Arrange
         var config = new MapperConfiguration(cfg => cfg.AddProfile<ScenarioProfile>());
@@ -58,15 +57,15 @@ public class MappingConfigurationTests
         var result = mapper.Map<Steamfitter.Api.ViewModels.Scenario>(entity);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Id.ShouldBe(entity.Id);
-        result.Name.ShouldBe(entity.Name);
-        result.Description.ShouldBe(entity.Description);
-        result.Status.ShouldBe(entity.Status);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(entity.Id);
+        await Assert.That(result.Name).IsEqualTo(entity.Name);
+        await Assert.That(result.Description).IsEqualTo(entity.Description);
+        await Assert.That(result.Status).IsEqualTo(entity.Status);
     }
 
-    [Fact]
-    public void Map_UserEntityToViewModel_MapsProperties()
+    [Test]
+    public async System.Threading.Tasks.Task Map_UserEntityToViewModel_MapsProperties()
     {
         // Arrange
         var config = new MapperConfiguration(cfg => cfg.AddProfile<UserProfile>());
@@ -82,13 +81,13 @@ public class MappingConfigurationTests
         var result = mapper.Map<Steamfitter.Api.ViewModels.User>(entity);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Id.ShouldBe(entity.Id);
-        result.Name.ShouldBe(entity.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(entity.Id);
+        await Assert.That(result.Name).IsEqualTo(entity.Name);
     }
 
-    [Fact]
-    public void Map_TaskEntityToViewModel_MapsProperties()
+    [Test]
+    public async System.Threading.Tasks.Task Map_TaskEntityToViewModel_MapsProperties()
     {
         // Arrange
         var config = new MapperConfiguration(cfg => cfg.AddProfile<TaskProfile>());
@@ -108,10 +107,10 @@ public class MappingConfigurationTests
         var result = mapper.Map<Steamfitter.Api.ViewModels.Task>(entity);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Id.ShouldBe(entity.Id);
-        result.Name.ShouldBe(entity.Name);
-        result.Action.ShouldBe(entity.Action);
-        result.Score.ShouldBe(entity.Score);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(entity.Id);
+        await Assert.That(result.Name).IsEqualTo(entity.Name);
+        await Assert.That(result.Action).IsEqualTo(entity.Action);
+        await Assert.That(result.Score).IsEqualTo(entity.Score);
     }
 }

@@ -7,17 +7,16 @@ using AutoFixture.AutoFakeItEasy;
 using AutoMapper;
 using Crucible.Common.Testing.Fixtures;
 using FakeItEasy;
-using Shouldly;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Mappings;
 using Steamfitter.Api.Services;
 using Steamfitter.Api.Tests.Shared.Fixtures;
-using Xunit;
+using TUnit.Core;
 
 namespace Steamfitter.Api.Tests.Unit.Services;
 
-[Trait("Category", "Unit")]
+[Category("Unit")]
 public class ScenarioServiceTests
 {
     private readonly IFixture _fixture;
@@ -68,8 +67,8 @@ public class ScenarioServiceTests
         return (service, context);
     }
 
-    [Fact]
-    public async Task GetAsync_WhenMultipleScenariosExist_ReturnsAllScenarios()
+    [Test]
+    public async System.Threading.Tasks.Task GetAsync_WhenMultipleScenariosExist_ReturnsAllScenarios()
     {
         // Arrange
         var entities = _fixture.CreateMany<ScenarioEntity>(3).ToList();
@@ -79,12 +78,12 @@ public class ScenarioServiceTests
         var result = await service.GetAsync(CancellationToken.None);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Count().ShouldBe(3);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count()).IsEqualTo(3);
     }
 
-    [Fact]
-    public async Task GetAsync_ByIdWhenScenarioExists_ReturnsMappedScenario()
+    [Test]
+    public async System.Threading.Tasks.Task GetAsync_ByIdWhenScenarioExists_ReturnsMappedScenario()
     {
         // Arrange
         var entity = _fixture.Create<ScenarioEntity>();
@@ -95,13 +94,13 @@ public class ScenarioServiceTests
         var result = await service.GetAsync(entity.Id, CancellationToken.None);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Id.ShouldBe(entity.Id);
-        result.Name.ShouldBe(entity.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(entity.Id);
+        await Assert.That(result.Name).IsEqualTo(entity.Name);
     }
 
-    [Fact]
-    public async Task GetAsync_ById_WhenNotFound_ReturnsNull()
+    [Test]
+    public async System.Threading.Tasks.Task GetAsync_ById_WhenNotFound_ReturnsNull()
     {
         // Arrange
         var (service, _) = CreateService(scenarios: new List<ScenarioEntity>());
@@ -110,11 +109,11 @@ public class ScenarioServiceTests
         var result = await service.GetAsync(Guid.NewGuid(), CancellationToken.None);
 
         // Assert
-        result.ShouldBeNull();
+        await Assert.That(result).IsNull();
     }
 
-    [Fact]
-    public async Task DeleteAsync_WhenScenarioExists_RemovesScenarioAndReturnsTrue()
+    [Test]
+    public async System.Threading.Tasks.Task DeleteAsync_WhenScenarioExists_RemovesScenarioAndReturnsTrue()
     {
         // Arrange
         var entity = _fixture.Create<ScenarioEntity>();
@@ -125,13 +124,13 @@ public class ScenarioServiceTests
         var result = await service.DeleteAsync(entity.Id, CancellationToken.None);
 
         // Assert
-        result.ShouldBeTrue();
+        await Assert.That(result).IsTrue();
         var deletedScenario = await context.Scenarios.FindAsync(entity.Id);
-        deletedScenario.ShouldBeNull();
+        await Assert.That(deletedScenario).IsNull();
     }
 
-    [Fact]
-    public async Task GetByViewIdAsync_WhenViewIdMatches_FiltersCorrectly()
+    [Test]
+    public async System.Threading.Tasks.Task GetByViewIdAsync_WhenViewIdMatches_FiltersCorrectly()
     {
         // Arrange
         var viewId = Guid.NewGuid();
@@ -150,8 +149,11 @@ public class ScenarioServiceTests
         var result = await service.GetByViewIdAsync(viewId, CancellationToken.None);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Count().ShouldBe(2);
-        result.ShouldAllBe(s => s.ViewId == viewId);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count()).IsEqualTo(2);
+        foreach (var scenario in result)
+        {
+            await Assert.That(scenario.ViewId).IsEqualTo(viewId);
+        }
     }
 }

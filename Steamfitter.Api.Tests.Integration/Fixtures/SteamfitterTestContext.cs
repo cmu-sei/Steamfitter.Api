@@ -15,7 +15,8 @@ using Microsoft.Extensions.Hosting;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Services;
 using Testcontainers.PostgreSql;
-using Xunit;
+using TUnit.Core;
+using TUnit.Core.Interfaces;
 
 namespace Steamfitter.Api.Tests.Integration.Fixtures;
 
@@ -23,7 +24,7 @@ namespace Steamfitter.Api.Tests.Integration.Fixtures;
 /// WebApplicationFactory-based test context for Steamfitter API integration tests.
 /// Uses Testcontainers to spin up a real PostgreSQL instance per test class.
 /// </summary>
-public class SteamfitterTestContext : WebApplicationFactory<Program>, IAsyncLifetime
+public class SteamfitterTestContext : WebApplicationFactory<Program>, IAsyncInitializer, IAsyncDisposable
 {
     private PostgreSqlContainer? _container;
 
@@ -92,7 +93,7 @@ public class SteamfitterTestContext : WebApplicationFactory<Program>, IAsyncLife
         return scope.ServiceProvider.GetRequiredService<SteamfitterContext>();
     }
 
-    public async Task InitializeAsync()
+    public async System.Threading.Tasks.Task InitializeAsync()
     {
         _container = new PostgreSqlBuilder()
             .WithHostname("localhost")
@@ -106,10 +107,11 @@ public class SteamfitterTestContext : WebApplicationFactory<Program>, IAsyncLife
         await _container.StartAsync();
     }
 
-    public new async Task DisposeAsync()
+    public new async ValueTask DisposeAsync()
     {
         if (_container is not null)
             await _container.DisposeAsync();
+        await base.DisposeAsync();
     }
 }
 
@@ -124,7 +126,7 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
         System.Text.Encodings.Web.UrlEncoder encoder)
         : base(options, logger, encoder) { }
 
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override System.Threading.Tasks.Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var claims = new[]
         {
@@ -138,7 +140,7 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, "Test");
 
-        return Task.FromResult(AuthenticateResult.Success(ticket));
+        return System.Threading.Tasks.Task.FromResult(AuthenticateResult.Success(ticket));
     }
 }
 
@@ -147,13 +149,13 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
 /// </summary>
 public class TestAuthorizationService : IAuthorizationService
 {
-    public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource, IEnumerable<IAuthorizationRequirement> requirements)
+    public System.Threading.Tasks.Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource, IEnumerable<IAuthorizationRequirement> requirements)
     {
-        return Task.FromResult(AuthorizationResult.Success());
+        return System.Threading.Tasks.Task.FromResult(AuthorizationResult.Success());
     }
 
-    public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource, string policyName)
+    public System.Threading.Tasks.Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource, string policyName)
     {
-        return Task.FromResult(AuthorizationResult.Success());
+        return System.Threading.Tasks.Task.FromResult(AuthorizationResult.Success());
     }
 }

@@ -11,19 +11,18 @@ using FakeItEasy;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Shouldly;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Mappings;
 using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Services;
 using Steamfitter.Api.Tests.Shared.Fixtures;
-using Xunit;
+using TUnit.Core;
 using SystemTask = System.Threading.Tasks.Task;
 
 namespace Steamfitter.Api.Tests.Unit.Services;
 
-[Trait("Category", "Unit")]
+[Category("Unit")]
 public class TaskServiceTests
 {
     private readonly IFixture _fixture;
@@ -91,7 +90,7 @@ public class TaskServiceTests
         return (service, context);
     }
 
-    [Fact]
+    [Test]
     public async SystemTask GetAsync_WhenMultipleTasksExist_ReturnsAllTasks()
     {
         // Arrange
@@ -102,11 +101,11 @@ public class TaskServiceTests
         var result = await service.GetAsync(CancellationToken.None);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Count().ShouldBe(3);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Count()).IsEqualTo(3);
     }
 
-    [Fact]
+    [Test]
     public async SystemTask GetAsync_ByIdWhenTaskExists_ReturnsMappedTask()
     {
         // Arrange
@@ -118,12 +117,12 @@ public class TaskServiceTests
         var result = await service.GetAsync(entity.Id, CancellationToken.None);
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Id.ShouldBe(entity.Id);
-        result.Name.ShouldBe(entity.Name);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Id).IsEqualTo(entity.Id);
+        await Assert.That(result.Name).IsEqualTo(entity.Name);
     }
 
-    [Fact]
+    [Test]
     public async SystemTask GetByScenarioIdAsync_WhenScenarioIdMatches_FiltersCorrectly()
     {
         // Arrange
@@ -144,11 +143,14 @@ public class TaskServiceTests
         var result = await service.GetByScenarioIdAsync(scenarioId, CancellationToken.None);
 
         // Assert
-        result.Count().ShouldBe(2);
-        result.ShouldAllBe(t => t.ScenarioId == scenarioId);
+        await Assert.That(result.Count()).IsEqualTo(2);
+        foreach (var task in result)
+        {
+            await Assert.That(task.ScenarioId).IsEqualTo(scenarioId);
+        }
     }
 
-    [Fact]
+    [Test]
     public async SystemTask DeleteAsync_WhenTaskExists_RemovesTaskAndReturnsTrue()
     {
         // Arrange
@@ -160,12 +162,12 @@ public class TaskServiceTests
         var result = await service.DeleteAsync(entity.Id, CancellationToken.None);
 
         // Assert
-        result.ShouldBeTrue();
+        await Assert.That(result).IsTrue();
         var deletedTask = await context.Tasks.FindAsync(entity.Id);
-        deletedTask.ShouldBeNull();
+        await Assert.That(deletedTask).IsNull();
     }
 
-    [Fact]
+    [Test]
     public async SystemTask GetSubtasksAsync_WhenChildTasksExist_ReturnsChildTasks()
     {
         // Arrange
@@ -186,6 +188,6 @@ public class TaskServiceTests
         var result = await service.GetSubtasksAsync(parentId, CancellationToken.None);
 
         // Assert
-        result.Count().ShouldBe(2);
+        await Assert.That(result.Count()).IsEqualTo(2);
     }
 }

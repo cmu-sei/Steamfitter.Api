@@ -2,39 +2,34 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Net;
-using Shouldly;
 using Steamfitter.Api.Tests.Integration.Fixtures;
-using Xunit;
+using TUnit.Core;
 
 namespace Steamfitter.Api.Tests.Integration.Tests.Controllers;
 
-[Trait("Category", "Integration")]
-public class HealthCheckTests : IClassFixture<SteamfitterTestContext>
+[Category("Integration")]
+[ClassDataSource<SteamfitterTestContext>(Shared = SharedType.PerTestSession)]
+public class HealthCheckTests(SteamfitterTestContext context)
 {
-    private readonly HttpClient _client;
+    private readonly HttpClient _client = context.CreateClient();
 
-    public HealthCheckTests(SteamfitterTestContext context)
-    {
-        _client = context.CreateClient();
-    }
-
-    [Fact]
-    public async Task GetReadiness_WhenHealthy_ReturnsOk()
+    [Test]
+    public async System.Threading.Tasks.Task GetReadiness_WhenHealthy_ReturnsOk()
     {
         // Act
         var response = await _client.GetAsync("/api/health/ready");
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 
-    [Fact]
-    public async Task GetLiveliness_WhenHealthy_ReturnsOk()
+    [Test]
+    public async System.Threading.Tasks.Task GetLiveliness_WhenHealthy_ReturnsOk()
     {
         // Act
         var response = await _client.GetAsync("/api/health/live");
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 }
