@@ -318,3 +318,5 @@ Steamfitter.Api/appsettings.Development.json
 
 /_data
 _data/
+# Claude Code artifacts
+.claude/
