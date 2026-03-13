@@ -33,18 +33,12 @@ Integration tests for Steamfitter API HTTP endpoints. Uses `WebApplicationFactor
 ### Test Class Structure
 
 ```csharp
-public class UserControllerTests : IClassFixture<SteamfitterTestContext>
+public class UserControllerTests(SteamfitterTestContext context)
 {
-    private readonly HttpClient _client;
-    private readonly SteamfitterTestContext _context;
+    private readonly HttpClient _client = context.CreateClient();
+    private readonly SteamfitterTestContext _context = context;
 
-    public UserControllerTests(SteamfitterTestContext context)
-    {
-        _context = context;
-        _client = context.CreateClient();
-    }
-
-    [Fact]
+    [Test]
     public async Task GetUsers_ReturnsOkAndList()
     {
         // Arrange - seed database
@@ -57,10 +51,10 @@ public class UserControllerTests : IClassFixture<SteamfitterTestContext>
         var response = await _client.GetAsync("/api/users");
 
         // Assert - verify response
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         var users = await response.Content.ReadFromJsonAsync<List<UserViewModel>>();
-        users.ShouldNotBeNull();
-        users.ShouldContain(u => u.Id == userEntity.Id);
+        await Assert.That(users).IsNotNull();
+        await Assert.That(users).Contains(u => u.Id == userEntity.Id);
     }
 }
 ```
@@ -76,11 +70,12 @@ The `SteamfitterTestContext` configures:
 5. **Hosted Services:** Removed to avoid background job interference
 6. **Environment:** Sets `Test` environment with OIDC settings
 
+Implements `IAsyncInitializer` and `IAsyncDisposable` for container lifecycle management.
+
 ## Dependencies
 
 - **Testing Frameworks:**
-  - xUnit 2.9.3
-  - Shouldly 4.2.1 (assertions)
+  - TUnit 1.19.22
   - Microsoft.AspNetCore.Mvc.Testing 10.0.1
   - coverlet.collector 6.0.2 (code coverage)
 
@@ -91,7 +86,6 @@ The `SteamfitterTestContext` configures:
   - FakeItEasy 8.3.0
   - AutoFixture 4.18.1
   - AutoFixture.AutoFakeItEasy 4.18.1
-  - AutoFixture.Xunit2 4.18.1
 
 - **Database:**
   - Npgsql.EntityFrameworkCore.PostgreSQL 10.0.0
@@ -120,7 +114,7 @@ dotnet test --filter "FullyQualifiedName~UserControllerTests.GetUsers_ReturnsOkA
 
 ## Notes
 
-- Each test class gets a fresh PostgreSQL container (via `IClassFixture<SteamfitterTestContext>`)
+- Each test session gets a fresh PostgreSQL container (via `[ClassDataSource<SteamfitterTestContext>(Shared = SharedType.PerTestSession)]`)
 - Container automatically starts in `InitializeAsync()` and stops in `DisposeAsync()`
 - Tests use `_context.CreateClient()` to get an authenticated `HttpClient`
 - Database seeding done per test via `_context.GetDbContext()`

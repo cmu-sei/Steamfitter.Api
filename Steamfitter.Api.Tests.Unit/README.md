@@ -57,7 +57,7 @@ public class TaskServiceTests
         return (service, context);
     }
 
-    [Fact]
+    [Test]
     public async SystemTask GetAsync_ReturnsAllTasks()
     {
         // Arrange, Act, Assert
@@ -81,15 +81,13 @@ var entity = new TaskEntity { ... }; // Steamfitter's task entity
 ## Dependencies
 
 - **Testing Frameworks:**
-  - xUnit 2.9.3
-  - Shouldly 4.2.1 (assertions)
+  - TUnit 1.19.22
   - coverlet.collector 6.0.2 (code coverage)
 
 - **Mocking & Fixtures:**
   - FakeItEasy 8.3.0
   - AutoFixture 4.18.1
   - AutoFixture.AutoFakeItEasy 4.18.1
-  - AutoFixture.Xunit2 4.18.1
   - MockQueryable.FakeItEasy 7.0.3
 
 - **Entity Framework:**
@@ -122,4 +120,4 @@ dotnet test --filter "FullyQualifiedName~TaskServiceTests"
 - Tests use `TestDbContextFactory.Create<SteamfitterContext>()` for in-memory database
 - All external dependencies (StackStorm, Player services, etc.) are mocked with FakeItEasy
 - ClaimsPrincipal is manually constructed for authorization context
-- Tests follow Arrange-Act-Assert pattern with Shouldly assertions
+- Tests follow Arrange-Act-Assert pattern with TUnit assertions

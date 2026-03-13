@@ -42,4 +42,6 @@ var fixture = new Fixture().Customize(new SteamfitterCustomization());
 var taskEntity = fixture.Create<TaskEntity>();
 ```
 
+This customization is used across both unit and integration tests to generate test data with AutoFixture.
+
 This project is referenced by both `Steamfitter.Api.Tests.Unit` and `Steamfitter.Api.Tests.Integration`.
