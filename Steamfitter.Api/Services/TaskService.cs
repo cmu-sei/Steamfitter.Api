@@ -168,6 +168,46 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.Task> CreateAsync(SAVM.TaskForm taskForm, CancellationToken ct)
         {
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(taskForm.Name))
+            {
+                _logger.LogWarning("CreateTask failed: Name is required");
+                throw new ArgumentException("Task Name is required and cannot be empty.");
+            }
+
+            // Validate ScenarioId if provided
+            if (taskForm.ScenarioId.HasValue && taskForm.ScenarioId.Value != Guid.Empty)
+            {
+                var scenarioExists = await _context.Scenarios.AnyAsync(s => s.Id == taskForm.ScenarioId.Value, ct);
+                if (!scenarioExists)
+                {
+                    _logger.LogWarning("CreateTask failed: Scenario {ScenarioId} does not exist", taskForm.ScenarioId.Value);
+                    throw new ArgumentException($"Invalid ScenarioId '{taskForm.ScenarioId.Value}'. The Scenario does not exist.");
+                }
+            }
+
+            // Validate ScenarioTemplateId if provided
+            if (taskForm.ScenarioTemplateId.HasValue && taskForm.ScenarioTemplateId.Value != Guid.Empty)
+            {
+                var templateExists = await _context.ScenarioTemplates.AnyAsync(st => st.Id == taskForm.ScenarioTemplateId.Value, ct);
+                if (!templateExists)
+                {
+                    _logger.LogWarning("CreateTask failed: ScenarioTemplate {ScenarioTemplateId} does not exist", taskForm.ScenarioTemplateId.Value);
+                    throw new ArgumentException($"Invalid ScenarioTemplateId '{taskForm.ScenarioTemplateId.Value}'. The ScenarioTemplate does not exist.");
+                }
+            }
+
+            // Validate TriggerTaskId if provided
+            if (taskForm.TriggerTaskId.HasValue && taskForm.TriggerTaskId.Value != Guid.Empty)
+            {
+                var triggerTaskExists = await _context.Tasks.AnyAsync(t => t.Id == taskForm.TriggerTaskId.Value, ct);
+                if (!triggerTaskExists)
+                {
+                    _logger.LogWarning("CreateTask failed: TriggerTask {TriggerTaskId} does not exist", taskForm.TriggerTaskId.Value);
+                    throw new ArgumentException($"Invalid TriggerTaskId '{taskForm.TriggerTaskId.Value}'. The TriggerTask does not exist.");
+                }
+            }
+
             var vmListCount = taskForm.VmList != null ? taskForm.VmList.Count : 0;
             if (vmListCount > 0)
             {
@@ -199,6 +239,9 @@ namespace Steamfitter.Api.Services
 
             _context.Tasks.Add(taskEntity);
             await _context.SaveChangesAsync(ct);
+
+            _logger.LogInformation("Successfully created Task {TaskId} for Scenario {ScenarioId}",
+                taskEntity.Id, taskForm.ScenarioId);
             var task = await GetAsync(taskEntity.Id, ct);
 
             return task;

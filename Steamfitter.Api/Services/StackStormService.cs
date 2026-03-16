@@ -179,7 +179,7 @@ namespace Steamfitter.Api.Services
                     }
                     else
                     {
-                        _logger.LogInformation($"VM {vm.Name} moid:{vm.Moid} uuid:{vm.Uuid} is not a Guid.");
+                        _logger.LogInformation("VM moid:{Moid} uuid:{Uuid} is not a Guid", vm.Moid, vm.Uuid);
                     }
                 }
                 var keysToRemove = _vmList.Keys.Except(uuidList).ToList();

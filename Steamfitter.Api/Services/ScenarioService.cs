@@ -15,6 +15,7 @@ using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
+using Microsoft.Extensions.Logging;
 
 namespace Steamfitter.Api.Services
 {
@@ -44,13 +45,15 @@ namespace Steamfitter.Api.Services
         private readonly ITaskService _taskService;
         private readonly IStackStormService _stackstormService;
         private readonly IXApiService _xApiService;
+        private readonly ILogger<ScenarioService> _logger;
 
         public ScenarioService(SteamfitterContext context,
                                 IPrincipal user,
                                 IMapper mapper,
                                 ITaskService taskService,
                                 IStackStormService stackstormService,
-                                IXApiService xApiService)
+                                IXApiService xApiService,
+                                ILogger<ScenarioService> logger)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
@@ -58,6 +61,7 @@ namespace Steamfitter.Api.Services
             _taskService = taskService;
             _stackstormService = stackstormService;
             _xApiService = xApiService;
+            _logger = logger;
         }
 
         public async STT.Task<IEnumerable<ViewModels.Scenario>> GetAsync(CancellationToken ct)
@@ -132,14 +136,48 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioForm scenarioForm, CancellationToken ct)
         {
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(scenarioForm.Name))
+            {
+                _logger.LogWarning("CreateScenario failed: Name is required");
+                throw new ArgumentException("Scenario Name is required and cannot be empty.");
+            }
+
+            if (scenarioForm.StartDate == default)
+            {
+                _logger.LogWarning("CreateScenario failed: StartDate is required");
+                throw new ArgumentException("Scenario StartDate is required.");
+            }
+
+            if (scenarioForm.EndDate == default)
+            {
+                _logger.LogWarning("CreateScenario failed: EndDate is required");
+                throw new ArgumentException("Scenario EndDate is required.");
+            }
+
+            if (scenarioForm.EndDate <= scenarioForm.StartDate)
+            {
+                _logger.LogWarning("CreateScenario failed: EndDate must be after StartDate");
+                throw new ArgumentException("Scenario EndDate must be after StartDate.");
+            }
+
+            // Validate ViewId if provided
+            if (scenarioForm.ViewId.HasValue && scenarioForm.ViewId.Value != Guid.Empty)
+            {
+                // Note: View validation would require Player API integration, so we skip this check
+                _logger.LogInformation($"CreateScenario: Using ViewId {scenarioForm.ViewId.Value}");
+            }
+
             var scenarioEntity = _mapper.Map<ScenarioEntity>(scenarioForm);
             scenarioEntity.DateCreated = DateTime.UtcNow;
             scenarioEntity.CreatedBy = _user.GetId();
             scenarioEntity.StartDate = scenarioEntity.StartDate.ToUniversalTime();
             scenarioEntity.EndDate = scenarioEntity.EndDate.ToUniversalTime();
             scenarioEntity.Status = ScenarioStatus.ready;
+
             _context.Scenarios.Add(scenarioEntity);
             await _context.SaveChangesAsync(ct);
+
             var createOwnerMembership = new ScenarioMembershipEntity() {
                 UserId = _user.GetId(),
                 ScenarioId = scenarioEntity.Id,
@@ -147,6 +185,9 @@ namespace Steamfitter.Api.Services
             };
             await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
             await _context.SaveChangesAsync(ct);
+
+            _logger.LogInformation("Successfully created Scenario {ScenarioId} ('{ScenarioName}')",
+                scenarioEntity.Id, scenarioEntity.Name);
             var scenario = await GetAsync(scenarioEntity.Id, ct);
 
             return scenario;
