@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Extensions;
 using Steamfitter.Api.Data.Models;
@@ -24,10 +25,12 @@ namespace Steamfitter.Api.Services
     public class ScoringService : IScoringService
     {
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ILogger<ScoringService> _logger;
 
-        public ScoringService(IServiceScopeFactory scopeFactory)
+        public ScoringService(IServiceScopeFactory scopeFactory, ILogger<ScoringService> logger)
         {
             _scopeFactory = scopeFactory;
+            _logger = logger;
         }
 
         public async Task UpdateAllScores(CancellationToken ct)
@@ -52,9 +55,11 @@ namespace Steamfitter.Api.Services
                 using var scope = _scopeFactory.CreateScope();
                 using var db = scope.ServiceProvider.GetRequiredService<SteamfitterContext>();
 
-                // create serializable transaction to prevent multiple scores from being changed concurrently,
-                // causing incorrect total score calculations
-                await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                // Score calculations are idempotent: they read each task's Status (ground truth)
+                // and derive TotalStatus/TotalScore/TotalScoreEarned. Concurrent calculations
+                // produce the same results, so READ COMMITTED is sufficient and avoids
+                // serialization conflicts when multiple child tasks complete concurrently.
+                await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
 
                 // get all tasks in scenario or scenario template
                 if (type == typeof(ScenarioEntity))
@@ -104,13 +109,12 @@ namespace Steamfitter.Api.Services
             }
             catch (Exception ex)
             {
-                if (ex.IsTransientDatabaseException())
+                _logger.LogWarning(ex, "Exception in UpdateScores (attempt {Attempt} of 10)", attempt);
+                if (attempt < 10)
                 {
-                    attempt = 0;
-                }
-
-                if (attempt <= 10)
-                {
+                    var delay = Math.Min(1000, (int)Math.Pow(2, attempt) * 50);
+                    var jitter = Random.Shared.Next(0, delay);
+                    await Task.Delay(delay + jitter, ct);
                     await UpdateScores(scenarioId, type, ct, attempt + 1);
                 }
                 else
