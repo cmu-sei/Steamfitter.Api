@@ -253,9 +253,15 @@ namespace Steamfitter.Api.Services
                                     subtaskEntity.Status = TaskStatus.pending;
                                     _taskExecutionQueue.Add(subtaskEntity);
                                 }
-                                // save the flag to update scores
-                                taskToSave.Scenario.UpdateScores = true;
                                 await steamfitterContext.SaveChangesAsync(ct);
+
+                                // update scores directly instead of setting the flag on the scenario row,
+                                // which causes serialization conflicts when multiple child tasks complete concurrently
+                                if (taskToSave.ScenarioId.HasValue)
+                                {
+                                    var scoringService = scope.ServiceProvider.GetRequiredService<IScoringService>();
+                                    await scoringService.UpdateScenarioScores(taskToSave.ScenarioId.Value, ct);
+                                }
                             }
                         }
                     }
@@ -263,7 +269,7 @@ namespace Steamfitter.Api.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error processing Task {taskToExecute.Id}", ex);
+                _logger.LogError(ex, "Error processing Task {TaskId}", taskToExecute.Id);
             }
         }
 
