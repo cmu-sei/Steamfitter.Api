@@ -236,9 +236,9 @@ namespace Steamfitter.Api.Services
                     dbContext = scope.ServiceProvider.GetRequiredService<SteamfitterContext>();
                 }
 
-                // create serializable transaction to prevent multiple scores from being changed concurrently,
-                // causing incorrect total score calculations
-                await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                // Score calculations are idempotent, so READ COMMITTED is sufficient
+                // and avoids serialization conflicts that cause request hangs
+                await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
 
                 taskToExecute = await dbContext.Tasks
                     .Include(x => x.Scenario)
@@ -260,13 +260,11 @@ namespace Steamfitter.Api.Services
             }
             catch (Exception ex)
             {
-                if (ex.IsTransientDatabaseException())
+                if (attempt < 10 && ex.IsTransientDatabaseException())
                 {
-                    attempt = 0;
-                }
-
-                if (attempt <= 10)
-                {
+                    var delay = Math.Min(1000, (int)Math.Pow(2, attempt) * 50);
+                    var jitter = Random.Shared.Next(0, delay);
+                    await STT.Task.Delay(delay + jitter, ct);
                     taskToExecute = await PrepareTaskToExecute(id, ct, attempt + 1);
                 }
                 else
