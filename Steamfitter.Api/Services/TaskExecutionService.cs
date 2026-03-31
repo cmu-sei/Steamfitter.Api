@@ -377,9 +377,15 @@ namespace Steamfitter.Api.Services
                         }
                     }
                 }
-                catch (System.Exception)
+                catch (System.Exception ex)
                 {
-                    _logger.LogDebug($"CreateResultsAsync - No VM's found in view {viewId}");
+                    _logger.LogError(ex, $"CreateResultsAsync - Failed to get VMs from Player VM API for view {viewId}");
+                    var resultEntity = NewResultEntity(taskToExecute, userId);
+                    resultEntity.ActualOutput = $"Failed to get VMs from Player VM API for view {viewId}.";
+                    resultEntity.Status = Data.TaskStatus.error;
+                    resultEntity.StatusDate = DateTime.UtcNow;
+                    resultEntities.Add(resultEntity);
+                    return resultEntities;
                 }
                 // make sure we are only matching a SINGLE view
                 if (vmList.Count() > 0)
