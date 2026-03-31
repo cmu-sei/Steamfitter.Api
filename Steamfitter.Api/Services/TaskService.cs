@@ -351,6 +351,14 @@ namespace Steamfitter.Api.Services
                 }
                 taskForm.VmMask = vmIdString.Remove(vmIdString.Count() - 1);
             }
+            if (taskForm.ActionParameters.Keys.Any(key => key == "Moid"))
+            {
+                taskForm.ActionParameters["Moid"] = "{moid}";
+            }
+            if (taskForm.ActionParameters.Keys.Any(key => key == "VmName"))
+            {
+                taskForm.ActionParameters["VmName"] = "{VmName}";
+            }
 
             _mapper.Map(taskForm, taskToUpdate);
             taskToUpdate.DateModified = DateTime.UtcNow;
