@@ -25,15 +25,8 @@ namespace Steamfitter.Api.Infrastructure.Extensions
 
         public static async Task<IEnumerable<Player.Vm.Api.Models.Vm>> GetViewVmsAsync(PlayerVmApiClient playerVmApiClient, Guid viewId, CancellationToken ct)
         {
-            try
-            {
-                var vms = (await playerVmApiClient.GetViewVmsAsync(viewId, null, true, false, ct)) as IEnumerable<Player.Vm.Api.Models.Vm>;
-                return vms;
-            }
-            catch (Exception)
-            {
-                return null;
-            }
+            var vms = (await playerVmApiClient.GetViewVmsAsync(viewId, null, true, false, ct)) as IEnumerable<Player.Vm.Api.Models.Vm>;
+            return vms;
         }
 
     }
