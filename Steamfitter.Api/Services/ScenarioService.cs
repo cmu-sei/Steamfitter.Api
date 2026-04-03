@@ -133,6 +133,7 @@ namespace Steamfitter.Api.Services
         public async STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioForm scenarioForm, CancellationToken ct)
         {
             var scenarioEntity = _mapper.Map<ScenarioEntity>(scenarioForm);
+            scenarioEntity.Id = scenarioForm.Id.HasValue ? scenarioForm.Id.Value : Guid.NewGuid();
             scenarioEntity.DateCreated = DateTime.UtcNow;
             scenarioEntity.CreatedBy = _user.GetId();
             scenarioEntity.StartDate = scenarioEntity.StartDate.ToUniversalTime();
