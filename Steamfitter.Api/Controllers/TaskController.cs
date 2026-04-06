@@ -420,6 +420,17 @@ namespace Steamfitter.Api.Controllers
                 var task = await _taskService.GetAsync(id, ct);
                 if (task == null)
                     throw new EntityNotFoundException<SAVM.Task>();
+
+                if (task.ScenarioId != null)
+                {
+                    if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(task.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
+                        throw new ForbiddenException();
+                }
+                else if (task.ScenarioTemplateId != null)
+                {
+                    if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(task.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
+                        throw new ForbiddenException();
+                }
             }
             else if (locationType == "scenario")
             {
