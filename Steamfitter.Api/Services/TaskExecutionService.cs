@@ -36,6 +36,7 @@ namespace Steamfitter.Api.Services
     {
         private readonly ILogger<TaskExecutionService> _logger;
         private readonly IOptionsMonitor<Infrastructure.Options.VmTaskProcessingOptions> _vmTaskProcessingOptions;
+        private readonly IOptionsMonitor<Infrastructure.Options.HttpTaskOptions> _httpTaskOptions;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ITaskExecutionQueue _taskExecutionQueue;
         private readonly IMapper _mapper;
@@ -48,6 +49,7 @@ namespace Steamfitter.Api.Services
         public TaskExecutionService(
             ILogger<TaskExecutionService> logger,
             IOptionsMonitor<Infrastructure.Options.VmTaskProcessingOptions> vmTaskProcessingOptions,
+            IOptionsMonitor<Infrastructure.Options.HttpTaskOptions> httpTaskOptions,
             IServiceScopeFactory scopeFactory,
             IMapper mapper,
             IHubContext<EngineHub> engineHub,
@@ -59,6 +61,7 @@ namespace Steamfitter.Api.Services
         {
             _logger = logger;
             _vmTaskProcessingOptions = vmTaskProcessingOptions;
+            _httpTaskOptions = httpTaskOptions;
             _scopeFactory = scopeFactory;
             _mapper = mapper;
             _engineHub = engineHub;
@@ -445,8 +448,15 @@ namespace Steamfitter.Api.Services
                 // if no expiration is set, us the maximum allowed by the TaskProcessMaxWaitSeconds setting
                 resultEntity.ExpirationSeconds = resultEntity.ExpirationSeconds <= 0 ? _vmTaskProcessingOptions.CurrentValue.TaskProcessMaxWaitSeconds : resultEntity.ExpirationSeconds;
                 var task = await RunTask(taskToExecute, resultEntity, ct);
-                tasks.Add(task);
-                xref[task.Id] = resultEntity;
+                if (task != null)
+                {
+                    tasks.Add(task);
+                    xref[task.Id] = resultEntity;
+                }
+                else if (resultEntity.Status == Data.TaskStatus.failed)
+                {
+                    overallStatus = Data.TaskStatus.failed;
+                }
                 await steamfitterContext.SaveChangesAsync();
                 await SendNotificationAsync(new List<ResultEntity>{resultEntity});
             }
@@ -600,7 +610,18 @@ namespace Steamfitter.Api.Services
                     }
                 case "http":
                     {
-                        task = STT.Task.Run(() => HttpTaskTask(taskToExecute));
+                        var validationError = ValidateHttpTaskUrl(taskToExecute.InputString);
+                        if (validationError != null)
+                        {
+                            _logger.LogWarning("HTTP task {TaskId} blocked: {Reason}", taskToExecute.Id, validationError);
+                            resultEntity.ActualOutput = validationError;
+                            resultEntity.Status = Data.TaskStatus.failed;
+                            resultEntity.StatusDate = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            task = STT.Task.Run(() => HttpTaskTask(taskToExecute));
+                        }
                         break;
                     }
                 default:
@@ -620,6 +641,7 @@ namespace Steamfitter.Api.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 var actionParameters = JsonSerializer.Deserialize<HttpInputString>(taskToExecute.InputString);
+                var url = actionParameters.Url;
                 // TODO: re-use tokens
                 TokenResponse tokenResponse = null;
                 // If the user specified headers, assume we do not need crucible auth token
@@ -627,7 +649,6 @@ namespace Steamfitter.Api.Services
                 {
                     tokenResponse = await ApiClientsExtensions.GetToken(scope);
                 }
-                var url = actionParameters.Url;
                 var client = ApiClientsExtensions.GetHttpClient(_httpClientFactory, url, tokenResponse);
                 if (!String.IsNullOrEmpty(actionParameters.Headers))
                 {
@@ -824,6 +845,67 @@ namespace Steamfitter.Api.Services
                 _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
         }
 
+        private string ValidateHttpTaskUrl(string inputString)
+        {
+            string url;
+            try
+            {
+                var actionParameters = JsonSerializer.Deserialize<HttpInputString>(inputString);
+                url = actionParameters?.Url;
+            }
+            catch
+            {
+                return "HTTP task has invalid action parameters.";
+            }
+
+            if (String.IsNullOrEmpty(url))
+            {
+                return "HTTP task URL is empty.";
+            }
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                return $"HTTP task URL '{url}' is not a valid absolute URI.";
+            }
+
+            if (uri.Scheme != "https" && uri.Scheme != "http")
+            {
+                return $"HTTP task URL scheme '{uri.Scheme}' is not allowed. Only http and https are permitted.";
+            }
+
+            // Check the allowlist if configured
+            var allowedHosts = _httpTaskOptions.CurrentValue.AllowedHosts;
+            if (allowedHosts != null)
+            {
+                var host = uri.Host.ToLowerInvariant();
+                var isAllowed = false;
+                foreach (var pattern in allowedHosts)
+                {
+                    var p = pattern.ToLowerInvariant().Trim();
+                    if (p.StartsWith("*."))
+                    {
+                        var suffix = p.Substring(1); // e.g. ".example.com"
+                        if (host.EndsWith(suffix) || host == p.Substring(2))
+                        {
+                            isAllowed = true;
+                            break;
+                        }
+                    }
+                    else if (host == p)
+                    {
+                        isAllowed = true;
+                        break;
+                    }
+                }
+
+                if (!isAllowed)
+                {
+                    return $"HTTP task URL host '{uri.Host}' is not in the allowed hosts list.";
+                }
+            }
+
+            return null;
+        }
     }
 
     class HttpInputString
