@@ -237,6 +237,7 @@ public class Startup
         }, typeof(Startup));
 
         services.Configure<VmTaskProcessingOptions>(Configuration.GetSection("VmTaskProcessing"));
+        services.Configure<HttpTaskOptions>(Configuration.GetSection("HttpTaskProcessing"));
         services
             .Configure<ResourceOwnerAuthorizationOptions>(Configuration.GetSection("ResourceOwnerAuthorization"))
             .AddScoped(config => config.GetService<IOptionsMonitor<ResourceOwnerAuthorizationOptions>>().CurrentValue);
