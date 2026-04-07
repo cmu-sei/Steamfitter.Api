@@ -2323,6 +2323,9 @@ namespace Steamfitter.Api.Client
     public partial class ScenarioForm
     {
 
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid? Id { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; }
 
