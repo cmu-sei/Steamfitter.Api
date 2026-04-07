@@ -132,6 +132,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getVmResults")]
         public async STT.Task<IActionResult> GetByVmId(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+                throw new ForbiddenException();
+
             var list = await _ResultService.GetByVmIdAsync(id, ct);
             return Ok(list);
         }
