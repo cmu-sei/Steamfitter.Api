@@ -24,7 +24,7 @@ namespace Steamfitter.Api.Services
         STT.Task<IEnumerable<ViewModels.Result>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct);
         STT.Task<IEnumerable<ViewModels.Result>> GetByViewIdAsync(Guid viewId, CancellationToken ct);
         STT.Task<IEnumerable<ViewModels.Result>> GetByUserIdAsync(Guid userId, CancellationToken ct);
-        STT.Task<IEnumerable<ViewModels.Result>> GetByVmIdAsync(Guid vmId, CancellationToken ct);
+        STT.Task<IEnumerable<ViewModels.Result>> GetByVmIdAsync(Guid vmId, bool hasSystemPermission, IEnumerable<Guid> authorizedScenarioIds, CancellationToken ct);
         STT.Task<IEnumerable<ViewModels.Result>> GetByTaskIdAsync(Guid taskId, CancellationToken ct);
         STT.Task<ViewModels.Result> CreateAsync(ViewModels.Result result, CancellationToken ct);
         STT.Task<ViewModels.Result> UpdateAsync(Guid id, ViewModels.Result result, CancellationToken ct);
@@ -78,11 +78,20 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<ViewModels.Result>>(results.OrderByDescending(r => r.StatusDate));
         }
 
-        public async STT.Task<IEnumerable<ViewModels.Result>> GetByVmIdAsync(Guid vmId, CancellationToken ct)
+        public async STT.Task<IEnumerable<ViewModels.Result>> GetByVmIdAsync(Guid vmId, bool hasSystemPermission, IEnumerable<Guid> authorizedScenarioIds, CancellationToken ct)
         {
             var results = _context.Results.Where(dt => dt.VmId == vmId);
 
-            return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
+            if (!hasSystemPermission)
+            {
+                var authorizedScenarioIdList = authorizedScenarioIds.ToList();
+                var authorizedTaskIds = _context.Tasks
+                    .Where(t => t.ScenarioId.HasValue && authorizedScenarioIdList.Contains(t.ScenarioId.Value))
+                    .Select(t => (Guid?)t.Id);
+                results = results.Where(r => authorizedTaskIds.Contains(r.TaskId));
+            }
+
+            return _mapper.Map<IEnumerable<ViewModels.Result>>(await results.ToListAsync(ct));
         }
 
         public async STT.Task<IEnumerable<SAVM.Result>> GetByTaskIdAsync(Guid taskId, CancellationToken ct)

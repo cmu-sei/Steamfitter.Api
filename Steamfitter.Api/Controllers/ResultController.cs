@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using STT = System.Threading.Tasks;
@@ -132,10 +133,13 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getVmResults")]
         public async STT.Task<IActionResult> GetByVmId(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+            var hasSystemPermission = await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct);
+            var authorizedScenarioIds = _authorizationService.GetAuthorizedScenarioIds();
+
+            if (!hasSystemPermission && !authorizedScenarioIds.Any())
                 throw new ForbiddenException();
 
-            var list = await _ResultService.GetByVmIdAsync(id, ct);
+            var list = await _ResultService.GetByVmIdAsync(id, hasSystemPermission, authorizedScenarioIds, ct);
             return Ok(list);
         }
 
