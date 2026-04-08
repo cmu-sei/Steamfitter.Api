@@ -179,7 +179,7 @@ namespace Steamfitter.Api.Controllers
         public async STT.Task<IActionResult> Create([FromBody] SAVM.Result result, CancellationToken ct)
         {
             if (result.TaskId == null ||
-                !await _authorizationService.AuthorizeAsync<ViewModels.Task>(result.TaskId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+                !await _authorizationService.AuthorizeAsync<ViewModels.Task>(result.TaskId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                 throw new ForbiddenException();
 
             var createdResult = await _ResultService.CreateAsync(result, ct);
@@ -202,7 +202,7 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "updateResult")]
         public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.Result result, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                 throw new ForbiddenException();
 
             var updatedResult = await _ResultService.UpdateAsync(id, result, ct);
@@ -224,7 +224,7 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteResult")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
                 throw new ForbiddenException();
 
             await _ResultService.DeleteAsync(id, ct);
