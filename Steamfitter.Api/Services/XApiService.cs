@@ -320,6 +320,35 @@ namespace Steamfitter.Api.Services
             parentActivity.definition.description = new LanguageMap();
             parentActivity.definition.description.Add("en-US", scenario.Description ?? scenario.Name);
             contextActivities.parent = new List<Activity> { parentActivity };
+
+            var groupingList = new List<Activity>();
+            var moveGroupMatch = System.Text.RegularExpressions.Regex.Match(task.Name ?? "", @"^(\d+)-(\d+)\s");
+            if (moveGroupMatch.Success)
+            {
+                var moveNumber = int.Parse(moveGroupMatch.Groups[1].Value);
+                var groupNumber = int.Parse(moveGroupMatch.Groups[2].Value);
+
+                var moveActivity = new Activity();
+                moveActivity.id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId + "/move/" + moveNumber;
+                moveActivity.definition = new ActivityDefinition();
+                moveActivity.definition.type = new Uri("http://id.tincanapi.com/activitytype/collection-simple");
+                moveActivity.definition.name = new LanguageMap();
+                moveActivity.definition.name.Add("en-US", $"Move {moveNumber}");
+                groupingList.Add(moveActivity);
+
+                var groupActivity = new Activity();
+                groupActivity.id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId + "/move/" + moveNumber + "/group/" + groupNumber;
+                groupActivity.definition = new ActivityDefinition();
+                groupActivity.definition.type = new Uri("http://id.tincanapi.com/activitytype/collection-simple");
+                groupActivity.definition.name = new LanguageMap();
+                groupActivity.definition.name.Add("en-US", $"Group {groupNumber}");
+                groupingList.Add(groupActivity);
+            }
+            if (groupingList.Count > 0)
+            {
+                contextActivities.grouping = groupingList;
+            }
+
             context.contextActivities = contextActivities;
 
             var statement = new Statement();
