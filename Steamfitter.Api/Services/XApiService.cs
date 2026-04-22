@@ -277,12 +277,39 @@ namespace Steamfitter.Api.Services
             activity.definition.description = new LanguageMap();
             activity.definition.description.Add("en-US", task.Description ?? task.Name);
 
+            var activityExtensions = new Newtonsoft.Json.Linq.JObject();
+            activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/taskAction"] = task.Action.ToString();
+            if (!string.IsNullOrWhiteSpace(task.VmMask))
+            {
+                activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/vmMask"] = task.VmMask;
+            }
+            if (!string.IsNullOrWhiteSpace(task.ApiUrl))
+            {
+                activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/apiUrl"] = task.ApiUrl;
+            }
+            if (!string.IsNullOrWhiteSpace(task.ExpectedOutput))
+            {
+                activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/expectedOutput"] = task.ExpectedOutput;
+            }
+            activity.definition.extensions = new TinCan.Extensions(activityExtensions);
+
+            var result = new Result();
+            result.completion = task.IsComplete;
+            result.success = task.Status == Data.TaskStatus.succeeded;
+            if (task.Score > 0)
+            {
+                result.score = new Score();
+                result.score.raw = task.ScoreEarned;
+                result.score.max = task.Score;
+                result.score.min = 0;
+                result.score.scaled = task.Score > 0 ? (double)task.ScoreEarned / task.Score : 0;
+            }
+
             var context = new Context();
             context.platform = _xApiContext.platform;
             context.language = _xApiContext.language;
-            context.registration = scenarioId; // Group statements by scenario session
+            context.registration = scenarioId;
 
-            // Add scenario as parent activity
             var contextActivities = new ContextActivities();
             var parentActivity = new Activity();
             parentActivity.id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId;
@@ -299,6 +326,7 @@ namespace Steamfitter.Api.Services
             statement.actor = _agent;
             statement.verb = verb;
             statement.target = activity;
+            statement.result = result;
             statement.context = context;
 
             return await QueueStatementAsync(statement, verb.id, activity.id, scenarioId, ct);
