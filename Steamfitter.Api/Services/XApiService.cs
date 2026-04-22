@@ -162,7 +162,7 @@ namespace Steamfitter.Api.Services
 
             if (!string.IsNullOrWhiteSpace(_xApiOptions.UiUrl))
             {
-                activity.definition.moreInfo = new Uri(_xApiOptions.UiUrl + "/scenario/" + scenarioId);
+                activity.definition.moreInfo = new Uri(_xApiOptions.UiUrl.TrimEnd('/') + "/scenario/" + scenarioId);
             }
 
             var context = new Context();
@@ -211,7 +211,7 @@ namespace Steamfitter.Api.Services
 
             if (!string.IsNullOrWhiteSpace(_xApiOptions.UiUrl))
             {
-                activity.definition.moreInfo = new Uri(_xApiOptions.UiUrl + "/scenario/" + scenarioId);
+                activity.definition.moreInfo = new Uri(_xApiOptions.UiUrl.TrimEnd('/') + "/scenario/" + scenarioId);
             }
 
             var context = new Context();
