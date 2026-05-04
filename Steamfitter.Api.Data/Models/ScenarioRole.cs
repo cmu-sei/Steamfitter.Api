@@ -30,6 +30,7 @@ public static class ScenarioRoleDefaults
     public static Guid ScenarioCreatorRoleId = new("1a3f26cd-9d99-4b98-b914-12931e786198");
     public static Guid ScenarioReadOnlyRoleId = new("39aa296e-05ba-4fb0-8d74-c92cf3354c6f");
     public static Guid ScenarioMemberRoleId = new("f870d8ee-7332-4f7f-8ee0-63bd07cfd7e4");
+    public static Guid ScenarioFacilitatorRoleId = new("b6b4a1f2-8f3b-4d1a-9a5c-3e7b0d4f2c81");
 }
 
 public class ScenarioRoleConfiguration : IEntityTypeConfiguration<ScenarioRoleEntity>
@@ -62,7 +63,18 @@ public class ScenarioRoleConfiguration : IEntityTypeConfiguration<ScenarioRoleEn
                     ScenarioPermission.ViewScenario,
                     ScenarioPermission.EditScenario
                 ],
-                Description = "Has read only access to the Scenario"
+                Description = "Can edit the Scenario"
+            },
+            new ScenarioRoleEntity
+            {
+                Id = ScenarioRoleDefaults.ScenarioFacilitatorRoleId,
+                Name = "Facilitator",
+                AllPermissions = false,
+                Permissions = [
+                    ScenarioPermission.ViewScenario,
+                    ScenarioPermission.ExecuteScenario
+                ],
+                Description = "Can view and execute the Scenario, but cannot edit it"
             }
         );
     }
