@@ -968,29 +968,6 @@ namespace Steamfitter.Api.Client
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ScenarioRole>> GetAllScenarioRolesAsync(System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
-        /// Get all ScenarioRoles as lightweight {Id, Name} lookups.
-        /// </summary>
-        /// <remarks>
-        /// Intended for clients that only need a name-to-id mapping and cannot consume the
-        /// <br/>full ScenarioRole shape (avoids deserialization issues with the Permissions enum collection).
-        /// </remarks>
-        /// <returns>OK</returns>
-        /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ScenarioRoleLookup>> GetAllScenarioRoleLookupsAsync();
-
-        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <summary>
-        /// Get all ScenarioRoles as lightweight {Id, Name} lookups.
-        /// </summary>
-        /// <remarks>
-        /// Intended for clients that only need a name-to-id mapping and cannot consume the
-        /// <br/>full ScenarioRole shape (avoids deserialization issues with the Permissions enum collection).
-        /// </remarks>
-        /// <returns>OK</returns>
-        /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ScenarioRoleLookup>> GetAllScenarioRoleLookupsAsync(System.Threading.CancellationToken cancellationToken);
-
-        /// <summary>
         /// Gets all ScenarioTemplate in the system
         /// </summary>
         /// <remarks>
@@ -2451,18 +2428,6 @@ namespace Steamfitter.Api.Client
         [System.Text.Json.Serialization.JsonPropertyName("permissions")]
         // TODO(system.text.json): Add ItemConverterType with enum converter when supported
         public System.Collections.Generic.ICollection<ScenarioPermission> Permissions { get; set; }
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ScenarioRoleLookup
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public System.Guid Id { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("name")]
-        public string Name { get; set; }
 
     }
 

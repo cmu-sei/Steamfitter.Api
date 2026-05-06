@@ -60,24 +60,4 @@ public class ScenarioRolesController : BaseController
         var result = await _scenarioRoleService.GetAsync(ct);
         return Ok(result);
     }
-
-    /// <summary>
-    /// Get all ScenarioRoles as lightweight {Id, Name} lookups.
-    /// </summary>
-    /// <remarks>
-    /// Intended for clients that only need a name-to-id mapping and cannot consume the
-    /// full ScenarioRole shape (avoids deserialization issues with the Permissions enum collection).
-    /// </remarks>
-    /// <returns></returns>
-    [HttpGet("scenario-roles/lookup")]
-    [ProducesResponseType(typeof(IEnumerable<ScenarioRoleLookup>), (int)HttpStatusCode.OK)]
-    [SwaggerOperation(OperationId = "GetAllScenarioRoleLookups")]
-    public async Task<IActionResult> GetLookup(CancellationToken ct)
-    {
-        if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewRoles], ct))
-            throw new ForbiddenException();
-
-        var result = await _scenarioRoleService.GetLookupAsync(ct);
-        return Ok(result);
-    }
 }

@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
@@ -21,7 +20,6 @@ namespace Steamfitter.Api.Services
     {
         STT.Task<IEnumerable<ViewModels.ScenarioRole>> GetAsync(CancellationToken ct);
         STT.Task<ViewModels.ScenarioRole> GetAsync(Guid id, CancellationToken ct);
-        STT.Task<IEnumerable<ViewModels.ScenarioRoleLookup>> GetLookupAsync(CancellationToken ct);
     }
 
     public class ScenarioRoleService : IScenarioRoleService
@@ -54,13 +52,6 @@ namespace Steamfitter.Api.Services
                 throw new EntityNotFoundException<ScenarioRole>();
 
             return _mapper.Map<SAVM.ScenarioRole>(item);
-        }
-
-        public async STT.Task<IEnumerable<ViewModels.ScenarioRoleLookup>> GetLookupAsync(CancellationToken ct)
-        {
-            return await _context.ScenarioRoles
-                .Select(r => new SAVM.ScenarioRoleLookup { Id = r.Id, Name = r.Name })
-                .ToListAsync(ct);
         }
 
     }
