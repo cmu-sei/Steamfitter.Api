@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Carnegie Mellon University. All Rights Reserved. 
+Copyright 2021 Carnegie Mellon University. All Rights Reserved.
  Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 */
 
@@ -3046,11 +3046,14 @@ namespace Steamfitter.Api.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ViewStatus>))]
         public ViewStatus Status { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("canManage")]
-        public bool CanManage { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("parentViewId")]
+        public System.Guid? ParentViewId { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("clones")]
-        public System.Collections.Generic.ICollection<System.Guid> Clones { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("isTemplate")]
+        public bool IsTemplate { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("defaultTeamId")]
+        public System.Guid? DefaultTeamId { get; set; }
 
     }
 
@@ -3092,7 +3095,7 @@ namespace Steamfitter.Api.Client
         public System.Collections.Generic.ICollection<string> IpAddresses { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("teamIds")]
-        public System.Collections.Generic.ICollection<System.Guid> TeamIds { get; set; }
+        public System.Collections.Generic.ICollection<System.Guid?> TeamIds { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("hasPendingTasks")]
         public bool? HasPendingTasks { get; set; }
@@ -3177,11 +3180,11 @@ namespace Steamfitter.Api.Client
 
 }
 
-#pragma warning restore  108
-#pragma warning restore  114
-#pragma warning restore  472
-#pragma warning restore  612
-#pragma warning restore  649
+#pragma warning restore 108
+#pragma warning restore 114
+#pragma warning restore 472
+#pragma warning restore 612
+#pragma warning restore 649
 #pragma warning restore 1573
 #pragma warning restore 1591
 #pragma warning restore 8073
