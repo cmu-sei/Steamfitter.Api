@@ -127,7 +127,7 @@ namespace Steamfitter.Api.Services
 
         public Boolean IsConfigured()
         {
-            return !string.IsNullOrWhiteSpace(_xApiOptions.Username);
+            return _xApiOptions.Enabled && !string.IsNullOrWhiteSpace(_xApiOptions.Username);
         }
 
         public async Task<Boolean> ScenarioStartedAsync(Guid scenarioId, CancellationToken ct)
