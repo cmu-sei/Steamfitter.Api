@@ -318,3 +318,6 @@ Steamfitter.Api/appsettings.Development.json
 
 /_data
 _data/
+
+# Visual Studio language service cache
+*.csproj.lscache
