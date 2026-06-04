@@ -533,6 +533,15 @@ namespace Steamfitter.Api.Services
                             case TaskAction.vm_hw_remove:
                                 task = STT.Task.Run(() => _vmOperationsService.VmRemove(resultEntity.InputString));
                                 break;
+                            case TaskAction.vm_snapshot_create:
+                                task = STT.Task.Run(() => _vmOperationsService.VmSnapshotCreate(resultEntity.InputString));
+                                break;
+                            case TaskAction.vm_snapshot_revert:
+                                task = STT.Task.Run(() => _vmOperationsService.VmSnapshotRevert(resultEntity.InputString));
+                                break;
+                            case TaskAction.vm_snapshot_delete:
+                                task = STT.Task.Run(() => _vmOperationsService.VmSnapshotDelete(resultEntity.InputString));
+                                break;
                             default:
                                 {
                                     var message = $"Player VM API Action {taskToExecute.Action} has not been implemented.";

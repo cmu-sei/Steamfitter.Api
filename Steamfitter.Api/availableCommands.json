@@ -223,6 +223,79 @@
         },
         {
             "api": "vm",
+            "action": "vm_snapshot_create",
+            "display": "Create a VM snapshot",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "VM",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                },
+                {
+                    "key": "SnapshotName",
+                    "display": "Snapshot Name",
+                    "hint": "Name to assign to the snapshot",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Description",
+                    "display": "Description",
+                    "hint": "Optional description for the snapshot",
+                    "inputType": "text"
+                },
+                {
+                    "key": "IncludeRam",
+                    "display": "Include RAM",
+                    "hint": "Capture VM memory (vSphere: includeMemory; Proxmox: vmstate; ignored on LXC)",
+                    "inputType": "checkbox",
+                    "default": "false"
+                }
+            ]
+        },
+        {
+            "api": "vm",
+            "action": "vm_snapshot_revert",
+            "display": "Revert a VM to a snapshot",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "VM",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                },
+                {
+                    "key": "SnapshotName",
+                    "display": "Snapshot Name",
+                    "hint": "Snapshot to revert to (vSphere: snapshot moRef value; Proxmox: snapshot name)",
+                    "inputType": "text"
+                }
+            ]
+        },
+        {
+            "api": "vm",
+            "action": "vm_snapshot_delete",
+            "display": "Delete a VM snapshot",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "VM",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                },
+                {
+                    "key": "SnapshotName",
+                    "display": "Snapshot Name",
+                    "hint": "Snapshot to delete (vSphere: snapshot moRef value; Proxmox: snapshot name)",
+                    "inputType": "text"
+                }
+            ]
+        },
+        {
+            "api": "vm",
             "action": "guest_process_run_fast",
             "display": "vSphere Run a command on the guest VM (FASTER)",
             "requiresVm": true,

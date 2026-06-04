@@ -29,6 +29,9 @@ namespace Steamfitter.Api.Data
         linux_file_touch = 115,
         linux_rm = 116,
         core_remote = 117,
+        vm_snapshot_create = 120,
+        vm_snapshot_revert = 121,
+        vm_snapshot_delete = 122,
     }
 
     public enum TaskStatus
