@@ -10,7 +10,7 @@ namespace Steamfitter.Api.Data
         http_post = 12,
         http_put = 13,
         http_delete = 14,
-        // stackstorm actions
+        // vm/ssh/email/azure actions
         guest_process_run = 100,
         guest_file_read = 101,
         guest_file_write = 102,

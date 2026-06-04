@@ -41,7 +41,10 @@ namespace Steamfitter.Api.Services
         private readonly ITaskExecutionQueue _taskExecutionQueue;
         private readonly IMapper _mapper;
         private readonly IHubContext<EngineHub> _engineHub;
-        private readonly IStackStormService _stackStormService;
+        private readonly IVmOperationsService _vmOperationsService;
+        private readonly ISshService _sshService;
+        private readonly IEmailService _emailService;
+        private readonly IAzureVmService _azureVmService;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly StartupHealthCheck _startupHealthCheck;
         private readonly IOptionsMonitor<Infrastructure.Options.ClientOptions> _clientOptions;
@@ -53,7 +56,10 @@ namespace Steamfitter.Api.Services
             IServiceScopeFactory scopeFactory,
             IMapper mapper,
             IHubContext<EngineHub> engineHub,
-            IStackStormService stackStormService,
+            IVmOperationsService vmOperationsService,
+            ISshService sshService,
+            IEmailService emailService,
+            IAzureVmService azureVmService,
             ITaskExecutionQueue taskExecutionQueue,
             IHttpClientFactory httpClientFactory,
             IOptionsMonitor<Infrastructure.Options.ClientOptions> clientOptions,
@@ -65,7 +71,10 @@ namespace Steamfitter.Api.Services
             _scopeFactory = scopeFactory;
             _mapper = mapper;
             _engineHub = engineHub;
-            _stackStormService = stackStormService;
+            _vmOperationsService = vmOperationsService;
+            _sshService = sshService;
+            _emailService = emailService;
+            _azureVmService = azureVmService;
             _taskExecutionQueue = taskExecutionQueue;
             _httpClientFactory = httpClientFactory;
             _clientOptions = clientOptions;
@@ -439,10 +448,6 @@ namespace Steamfitter.Api.Services
             {
                 resultEntity.InputString = resultEntity.InputString.Replace("{moid}", resultEntity.VmId.ToString());
                 resultEntity.InputString = resultEntity.InputString.Replace("{VmName}", resultEntity.VmName);
-                if (resultEntity.VmId != null && resultEntity.VmName == "")
-                {
-                    resultEntity.VmName = _stackStormService.GetVmName((Guid)resultEntity.VmId);
-                }
                 resultEntity.Status = TaskStatus.pending;
                 resultEntity.StatusDate = DateTime.UtcNow;
                 // if no expiration is set, us the maximum allowed by the TaskProcessMaxWaitSeconds setting
@@ -496,94 +501,41 @@ namespace Steamfitter.Api.Services
             STT.Task<string> task = null;
             switch (taskToExecute.ApiUrl)
             {
-                case "stackstorm": // _stackStormService
+                case "vm": // _vmOperationsService → Player VM API
                     {
                         switch (taskToExecute.Action)
                         {
                             case TaskAction.guest_file_read:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.GuestReadFile(resultEntity.InputString));
-                                    break;
-                                }
+                                task = STT.Task.Run(() => _vmOperationsService.GuestReadFile(resultEntity.InputString));
+                                break;
                             case TaskAction.guest_file_upload_content:
+                            case TaskAction.guest_file_write:
+                                task = STT.Task.Run(() => _vmOperationsService.GuestFileUploadContent(resultEntity.InputString));
+                                break;
                             case TaskAction.guest_file_upload_file:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.GuestFileUploadContent(resultEntity.InputString));
-                                    break;
-                                }
+                                task = STT.Task.Run(() => _vmOperationsService.GuestFileUploadFile(resultEntity.InputString));
+                                break;
                             case TaskAction.guest_process_run:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.GuestCommand(resultEntity.InputString));
-                                    break;
-                                }
+                                task = STT.Task.Run(() => _vmOperationsService.GuestCommand(resultEntity.InputString));
+                                break;
                             case TaskAction.guest_process_run_fast:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.GuestCommandFast(resultEntity.InputString));
-                                    break;
-                                }
+                                task = STT.Task.Run(() => _vmOperationsService.GuestCommandFast(resultEntity.InputString));
+                                break;
                             case TaskAction.vm_hw_power_on:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.VmPowerOn(resultEntity.InputString));
-                                    break;
-                                }
+                                task = STT.Task.Run(() => _vmOperationsService.VmPowerOn(resultEntity.InputString));
+                                break;
                             case TaskAction.vm_hw_power_off:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.VmPowerOff(resultEntity.InputString));
-                                    break;
-                                }
+                                task = STT.Task.Run(() => _vmOperationsService.VmPowerOff(resultEntity.InputString));
+                                break;
                             case TaskAction.vm_create_from_template:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.CreateVmFromTemplate(resultEntity.InputString));
-                                    break;
-                                }
+                                task = STT.Task.Run(() => _vmOperationsService.CreateVmFromTemplate(resultEntity.InputString));
+                                break;
                             case TaskAction.vm_hw_remove:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.VmRemove(resultEntity.InputString));
-                                    break;
-                                }
-                            case TaskAction.send_email:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.SendEmail(resultEntity.InputString));
-                                    break;
-                                }
-                            case TaskAction.linux_file_touch:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.LinuxFileTouch(resultEntity.InputString));
-                                    break;
-                                }
-                            case TaskAction.linux_rm:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.LinuxRm(resultEntity.InputString));
-                                    break;
-                                }
-                            case TaskAction.core_remote:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.SendLinuxRemoteCommand(resultEntity.InputString));
-                                    break;
-                                }
-                            case TaskAction.az_vm_shell_script:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.AzureGovVmShellScript(resultEntity.InputString));
-                                    break;
-                                }
-                            case TaskAction.az_get_vms:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.AzureGovGetVms(resultEntity.InputString));
-                                    break;
-                                }
-                            case TaskAction.az_vm_power_off:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.AzureGovVmPowerOff(resultEntity.InputString));
-                                    break;
-                                }
-                            case TaskAction.az_vm_power_on:
-                                {
-                                    task = STT.Task.Run(() => _stackStormService.AzureGovVmPowerOn(resultEntity.InputString));
-                                    break;
-                                }
+                                task = STT.Task.Run(() => _vmOperationsService.VmRemove(resultEntity.InputString));
+                                break;
                             default:
                                 {
-                                    var message = $"Stackstorm Action {taskToExecute.Action} has not been implemented.";
+                                    var message = $"Player VM API Action {taskToExecute.Action} has not been implemented.";
                                     _logger.LogError(message);
                                     resultEntity.Status = Data.TaskStatus.failed;
                                     resultEntity.StatusDate = DateTime.UtcNow;
@@ -592,14 +544,67 @@ namespace Steamfitter.Api.Services
                         }
                         break;
                     }
-                case "vm": // _playerVmService
+                case "ssh": // _sshService
                     {
                         switch (taskToExecute.Action)
                         {
-                            case TaskAction.guest_file_write:
+                            case TaskAction.core_remote:
+                                task = STT.Task.Run(() => _sshService.SendLinuxRemoteCommand(resultEntity.InputString));
+                                break;
+                            case TaskAction.linux_file_touch:
+                                task = STT.Task.Run(() => _sshService.LinuxFileTouch(resultEntity.InputString));
+                                break;
+                            case TaskAction.linux_rm:
+                                task = STT.Task.Run(() => _sshService.LinuxRm(resultEntity.InputString));
+                                break;
                             default:
                                 {
-                                    var message = $"Player VM API Action {taskToExecute.Action} has not been implemented.";
+                                    var message = $"SSH Action {taskToExecute.Action} has not been implemented.";
+                                    _logger.LogError(message);
+                                    resultEntity.Status = Data.TaskStatus.failed;
+                                    resultEntity.StatusDate = DateTime.UtcNow;
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case "email": // _emailService
+                    {
+                        switch (taskToExecute.Action)
+                        {
+                            case TaskAction.send_email:
+                                task = STT.Task.Run(() => _emailService.SendEmail(resultEntity.InputString));
+                                break;
+                            default:
+                                {
+                                    var message = $"Email Action {taskToExecute.Action} has not been implemented.";
+                                    _logger.LogError(message);
+                                    resultEntity.Status = Data.TaskStatus.failed;
+                                    resultEntity.StatusDate = DateTime.UtcNow;
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case "azure": // _azureVmService
+                    {
+                        switch (taskToExecute.Action)
+                        {
+                            case TaskAction.az_vm_shell_script:
+                                task = STT.Task.Run(() => _azureVmService.RunShellScript(resultEntity.InputString));
+                                break;
+                            case TaskAction.az_get_vms:
+                                task = STT.Task.Run(() => _azureVmService.GetVms(resultEntity.InputString));
+                                break;
+                            case TaskAction.az_vm_power_off:
+                                task = STT.Task.Run(() => _azureVmService.VmPowerOff(resultEntity.InputString));
+                                break;
+                            case TaskAction.az_vm_power_on:
+                                task = STT.Task.Run(() => _azureVmService.VmPowerOn(resultEntity.InputString));
+                                break;
+                            default:
+                                {
+                                    var message = $"Azure Action {taskToExecute.Action} has not been implemented.";
                                     _logger.LogError(message);
                                     resultEntity.Status = Data.TaskStatus.failed;
                                     resultEntity.StatusDate = DateTime.UtcNow;

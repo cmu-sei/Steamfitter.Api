@@ -36,19 +36,16 @@ namespace Steamfitter.Api.Services
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
         private readonly ITaskService _taskService;
-        private readonly IStackStormService _stackstormService;
 
         public GroupService(SteamfitterContext context,
                                 IPrincipal user,
                                 IMapper mapper,
-                                ITaskService taskService,
-                                IStackStormService stackstormService)
+                                ITaskService taskService)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
             _taskService = taskService;
-            _stackstormService = stackstormService;
         }
 
         public async STT.Task<IEnumerable<ViewModels.Group>> GetAsync(CancellationToken ct)

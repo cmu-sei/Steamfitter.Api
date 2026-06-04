@@ -8,10 +8,6 @@ namespace Steamfitter.Api.Infrastructure.Options
 {
     public class VmTaskProcessingOptions
     {
-        public string ApiType { get; set; }
-        public string ApiBaseUrl { get; set; }
-        public string ApiUsername { get; set; }
-        public string ApiPassword { get; set; }
         public int VmListUpdateIntervalMinutes { get; set; }
         public int HealthCheckSeconds { get; set; }
         public int HealthCheckTimeoutSeconds { get; set; }

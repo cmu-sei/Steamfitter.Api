@@ -42,21 +42,18 @@ namespace Steamfitter.Api.Services
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
         private readonly ITaskService _taskService;
-        private readonly IStackStormService _stackstormService;
         private readonly IXApiService _xApiService;
 
         public ScenarioService(SteamfitterContext context,
                                 IPrincipal user,
                                 IMapper mapper,
                                 ITaskService taskService,
-                                IStackStormService stackstormService,
                                 IXApiService xApiService)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
             _taskService = taskService;
-            _stackstormService = stackstormService;
             _xApiService = xApiService;
         }
 
@@ -309,9 +306,6 @@ namespace Steamfitter.Api.Services
             // Log xAPI scenario started statement
             await _xApiService.ScenarioStartedAsync(scenario.Id, ct);
 
-            // TODO:  create a better way to do this that doesn't require getting ALL of the VM's
-            // We just need to grab all of the VM's from the scenario view
-            await _stackstormService.GetStackstormVms();
             var tasks = await _taskService.GetByScenarioIdAsync(scenario.Id, ct);
             foreach (var task in tasks)
             {

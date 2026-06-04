@@ -127,6 +127,18 @@ public class Startup
             .AddScoped(config => config.GetService<IOptionsMonitor<FilesOptions>>().CurrentValue);
 
         services
+            .Configure<EmailOptions>(Configuration.GetSection("Email"))
+            .AddSingleton(config => config.GetService<IOptionsMonitor<EmailOptions>>().CurrentValue);
+
+        services
+            .Configure<SshOptions>(Configuration.GetSection("Ssh"))
+            .AddSingleton(config => config.GetService<IOptionsMonitor<SshOptions>>().CurrentValue);
+
+        services
+            .Configure<AzureOptions>(Configuration.GetSection("Azure"))
+            .AddSingleton(config => config.GetService<IOptionsMonitor<AzureOptions>>().CurrentValue);
+
+        services
             .Configure<Infrastructure.Options.XApiOptions>(Configuration.GetSection("XApiOptions"))
             .AddScoped(config => config.GetService<IOptionsMonitor<Infrastructure.Options.XApiOptions>>().CurrentValue);
 
@@ -217,9 +229,10 @@ public class Startup
         services.AddScoped<IIdentityResolver, IdentityResolver>();
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<ISystemRoleService, SystemRoleService>();
-        services.AddSingleton<StackStormService>();
-        services.AddSingleton<IHostedService>(x => x.GetService<StackStormService>());
-        services.AddSingleton<IStackStormService>(x => x.GetService<StackStormService>());
+        services.AddSingleton<IVmOperationsService, VmOperationsService>();
+        services.AddSingleton<ISshService, SshService>();
+        services.AddSingleton<IEmailService, EmailService>();
+        services.AddSingleton<IAzureVmService, AzureVmService>();
         services.AddSingleton<ITaskExecutionQueue, TaskExecutionQueue>();
         services.AddHostedService<TaskExecutionService>();
         services.AddHostedService<TaskMaintenanceService>();

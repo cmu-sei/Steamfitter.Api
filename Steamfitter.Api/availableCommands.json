@@ -1,7 +1,7 @@
 {
     "availableCommands": [
         {
-            "api": "stackstorm",
+            "api": "azure",
             "action": "az_vm_shell_script",
             "display": "AzureGov VM Shell Script Execution",
             "requiresVm": true,
@@ -43,7 +43,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "azure",
             "action": "az_vm_power_off",
             "display": "AzureGov VM Power Off",
             "requiresVm": true,
@@ -57,7 +57,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "azure",
             "action": "az_vm_power_on",
             "display": "AzureGov VM Power On",
             "requiresVm": true,
@@ -71,7 +71,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "vm_hw_power_on",
             "display": "vSphere Power on a VM",
             "requiresVm": true,
@@ -85,7 +85,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "vm_hw_power_off",
             "display": "vSphere Power off a VM",
             "requiresVm": true,
@@ -99,7 +99,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "guest_file_read",
             "display": "vSphere - Read a file from a guest VM",
             "requiresVm": true,
@@ -131,7 +131,98 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
+            "action": "guest_process_run",
+            "display": "vSphere Run a command on the guest VM (and capture output)",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "VM",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                },
+                {
+                    "key": "Username",
+                    "display": "Username",
+                    "hint": "Username for the guest VM user to execute the action",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Password",
+                    "display": "Password",
+                    "hint": "Password for the guest VM user to execute the action",
+                    "inputType": "password"
+                },
+                {
+                    "key": "CommandText",
+                    "display": "Command",
+                    "hint": "The command to execute on the guest VM.",
+                    "inputType": "text"
+                },
+                {
+                    "key": "CommandArgs",
+                    "display": "Arguments",
+                    "hint": "The arguments to pass to the command on the guest VM.",
+                    "inputType": "text"
+                },
+                {
+                    "key": "CommandWorkDirectory",
+                    "display": "Working Directory",
+                    "hint": "Optional working directory for the command.",
+                    "inputType": "text"
+                },
+                {
+                    "key": "TimeoutSeconds",
+                    "display": "Timeout (seconds)",
+                    "hint": "Maximum time to wait for the command to finish (defaults to 300).",
+                    "inputType": "text"
+                }
+            ]
+        },
+        {
+            "api": "vm",
+            "action": "vm_create_from_template",
+            "display": "vSphere Clone a VM from a template",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "Template VM",
+                    "hint": "Select the source VM/template",
+                    "inputType": "guid"
+                },
+                {
+                    "key": "Name",
+                    "display": "Clone Name",
+                    "hint": "Name to assign to the cloned VM",
+                    "inputType": "text"
+                },
+                {
+                    "key": "PowerOn",
+                    "display": "Power On After Clone",
+                    "hint": "Power on the cloned VM once the clone task succeeds",
+                    "inputType": "checkbox",
+                    "default": "false"
+                }
+            ]
+        },
+        {
+            "api": "vm",
+            "action": "vm_hw_remove",
+            "display": "vSphere Delete a VM",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "VM",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                }
+            ]
+        },
+        {
+            "api": "vm",
             "action": "guest_process_run_fast",
             "display": "vSphere Run a command on the guest VM (FASTER)",
             "requiresVm": true,
@@ -169,7 +260,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "guest_file_upload_content",
             "display": "vSphere Upload a text file to a guest VM",
             "requiresVm": true,
@@ -207,7 +298,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "guest_file_upload_file",
             "display": "vSphere Upload a file to a guest VM",
             "requiresVm": true,
@@ -238,14 +329,14 @@
                 },
                 {
                     "key": "FilePath",
-                    "display": "Path to a file accessible to Stackstorm to upload to the guest VM",
-                    "hint": "Path to a file (i.e. /files/file_to_send.zip)",
+                    "display": "Path to a file accessible to Steamfitter to upload to the guest VM",
+                    "hint": "Path to a file (i.e. /files/file_to_send.zip). Relative paths resolve under Files:LocalDirectory.",
                     "inputType": "text"
                 }
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "email",
             "action": "send_email",
             "display": "Send an email",
             "requiresVm": false,
@@ -305,7 +396,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "ssh",
             "action": "linux_file_touch",
             "display": "Touch a File",
             "requiresVm": false,
@@ -358,7 +449,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "ssh",
             "action": "linux_rm",
             "display": "Remove file(s)",
             "requiresVm": false,
@@ -431,7 +522,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "ssh",
             "action": "core_remote",
             "display": "Remote Command",
             "requiresVm": false,
