@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using IdentityModel.Client;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Player.Vm.Api;
 using Steamfitter.Api.Infrastructure.Extensions;
+using Steamfitter.Api.Infrastructure.JsonConverters;
 using Steamfitter.Api.Infrastructure.Options;
 using ClientOptions = Steamfitter.Api.Infrastructure.Options.ClientOptions;
 
@@ -79,258 +81,280 @@ namespace Steamfitter.Api.Services
 
         // -------- Lifecycle (typed-client where possible) --------
 
-        public async STT.Task<string> VmPowerOn(string parameters)
-        {
-            var vmId = ParseMoidAsGuid(parameters);
-            var provider = await GetVmProviderAsync(vmId);
-
-            switch (provider)
+        public STT.Task<string> VmPowerOn(string parameters) =>
+            LogOnFailureAsync(nameof(VmPowerOn), async () =>
             {
-                case VmProvider.Vsphere:
-                    {
-                        using var scope = _scopeFactory.CreateScope();
-                        var client = await BuildTypedClientAsync(scope);
-                        var result = await client.PowerOnVsphereVirtualMachineAsync(vmId);
-                        return result?.ToString() ?? string.Empty;
-                    }
-                case VmProvider.Proxmox:
-                    return await PostJsonAsync($"/api/vms/proxmox/{vmId}/actions/power-on", null);
-                default:
-                    throw UnsupportedProviderException(provider, vmId, nameof(VmPowerOn));
-            }
-        }
+                var vmId = ParseMoidAsGuid(parameters);
+                var provider = await GetVmProviderAsync(vmId);
 
-        public async STT.Task<string> VmPowerOff(string parameters)
-        {
-            var vmId = ParseMoidAsGuid(parameters);
-            var provider = await GetVmProviderAsync(vmId);
+                switch (provider)
+                {
+                    case VmProvider.Vsphere:
+                        {
+                            using var scope = _scopeFactory.CreateScope();
+                            var client = await BuildTypedClientAsync(scope);
+                            var result = await client.PowerOnVsphereVirtualMachineAsync(vmId);
+                            return result?.ToString() ?? string.Empty;
+                        }
+                    case VmProvider.Proxmox:
+                        return await PostJsonAsync($"/api/vms/proxmox/{vmId}/actions/power-on", null);
+                    default:
+                        throw UnsupportedProviderException(provider, vmId, nameof(VmPowerOn));
+                }
+            });
 
-            switch (provider)
+        public STT.Task<string> VmPowerOff(string parameters) =>
+            LogOnFailureAsync(nameof(VmPowerOff), async () =>
             {
-                case VmProvider.Vsphere:
-                    {
-                        using var scope = _scopeFactory.CreateScope();
-                        var client = await BuildTypedClientAsync(scope);
-                        var result = await client.PowerOffVsphereVirtualMachineAsync(vmId);
-                        return result?.ToString() ?? string.Empty;
-                    }
-                case VmProvider.Proxmox:
-                    return await PostJsonAsync($"/api/vms/proxmox/{vmId}/actions/power-off", null);
-                default:
-                    throw UnsupportedProviderException(provider, vmId, nameof(VmPowerOff));
-            }
-        }
+                var vmId = ParseMoidAsGuid(parameters);
+                var provider = await GetVmProviderAsync(vmId);
+
+                switch (provider)
+                {
+                    case VmProvider.Vsphere:
+                        {
+                            using var scope = _scopeFactory.CreateScope();
+                            var client = await BuildTypedClientAsync(scope);
+                            var result = await client.PowerOffVsphereVirtualMachineAsync(vmId);
+                            return result?.ToString() ?? string.Empty;
+                        }
+                    case VmProvider.Proxmox:
+                        return await PostJsonAsync($"/api/vms/proxmox/{vmId}/actions/power-off", null);
+                    default:
+                        throw UnsupportedProviderException(provider, vmId, nameof(VmPowerOff));
+                }
+            });
 
         // -------- Guest ops --------
 
-        public async STT.Task<string> GuestCommand(string parameters)
-        {
-            var p = JsonSerializer.Deserialize<GuestProcessParameters>(parameters);
-            var vmId = Guid.Parse(p.Moid);
-
-            var body = new
+        public STT.Task<string> GuestCommand(string parameters) =>
+            LogOnFailureAsync(nameof(GuestCommand), async () =>
             {
-                username = p.Username,
-                password = p.Password,
-                programPath = p.CommandText,
-                arguments = p.CommandArgs,
-                workingDirectory = p.CommandWorkDirectory,
-                timeoutSeconds = p.TimeoutSeconds
-            };
+                var p = JsonSerializer.Deserialize<GuestProcessParameters>(parameters);
+                var vmId = Guid.Parse(p.Moid);
 
-            return await PostJsonAsync(
-                BuildActionPath(await GetVmProviderAsync(vmId), vmId, "run-guest-process", nameof(GuestCommand)),
-                body);
-        }
+                var body = new
+                {
+                    username = p.Username,
+                    password = p.Password,
+                    programPath = p.CommandText,
+                    arguments = p.CommandArgs,
+                    workingDirectory = p.CommandWorkDirectory,
+                    timeoutSeconds = p.TimeoutSeconds
+                };
 
-        public async STT.Task<string> GuestCommandFast(string parameters)
-        {
-            var p = JsonSerializer.Deserialize<GuestProcessParameters>(parameters);
-            var vmId = Guid.Parse(p.Moid);
+                return await PostJsonAsync(
+                    BuildActionPath(await GetVmProviderAsync(vmId), vmId, "run-guest-process", nameof(GuestCommand)),
+                    body);
+            });
 
-            var body = new
+        public STT.Task<string> GuestCommandFast(string parameters) =>
+            LogOnFailureAsync(nameof(GuestCommandFast), async () =>
             {
-                username = p.Username,
-                password = p.Password,
-                programPath = p.CommandText,
-                arguments = p.CommandArgs,
-                workingDirectory = p.CommandWorkDirectory
-            };
+                var p = JsonSerializer.Deserialize<GuestProcessParameters>(parameters);
+                var vmId = Guid.Parse(p.Moid);
 
-            return await PostJsonAsync(
-                BuildActionPath(await GetVmProviderAsync(vmId), vmId, "run-guest-process-fast", nameof(GuestCommandFast)),
-                body);
-        }
+                var body = new
+                {
+                    username = p.Username,
+                    password = p.Password,
+                    programPath = p.CommandText,
+                    arguments = p.CommandArgs,
+                    workingDirectory = p.CommandWorkDirectory
+                };
 
-        public async STT.Task<string> GuestReadFile(string parameters)
-        {
-            var p = JsonSerializer.Deserialize<GuestFileReadParameters>(parameters);
-            var vmId = Guid.Parse(p.Moid);
+                return await PostJsonAsync(
+                    BuildActionPath(await GetVmProviderAsync(vmId), vmId, "run-guest-process-fast", nameof(GuestCommandFast)),
+                    body);
+            });
 
-            var body = new
+        public STT.Task<string> GuestReadFile(string parameters) =>
+            LogOnFailureAsync(nameof(GuestReadFile), async () =>
             {
-                username = p.Username,
-                password = p.Password,
-                guestFilePath = p.GuestFilePath
-            };
+                var p = JsonSerializer.Deserialize<GuestFileReadParameters>(parameters);
+                var vmId = Guid.Parse(p.Moid);
 
-            return await PostJsonAsync(
-                BuildActionPath(await GetVmProviderAsync(vmId), vmId, "read-guest-file", nameof(GuestReadFile)),
-                body);
-        }
+                var body = new
+                {
+                    username = p.Username,
+                    password = p.Password,
+                    guestFilePath = p.GuestFilePath
+                };
 
-        public async STT.Task<string> GuestFileUploadContent(string parameters)
-        {
-            var validJson = parameters.Replace("\r\n", "<*0x0A*>").Replace("\n", "<*0x0A*>");
-            var p = JsonSerializer.Deserialize<GuestFileWriteParameters>(validJson);
-            var content = p.GuestFileContent?.Replace("<*0x0A*>", "\r\n") ?? string.Empty;
+                return await PostJsonAsync(
+                    BuildActionPath(await GetVmProviderAsync(vmId), vmId, "read-guest-file", nameof(GuestReadFile)),
+                    body);
+            });
 
-            var vmId = Guid.Parse(p.Moid);
-            var fileName = Path.GetFileName(p.GuestFilePath?.TrimEnd('/', '\\') ?? string.Empty);
-            var directory = string.IsNullOrEmpty(fileName)
-                ? p.GuestFilePath
-                : p.GuestFilePath.Substring(0, p.GuestFilePath.Length - fileName.Length);
+        public STT.Task<string> GuestFileUploadContent(string parameters) =>
+            LogOnFailureAsync(nameof(GuestFileUploadContent), async () =>
+            {
+                var validJson = parameters.Replace("\r\n", "<*0x0A*>").Replace("\n", "<*0x0A*>");
+                var p = JsonSerializer.Deserialize<GuestFileWriteParameters>(validJson);
+                var content = p.GuestFileContent?.Replace("<*0x0A*>", "\r\n") ?? string.Empty;
 
-            var bytes = Encoding.UTF8.GetBytes(content);
-            using var memStream = new MemoryStream(bytes);
+                var vmId = Guid.Parse(p.Moid);
+                var fileName = Path.GetFileName(p.GuestFilePath?.TrimEnd('/', '\\') ?? string.Empty);
+                var directory = string.IsNullOrEmpty(fileName)
+                    ? p.GuestFilePath
+                    : p.GuestFilePath.Substring(0, p.GuestFilePath.Length - fileName.Length);
 
-            return await UploadMultipartAsync(
-                vmId,
-                username: p.Username,
-                password: p.Password,
-                directoryPath: directory,
-                fileName: string.IsNullOrEmpty(fileName) ? "uploaded.txt" : fileName,
-                fileContent: memStream,
-                callerName: nameof(GuestFileUploadContent));
-        }
+                var bytes = Encoding.UTF8.GetBytes(content);
+                using var memStream = new MemoryStream(bytes);
 
-        public async STT.Task<string> GuestFileUploadFile(string parameters)
-        {
-            var p = JsonSerializer.Deserialize<GuestFileUploadFileParameters>(parameters);
-            var vmId = Guid.Parse(p.Moid);
+                return await UploadMultipartAsync(
+                    vmId,
+                    username: p.Username,
+                    password: p.Password,
+                    directoryPath: directory,
+                    fileName: string.IsNullOrEmpty(fileName) ? "uploaded.txt" : fileName,
+                    fileContent: memStream,
+                    callerName: nameof(GuestFileUploadContent));
+            });
 
-            var localPath = ResolveLocalFilePath(p.FilePath);
-            if (!File.Exists(localPath))
-                throw new FileNotFoundException($"Local file not found: {localPath}", localPath);
+        public STT.Task<string> GuestFileUploadFile(string parameters) =>
+            LogOnFailureAsync(nameof(GuestFileUploadFile), async () =>
+            {
+                var p = JsonSerializer.Deserialize<GuestFileUploadFileParameters>(parameters);
+                var vmId = Guid.Parse(p.Moid);
 
-            var fileName = Path.GetFileName(localPath);
-            using var fileStream = File.OpenRead(localPath);
+                var localPath = ResolveLocalFilePath(p.FilePath);
+                if (!File.Exists(localPath))
+                    throw new FileNotFoundException($"Local file not found: {localPath}", localPath);
 
-            return await UploadMultipartAsync(
-                vmId,
-                username: p.Username,
-                password: p.Password,
-                directoryPath: p.GuestFilePath,
-                fileName: fileName,
-                fileContent: fileStream,
-                callerName: nameof(GuestFileUploadFile));
-        }
+                var fileName = Path.GetFileName(localPath);
+                using var fileStream = File.OpenRead(localPath);
+
+                return await UploadMultipartAsync(
+                    vmId,
+                    username: p.Username,
+                    password: p.Password,
+                    directoryPath: p.GuestFilePath,
+                    fileName: fileName,
+                    fileContent: fileStream,
+                    callerName: nameof(GuestFileUploadFile));
+            });
 
         // -------- Provisioning --------
 
-        public async STT.Task<string> CreateVmFromTemplate(string parameters)
-        {
-            var p = JsonSerializer.Deserialize<CreateVmFromTemplateParameters>(parameters);
-            var sourceVmId = Guid.Parse(p.Moid);
-
-            var body = new
+        public STT.Task<string> CreateVmFromTemplate(string parameters) =>
+            LogOnFailureAsync(nameof(CreateVmFromTemplate), async () =>
             {
-                cloneName = p.Name ?? p.CloneName,
-                powerOn = p.PowerOn
-            };
+                var p = JsonSerializer.Deserialize<CreateVmFromTemplateParameters>(parameters);
+                var sourceVmId = Guid.Parse(p.Moid);
 
-            return await PostJsonAsync(
-                BuildActionPath(await GetVmProviderAsync(sourceVmId), sourceVmId, "clone-from-template", nameof(CreateVmFromTemplate)),
-                body);
-        }
+                var body = new
+                {
+                    cloneName = p.Name ?? p.CloneName,
+                    powerOn = p.PowerOn
+                };
 
-        public async STT.Task<string> VmRemove(string parameters)
-        {
-            var vmId = ParseMoidAsGuid(parameters);
-            var provider = await GetVmProviderAsync(vmId);
+                return await PostJsonAsync(
+                    BuildActionPath(await GetVmProviderAsync(sourceVmId), sourceVmId, "clone-from-template", nameof(CreateVmFromTemplate)),
+                    body);
+            });
 
-            switch (provider)
+        public STT.Task<string> VmRemove(string parameters) =>
+            LogOnFailureAsync(nameof(VmRemove), async () =>
             {
-                case VmProvider.Vsphere:
-                case VmProvider.Proxmox:
-                    {
-                        using var scope = _scopeFactory.CreateScope();
-                        using var http = await BuildAuthenticatedHttpClientAsync(scope);
-                        var path = $"/api/vms/{ProviderSegment(provider)}/{vmId}/actions/delete";
-                        var response = await http.PostAsync(path, new StringContent(string.Empty));
-                        response.EnsureSuccessStatusCode();
-                        return await response.Content.ReadAsStringAsync();
-                    }
-                default:
-                    throw UnsupportedProviderException(provider, vmId, nameof(VmRemove));
-            }
-        }
+                var vmId = ParseMoidAsGuid(parameters);
+                var provider = await GetVmProviderAsync(vmId);
+
+                switch (provider)
+                {
+                    case VmProvider.Vsphere:
+                    case VmProvider.Proxmox:
+                        {
+                            using var scope = _scopeFactory.CreateScope();
+                            using var http = await BuildAuthenticatedHttpClientAsync(scope);
+                            var path = $"/api/vms/{ProviderSegment(provider)}/{vmId}/actions/delete";
+                            var response = await http.PostAsync(path, new StringContent(string.Empty));
+                            return await EnsureSuccessOrLogAsync(response, path, nameof(VmRemove));
+                        }
+                    default:
+                        throw UnsupportedProviderException(provider, vmId, nameof(VmRemove));
+                }
+            });
 
         // -------- Snapshots --------
 
-        public async STT.Task<string> VmSnapshotCreate(string parameters)
-        {
-            var p = JsonSerializer.Deserialize<SnapshotCreateParameters>(parameters);
-            var vmId = Guid.Parse(p.Moid);
-            var provider = await GetVmProviderAsync(vmId);
-
-            return provider switch
+        public STT.Task<string> VmSnapshotCreate(string parameters) =>
+            LogOnFailureAsync(nameof(VmSnapshotCreate), async () =>
             {
-                VmProvider.Vsphere => await PostJsonAsync(
-                    $"/api/vms/vsphere/{vmId}/actions/snapshots",
-                    new { snapshotName = p.SnapshotName, description = p.Description, includeMemory = p.IncludeRam }),
-                VmProvider.Proxmox => await PostJsonAsync(
-                    $"/api/vms/proxmox/{vmId}/actions/snapshots",
-                    new { snapshotName = p.SnapshotName, description = p.Description, includeRam = p.IncludeRam }),
-                _ => throw UnsupportedProviderException(provider, vmId, nameof(VmSnapshotCreate)),
-            };
-        }
+                var p = JsonSerializer.Deserialize<SnapshotCreateParameters>(parameters);
+                var vmId = Guid.Parse(p.Moid);
+                var provider = await GetVmProviderAsync(vmId);
 
-        public async STT.Task<string> VmSnapshotRevert(string parameters)
-        {
-            var p = JsonSerializer.Deserialize<SnapshotNameParameters>(parameters);
-            var vmId = Guid.Parse(p.Moid);
-            var provider = await GetVmProviderAsync(vmId);
+                return provider switch
+                {
+                    VmProvider.Vsphere => await PostJsonAsync(
+                        $"/api/vms/vsphere/{vmId}/actions/snapshots",
+                        new { snapshotName = p.SnapshotName, description = p.Description, includeMemory = p.IncludeRam }),
+                    VmProvider.Proxmox => await PostJsonAsync(
+                        $"/api/vms/proxmox/{vmId}/actions/snapshots",
+                        new { snapshotName = p.SnapshotName, description = p.Description, includeRam = p.IncludeRam }),
+                    _ => throw UnsupportedProviderException(provider, vmId, nameof(VmSnapshotCreate)),
+                };
+            });
 
-            switch (provider)
+        public STT.Task<string> VmSnapshotRevert(string parameters) =>
+            LogOnFailureAsync(nameof(VmSnapshotRevert), async () =>
             {
-                case VmProvider.Vsphere:
-                    return await PostJsonAsync(
-                        $"/api/vms/vsphere/{vmId}/actions/revert-to-snapshot",
-                        new { snapshotId = p.SnapshotName });
-                case VmProvider.Proxmox:
-                    {
-                        using var scope = _scopeFactory.CreateScope();
-                        using var http = await BuildAuthenticatedHttpClientAsync(scope);
-                        var path = $"/api/vms/proxmox/{vmId}/actions/snapshots/{Uri.EscapeDataString(p.SnapshotName)}/revert";
-                        var response = await http.PostAsync(path, new StringContent(string.Empty));
-                        response.EnsureSuccessStatusCode();
-                        return await response.Content.ReadAsStringAsync();
-                    }
-                default:
-                    throw UnsupportedProviderException(provider, vmId, nameof(VmSnapshotRevert));
+                var p = JsonSerializer.Deserialize<SnapshotNameParameters>(parameters);
+                var vmId = Guid.Parse(p.Moid);
+                var provider = await GetVmProviderAsync(vmId);
+
+                switch (provider)
+                {
+                    case VmProvider.Vsphere:
+                        return await PostJsonAsync(
+                            $"/api/vms/vsphere/{vmId}/actions/revert-to-snapshot",
+                            new { snapshotId = p.SnapshotName });
+                    case VmProvider.Proxmox:
+                        {
+                            using var scope = _scopeFactory.CreateScope();
+                            using var http = await BuildAuthenticatedHttpClientAsync(scope);
+                            var path = $"/api/vms/proxmox/{vmId}/actions/snapshots/{Uri.EscapeDataString(p.SnapshotName)}/revert";
+                            var response = await http.PostAsync(path, new StringContent(string.Empty));
+                            return await EnsureSuccessOrLogAsync(response, path, nameof(VmSnapshotRevert));
+                        }
+                    default:
+                        throw UnsupportedProviderException(provider, vmId, nameof(VmSnapshotRevert));
+                }
+            });
+
+        public STT.Task<string> VmSnapshotDelete(string parameters) =>
+            LogOnFailureAsync(nameof(VmSnapshotDelete), async () =>
+            {
+                var p = JsonSerializer.Deserialize<SnapshotNameParameters>(parameters);
+                var vmId = Guid.Parse(p.Moid);
+                var provider = await GetVmProviderAsync(vmId);
+
+                using var scope = _scopeFactory.CreateScope();
+                using var http = await BuildAuthenticatedHttpClientAsync(scope);
+
+                string path = provider switch
+                {
+                    VmProvider.Vsphere => $"/api/vms/vsphere/{vmId}/actions/snapshots/{Uri.EscapeDataString(p.SnapshotName)}",
+                    VmProvider.Proxmox => $"/api/vms/proxmox/{vmId}/actions/snapshots/{Uri.EscapeDataString(p.SnapshotName)}",
+                    _ => throw UnsupportedProviderException(provider, vmId, nameof(VmSnapshotDelete)),
+                };
+
+                var response = await http.DeleteAsync(path);
+                return await EnsureSuccessOrLogAsync(response, path, nameof(VmSnapshotDelete));
+            });
+
+        private async STT.Task<string> LogOnFailureAsync(string operation, Func<STT.Task<string>> action)
+        {
+            try
+            {
+                return await action();
             }
-        }
-
-        public async STT.Task<string> VmSnapshotDelete(string parameters)
-        {
-            var p = JsonSerializer.Deserialize<SnapshotNameParameters>(parameters);
-            var vmId = Guid.Parse(p.Moid);
-            var provider = await GetVmProviderAsync(vmId);
-
-            using var scope = _scopeFactory.CreateScope();
-            using var http = await BuildAuthenticatedHttpClientAsync(scope);
-
-            string path = provider switch
+            catch (Exception ex)
             {
-                VmProvider.Vsphere => $"/api/vms/vsphere/{vmId}/actions/snapshots/{Uri.EscapeDataString(p.SnapshotName)}",
-                VmProvider.Proxmox => $"/api/vms/proxmox/{vmId}/actions/snapshots/{Uri.EscapeDataString(p.SnapshotName)}",
-                _ => throw UnsupportedProviderException(provider, vmId, nameof(VmSnapshotDelete)),
-            };
-
-            var response = await http.DeleteAsync(path);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
+                _logger.LogError(ex, "{operation} failed", operation);
+                throw;
+            }
         }
 
         // -------- Helpers --------
@@ -360,8 +384,18 @@ namespace Steamfitter.Api.Services
             form.Add(streamContent, "files", fileName);
 
             var response = await http.PostAsync(path, form);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
+            return await EnsureSuccessOrLogAsync(response, path, callerName);
+        }
+
+        private async STT.Task<string> EnsureSuccessOrLogAsync(HttpResponseMessage response, string relativePath, string callerName)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("{caller}: Player VM API call to {path} failed: {status} {body}", callerName, relativePath, response.StatusCode, responseBody);
+                response.EnsureSuccessStatusCode();
+            }
+            return responseBody;
         }
 
         private static Guid ParseMoidAsGuid(string parameters)
@@ -477,6 +511,8 @@ namespace Steamfitter.Api.Services
             public string CommandText { get; set; }
             public string CommandArgs { get; set; }
             public string CommandWorkDirectory { get; set; }
+
+            [JsonConverter(typeof(JsonNullableIntegerConverter))]
             public int? TimeoutSeconds { get; set; }
         }
 
@@ -511,6 +547,7 @@ namespace Steamfitter.Api.Services
             public string Moid { get; set; }
             public string Name { get; set; }
             public string CloneName { get; set; }
+            [JsonConverter(typeof(JsonFlexibleBoolConverter))]
             public bool PowerOn { get; set; }
         }
 
@@ -519,6 +556,7 @@ namespace Steamfitter.Api.Services
             public string Moid { get; set; }
             public string SnapshotName { get; set; }
             public string Description { get; set; }
+            [JsonConverter(typeof(JsonFlexibleBoolConverter))]
             public bool IncludeRam { get; set; }
         }
 

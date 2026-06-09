@@ -73,7 +73,7 @@
         {
             "api": "vm",
             "action": "vm_hw_power_on",
-            "display": "vSphere Power on a VM",
+            "display": "Power on a VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -87,7 +87,7 @@
         {
             "api": "vm",
             "action": "vm_hw_power_off",
-            "display": "vSphere Power off a VM",
+            "display": "Power off a VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -101,7 +101,7 @@
         {
             "api": "vm",
             "action": "guest_file_read",
-            "display": "vSphere - Read a file from a guest VM",
+            "display": "Read a file from a guest VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -133,7 +133,7 @@
         {
             "api": "vm",
             "action": "guest_process_run",
-            "display": "vSphere Run a command on the guest VM (and capture output)",
+            "display": "Run a command on the guest VM (and capture output)",
             "requiresVm": true,
             "parameters": [
                 {
@@ -183,7 +183,7 @@
         {
             "api": "vm",
             "action": "vm_create_from_template",
-            "display": "vSphere Clone a VM from a template",
+            "display": "Clone a VM from a template",
             "requiresVm": true,
             "parameters": [
                 {
@@ -210,7 +210,7 @@
         {
             "api": "vm",
             "action": "vm_hw_remove",
-            "display": "vSphere Delete a VM",
+            "display": "Delete a VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -297,7 +297,7 @@
         {
             "api": "vm",
             "action": "guest_process_run_fast",
-            "display": "vSphere Run a command on the guest VM (FASTER)",
+            "display": "Run a command on the guest VM (FASTER)",
             "requiresVm": true,
             "parameters": [
                 {
@@ -335,7 +335,7 @@
         {
             "api": "vm",
             "action": "guest_file_upload_content",
-            "display": "vSphere Upload a text file to a guest VM",
+            "display": "Upload a text file to a guest VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -373,7 +373,7 @@
         {
             "api": "vm",
             "action": "guest_file_upload_file",
-            "display": "vSphere Upload a file to a guest VM",
+            "display": "Upload a file to a guest VM",
             "requiresVm": true,
             "parameters": [
                 {

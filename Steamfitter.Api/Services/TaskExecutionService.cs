@@ -490,7 +490,7 @@ namespace Steamfitter.Api.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogInformation(ex, "the executing task caused an exception");
+                    _logger.LogError(ex, "the executing task caused an exception");
                 }
             }
             return overallStatus;
