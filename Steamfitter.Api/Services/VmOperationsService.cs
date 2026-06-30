@@ -4,7 +4,6 @@
 using System;
 using System.IO;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -16,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Player.Vm.Api;
+using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.JsonConverters;
 using Steamfitter.Api.Infrastructure.Options;
@@ -40,8 +40,9 @@ namespace Steamfitter.Api.Services
     }
 
     /// <summary>
-    /// One of the four VM provider kinds Player VM API tracks per VM. String-cased to match the
-    /// Player VM API VmType enum exactly so we can parse it directly from JSON.
+    /// One of the four VM provider kinds Player VM API tracks per VM. Mapped from the Player VM
+    /// API VmType enum (see <see cref="VmOperationsService.MapProvider"/>); Steamfitter dispatch
+    /// is one branch per provider.
     /// </summary>
     internal enum VmProvider
     {
@@ -79,7 +80,7 @@ namespace Steamfitter.Api.Services
             _memoryCache = memoryCache;
         }
 
-        // -------- Lifecycle (typed-client where possible) --------
+        // -------- Lifecycle --------
 
         public STT.Task<string> VmPowerOn(string parameters) =>
             LogOnFailureAsync(nameof(VmPowerOn), async () =>
@@ -87,20 +88,16 @@ namespace Steamfitter.Api.Services
                 var vmId = ParseMoidAsGuid(parameters);
                 var provider = await GetVmProviderAsync(vmId);
 
-                switch (provider)
+                using var scope = _scopeFactory.CreateScope();
+                var client = await BuildTypedClientAsync(scope);
+
+                var result = provider switch
                 {
-                    case VmProvider.Vsphere:
-                        {
-                            using var scope = _scopeFactory.CreateScope();
-                            var client = await BuildTypedClientAsync(scope);
-                            var result = await client.PowerOnVsphereVirtualMachineAsync(vmId);
-                            return result?.ToString() ?? string.Empty;
-                        }
-                    case VmProvider.Proxmox:
-                        return await PostJsonAsync($"/api/vms/proxmox/{vmId}/actions/power-on", null);
-                    default:
-                        throw UnsupportedProviderException(provider, vmId, nameof(VmPowerOn));
-                }
+                    VmProvider.Vsphere => await client.PowerOnVsphereVirtualMachineAsync(vmId),
+                    VmProvider.Proxmox => await client.PowerOnProxmoxVirtualMachineAsync(vmId),
+                    _ => throw UnsupportedProviderException(provider, vmId, nameof(VmPowerOn)),
+                };
+                return result ?? string.Empty;
             });
 
         public STT.Task<string> VmPowerOff(string parameters) =>
@@ -109,20 +106,16 @@ namespace Steamfitter.Api.Services
                 var vmId = ParseMoidAsGuid(parameters);
                 var provider = await GetVmProviderAsync(vmId);
 
-                switch (provider)
+                using var scope = _scopeFactory.CreateScope();
+                var client = await BuildTypedClientAsync(scope);
+
+                var result = provider switch
                 {
-                    case VmProvider.Vsphere:
-                        {
-                            using var scope = _scopeFactory.CreateScope();
-                            var client = await BuildTypedClientAsync(scope);
-                            var result = await client.PowerOffVsphereVirtualMachineAsync(vmId);
-                            return result?.ToString() ?? string.Empty;
-                        }
-                    case VmProvider.Proxmox:
-                        return await PostJsonAsync($"/api/vms/proxmox/{vmId}/actions/power-off", null);
-                    default:
-                        throw UnsupportedProviderException(provider, vmId, nameof(VmPowerOff));
-                }
+                    VmProvider.Vsphere => await client.PowerOffVsphereVirtualMachineAsync(vmId),
+                    VmProvider.Proxmox => await client.PowerOffProxmoxVirtualMachineAsync(vmId),
+                    _ => throw UnsupportedProviderException(provider, vmId, nameof(VmPowerOff)),
+                };
+                return result ?? string.Empty;
             });
 
         // -------- Guest ops --------
@@ -132,20 +125,47 @@ namespace Steamfitter.Api.Services
             {
                 var p = JsonSerializer.Deserialize<GuestProcessParameters>(parameters);
                 var vmId = Guid.Parse(p.Moid);
+                var provider = await GetVmProviderAsync(vmId);
 
-                var body = new
+                using var scope = _scopeFactory.CreateScope();
+                var client = await BuildTypedClientAsync(scope);
+
+                GuestProcessResult result = provider switch
                 {
-                    username = p.Username,
-                    password = p.Password,
-                    programPath = p.CommandText,
-                    arguments = p.CommandArgs,
-                    workingDirectory = p.CommandWorkDirectory,
-                    timeoutSeconds = p.TimeoutSeconds
+                    VmProvider.Vsphere => await client.RunGuestProcessOnVsphereVirtualMachineAsync(vmId, new RunGuestProcessOnVsphereVirtualMachine
+                    {
+                        Username = p.Username,
+                        Password = p.Password,
+                        ProgramPath = p.CommandText,
+                        Arguments = p.CommandArgs,
+                        WorkingDirectory = p.CommandWorkDirectory,
+                        TimeoutSeconds = p.TimeoutSeconds,
+                    }),
+                    VmProvider.Proxmox => await client.RunGuestProcessOnProxmoxVirtualMachineAsync(vmId, new RunGuestProcessOnProxmoxVirtualMachine
+                    {
+                        Username = p.Username,
+                        Password = p.Password,
+                        ProgramPath = p.CommandText,
+                        Arguments = p.CommandArgs,
+                        WorkingDirectory = p.CommandWorkDirectory,
+                        TimeoutSeconds = p.TimeoutSeconds,
+                    }),
+                    _ => throw UnsupportedProviderException(provider, vmId, nameof(GuestCommand)),
                 };
 
-                return await PostJsonAsync(
-                    BuildActionPath(await GetVmProviderAsync(vmId), vmId, "run-guest-process", nameof(GuestCommand)),
-                    body);
+                var output = result?.Output ?? string.Empty;
+
+                // The guest process ran but reported failure (non-zero exit). Surface the command's
+                // output/error and fail the task regardless of any ExpectedOutput match.
+                if (result != null && !result.Success)
+                {
+                    var detail = string.IsNullOrEmpty(result.Error) ? output : $"{output}\n{result.Error}";
+                    throw new VmCommandFailedException(
+                        $"Guest process exited with code {result.ExitCode}.\n{detail}".TrimEnd(),
+                        result.ExitCode);
+                }
+
+                return output;
             });
 
         public STT.Task<string> GuestCommandFast(string parameters) =>
@@ -153,19 +173,32 @@ namespace Steamfitter.Api.Services
             {
                 var p = JsonSerializer.Deserialize<GuestProcessParameters>(parameters);
                 var vmId = Guid.Parse(p.Moid);
+                var provider = await GetVmProviderAsync(vmId);
 
-                var body = new
+                using var scope = _scopeFactory.CreateScope();
+                var client = await BuildTypedClientAsync(scope);
+
+                long result = provider switch
                 {
-                    username = p.Username,
-                    password = p.Password,
-                    programPath = p.CommandText,
-                    arguments = p.CommandArgs,
-                    workingDirectory = p.CommandWorkDirectory
+                    VmProvider.Vsphere => await client.RunGuestProcessFastOnVsphereVirtualMachineAsync(vmId, new RunGuestProcessFastOnVsphereVirtualMachine
+                    {
+                        Username = p.Username,
+                        Password = p.Password,
+                        ProgramPath = p.CommandText,
+                        Arguments = p.CommandArgs,
+                        WorkingDirectory = p.CommandWorkDirectory,
+                    }),
+                    VmProvider.Proxmox => await client.RunGuestProcessFastOnProxmoxVirtualMachineAsync(vmId, new RunGuestProcessFastOnProxmoxVirtualMachine
+                    {
+                        Username = p.Username,
+                        Password = p.Password,
+                        ProgramPath = p.CommandText,
+                        Arguments = p.CommandArgs,
+                        WorkingDirectory = p.CommandWorkDirectory,
+                    }),
+                    _ => throw UnsupportedProviderException(provider, vmId, nameof(GuestCommandFast)),
                 };
-
-                return await PostJsonAsync(
-                    BuildActionPath(await GetVmProviderAsync(vmId), vmId, "run-guest-process-fast", nameof(GuestCommandFast)),
-                    body);
+                return result.ToString();
             });
 
         public STT.Task<string> GuestReadFile(string parameters) =>
@@ -173,17 +206,28 @@ namespace Steamfitter.Api.Services
             {
                 var p = JsonSerializer.Deserialize<GuestFileReadParameters>(parameters);
                 var vmId = Guid.Parse(p.Moid);
+                var provider = await GetVmProviderAsync(vmId);
 
-                var body = new
+                using var scope = _scopeFactory.CreateScope();
+                var client = await BuildTypedClientAsync(scope);
+
+                var result = provider switch
                 {
-                    username = p.Username,
-                    password = p.Password,
-                    guestFilePath = p.GuestFilePath
+                    VmProvider.Vsphere => await client.ReadGuestFileFromVsphereVirtualMachineAsync(vmId, new ReadGuestFileFromVsphereVirtualMachine
+                    {
+                        Username = p.Username,
+                        Password = p.Password,
+                        GuestFilePath = p.GuestFilePath,
+                    }),
+                    VmProvider.Proxmox => await client.ReadGuestFileFromProxmoxVirtualMachineAsync(vmId, new ReadGuestFileFromProxmoxVirtualMachine
+                    {
+                        Username = p.Username,
+                        Password = p.Password,
+                        GuestFilePath = p.GuestFilePath,
+                    }),
+                    _ => throw UnsupportedProviderException(provider, vmId, nameof(GuestReadFile)),
                 };
-
-                return await PostJsonAsync(
-                    BuildActionPath(await GetVmProviderAsync(vmId), vmId, "read-guest-file", nameof(GuestReadFile)),
-                    body);
+                return result ?? string.Empty;
             });
 
         public STT.Task<string> GuestFileUploadContent(string parameters) =>
@@ -202,7 +246,7 @@ namespace Steamfitter.Api.Services
                 var bytes = Encoding.UTF8.GetBytes(content);
                 using var memStream = new MemoryStream(bytes);
 
-                return await UploadMultipartAsync(
+                return await UploadFileAsync(
                     vmId,
                     username: p.Username,
                     password: p.Password,
@@ -225,7 +269,7 @@ namespace Steamfitter.Api.Services
                 var fileName = Path.GetFileName(localPath);
                 using var fileStream = File.OpenRead(localPath);
 
-                return await UploadMultipartAsync(
+                return await UploadFileAsync(
                     vmId,
                     username: p.Username,
                     password: p.Password,
@@ -242,16 +286,34 @@ namespace Steamfitter.Api.Services
             {
                 var p = JsonSerializer.Deserialize<CreateVmFromTemplateParameters>(parameters);
                 var sourceVmId = Guid.Parse(p.Moid);
+                var provider = await GetVmProviderAsync(sourceVmId);
 
-                var body = new
+                using var scope = _scopeFactory.CreateScope();
+                var client = await BuildTypedClientAsync(scope);
+
+                switch (provider)
                 {
-                    cloneName = p.Name ?? p.CloneName,
-                    powerOn = p.PowerOn
-                };
-
-                return await PostJsonAsync(
-                    BuildActionPath(await GetVmProviderAsync(sourceVmId), sourceVmId, "clone-from-template", nameof(CreateVmFromTemplate)),
-                    body);
+                    case VmProvider.Vsphere:
+                        {
+                            var result = await client.CloneVsphereVirtualMachineFromTemplateAsync(sourceVmId, new CloneVsphereVirtualMachineFromTemplate
+                            {
+                                CloneName = p.Name ?? p.CloneName,
+                                PowerOn = p.PowerOn,
+                            });
+                            return result?.Id.ToString() ?? string.Empty;
+                        }
+                    case VmProvider.Proxmox:
+                        {
+                            var result = await client.CloneProxmoxVirtualMachineFromTemplateAsync(sourceVmId, new CloneProxmoxVirtualMachineFromTemplate
+                            {
+                                CloneName = p.Name ?? p.CloneName,
+                                PowerOn = p.PowerOn,
+                            });
+                            return result?.VmId.ToString() ?? string.Empty;
+                        }
+                    default:
+                        throw UnsupportedProviderException(provider, sourceVmId, nameof(CreateVmFromTemplate));
+                }
             });
 
         public STT.Task<string> VmRemove(string parameters) =>
@@ -260,20 +322,16 @@ namespace Steamfitter.Api.Services
                 var vmId = ParseMoidAsGuid(parameters);
                 var provider = await GetVmProviderAsync(vmId);
 
-                switch (provider)
+                using var scope = _scopeFactory.CreateScope();
+                var client = await BuildTypedClientAsync(scope);
+
+                var result = provider switch
                 {
-                    case VmProvider.Vsphere:
-                    case VmProvider.Proxmox:
-                        {
-                            using var scope = _scopeFactory.CreateScope();
-                            using var http = await BuildAuthenticatedHttpClientAsync(scope);
-                            var path = $"/api/vms/{ProviderSegment(provider)}/{vmId}/actions/delete";
-                            var response = await http.PostAsync(path, new StringContent(string.Empty));
-                            return await EnsureSuccessOrLogAsync(response, path, nameof(VmRemove));
-                        }
-                    default:
-                        throw UnsupportedProviderException(provider, vmId, nameof(VmRemove));
-                }
+                    VmProvider.Vsphere => await client.DeleteVsphereVirtualMachineAsync(vmId),
+                    VmProvider.Proxmox => await client.DeleteProxmoxVirtualMachineAsync(vmId),
+                    _ => throw UnsupportedProviderException(provider, vmId, nameof(VmRemove)),
+                };
+                return result ?? string.Empty;
             });
 
         // -------- Snapshots --------
@@ -285,16 +343,26 @@ namespace Steamfitter.Api.Services
                 var vmId = Guid.Parse(p.Moid);
                 var provider = await GetVmProviderAsync(vmId);
 
-                return provider switch
+                using var scope = _scopeFactory.CreateScope();
+                var client = await BuildTypedClientAsync(scope);
+
+                var result = provider switch
                 {
-                    VmProvider.Vsphere => await PostJsonAsync(
-                        $"/api/vms/vsphere/{vmId}/actions/snapshots",
-                        new { snapshotName = p.SnapshotName, description = p.Description, includeMemory = p.IncludeRam }),
-                    VmProvider.Proxmox => await PostJsonAsync(
-                        $"/api/vms/proxmox/{vmId}/actions/snapshots",
-                        new { snapshotName = p.SnapshotName, description = p.Description, includeRam = p.IncludeRam }),
+                    VmProvider.Vsphere => await client.CreateVsphereVirtualMachineSnapshotAsync(vmId, new CreateVsphereVirtualMachineSnapshot
+                    {
+                        SnapshotName = p.SnapshotName,
+                        Description = p.Description,
+                        IncludeMemory = p.IncludeRam,
+                    }),
+                    VmProvider.Proxmox => await client.CreateProxmoxVirtualMachineSnapshotAsync(vmId, new CreateProxmoxVirtualMachineSnapshot
+                    {
+                        SnapshotName = p.SnapshotName,
+                        Description = p.Description,
+                        IncludeRam = p.IncludeRam,
+                    }),
                     _ => throw UnsupportedProviderException(provider, vmId, nameof(VmSnapshotCreate)),
                 };
+                return result ?? string.Empty;
             });
 
         public STT.Task<string> VmSnapshotRevert(string parameters) =>
@@ -304,19 +372,21 @@ namespace Steamfitter.Api.Services
                 var vmId = Guid.Parse(p.Moid);
                 var provider = await GetVmProviderAsync(vmId);
 
+                using var scope = _scopeFactory.CreateScope();
+                var client = await BuildTypedClientAsync(scope);
+
                 switch (provider)
                 {
                     case VmProvider.Vsphere:
-                        return await PostJsonAsync(
-                            $"/api/vms/vsphere/{vmId}/actions/revert-to-snapshot",
-                            new { snapshotId = p.SnapshotName });
+                        await client.RevertToVsphereVirtualMachineSnapshotAsync(vmId, new RevertToVsphereVirtualMachineSnapshot
+                        {
+                            SnapshotId = p.SnapshotName,
+                        });
+                        return string.Empty;
                     case VmProvider.Proxmox:
                         {
-                            using var scope = _scopeFactory.CreateScope();
-                            using var http = await BuildAuthenticatedHttpClientAsync(scope);
-                            var path = $"/api/vms/proxmox/{vmId}/actions/snapshots/{Uri.EscapeDataString(p.SnapshotName)}/revert";
-                            var response = await http.PostAsync(path, new StringContent(string.Empty));
-                            return await EnsureSuccessOrLogAsync(response, path, nameof(VmSnapshotRevert));
+                            var result = await client.RevertProxmoxVirtualMachineSnapshotAsync(vmId, p.SnapshotName);
+                            return result ?? string.Empty;
                         }
                     default:
                         throw UnsupportedProviderException(provider, vmId, nameof(VmSnapshotRevert));
@@ -331,17 +401,15 @@ namespace Steamfitter.Api.Services
                 var provider = await GetVmProviderAsync(vmId);
 
                 using var scope = _scopeFactory.CreateScope();
-                using var http = await BuildAuthenticatedHttpClientAsync(scope);
+                var client = await BuildTypedClientAsync(scope);
 
-                string path = provider switch
+                var result = provider switch
                 {
-                    VmProvider.Vsphere => $"/api/vms/vsphere/{vmId}/actions/snapshots/{Uri.EscapeDataString(p.SnapshotName)}",
-                    VmProvider.Proxmox => $"/api/vms/proxmox/{vmId}/actions/snapshots/{Uri.EscapeDataString(p.SnapshotName)}",
+                    VmProvider.Vsphere => await client.DeleteVsphereVirtualMachineSnapshotAsync(vmId, p.SnapshotName),
+                    VmProvider.Proxmox => await client.DeleteProxmoxVirtualMachineSnapshotAsync(vmId, p.SnapshotName),
                     _ => throw UnsupportedProviderException(provider, vmId, nameof(VmSnapshotDelete)),
                 };
-
-                var response = await http.DeleteAsync(path);
-                return await EnsureSuccessOrLogAsync(response, path, nameof(VmSnapshotDelete));
+                return result ?? string.Empty;
             });
 
         private async STT.Task<string> LogOnFailureAsync(string operation, Func<STT.Task<string>> action)
@@ -359,7 +427,7 @@ namespace Steamfitter.Api.Services
 
         // -------- Helpers --------
 
-        private async STT.Task<string> UploadMultipartAsync(
+        private async STT.Task<string> UploadFileAsync(
             Guid vmId,
             string username,
             string password,
@@ -369,33 +437,21 @@ namespace Steamfitter.Api.Services
             string callerName)
         {
             var provider = await GetVmProviderAsync(vmId);
-            var path = BuildActionPath(provider, vmId, "upload-file", callerName);
 
             using var scope = _scopeFactory.CreateScope();
-            using var http = await BuildAuthenticatedHttpClientAsync(scope);
+            var client = await BuildTypedClientAsync(scope);
 
-            using var form = new MultipartFormDataContent();
-            form.Add(new StringContent(username ?? string.Empty), "username");
-            form.Add(new StringContent(password ?? string.Empty), "password");
-            form.Add(new StringContent(directoryPath ?? string.Empty), "filepath");
+            var files = new[] { new FileParameter(fileContent, fileName, "application/octet-stream") };
 
-            var streamContent = new StreamContent(fileContent);
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            form.Add(streamContent, "files", fileName);
-
-            var response = await http.PostAsync(path, form);
-            return await EnsureSuccessOrLogAsync(response, path, callerName);
-        }
-
-        private async STT.Task<string> EnsureSuccessOrLogAsync(HttpResponseMessage response, string relativePath, string callerName)
-        {
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (!response.IsSuccessStatusCode)
+            var result = provider switch
             {
-                _logger.LogWarning("{caller}: Player VM API call to {path} failed: {status} {body}", callerName, relativePath, response.StatusCode, responseBody);
-                response.EnsureSuccessStatusCode();
-            }
-            return responseBody;
+                VmProvider.Vsphere => await client.UploadFileToVsphereVirtualMachineAsync(
+                    vmId, username ?? string.Empty, password ?? string.Empty, directoryPath ?? string.Empty, files),
+                VmProvider.Proxmox => await client.UploadFileToProxmoxVirtualMachineAsync(
+                    vmId, username ?? string.Empty, password ?? string.Empty, directoryPath ?? string.Empty, files),
+                _ => throw UnsupportedProviderException(provider, vmId, callerName),
+            };
+            return result ?? string.Empty;
         }
 
         private static Guid ParseMoidAsGuid(string parameters)
@@ -411,33 +467,6 @@ namespace Steamfitter.Api.Services
             return VmApiExtensions.GetVmApiClient(_httpClientFactory, _clientOptions.CurrentValue.urls.vmApi, token);
         }
 
-        private async STT.Task<HttpClient> BuildAuthenticatedHttpClientAsync(IServiceScope scope)
-        {
-            var token = await ApiClientsExtensions.GetToken(scope);
-            return ApiClientsExtensions.GetHttpClient(_httpClientFactory, _clientOptions.CurrentValue.urls.vmApi, token);
-        }
-
-        private async STT.Task<string> PostJsonAsync(string relativePath, object body)
-        {
-            using var scope = _scopeFactory.CreateScope();
-            using var http = await BuildAuthenticatedHttpClientAsync(scope);
-
-            HttpContent content = body == null
-                ? new StringContent(string.Empty)
-                : new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-
-            using var response = await http.PostAsync(relativePath, content);
-            content.Dispose();
-
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Player VM API call to {path} failed: {status} {body}", relativePath, response.StatusCode, responseBody);
-                response.EnsureSuccessStatusCode();
-            }
-            return responseBody;
-        }
-
         /// <summary>
         /// Resolve the VM's provider via Player VM API. Cached for VmTypeCacheTtl. The provider
         /// is the source of truth for whether a VM is vSphere, Proxmox, etc — Steamfitter dispatch
@@ -450,43 +479,21 @@ namespace Steamfitter.Api.Services
                 return cached;
 
             using var scope = _scopeFactory.CreateScope();
-            using var http = await BuildAuthenticatedHttpClientAsync(scope);
+            var client = await BuildTypedClientAsync(scope);
 
-            using var response = await http.GetAsync($"/api/vms/{vmId}");
-            response.EnsureSuccessStatusCode();
-            var body = await response.Content.ReadAsStringAsync();
-
-            using var doc = JsonDocument.Parse(body);
-            var typeStr = doc.RootElement.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : null;
-
-            var provider = ParseProvider(typeStr);
+            var vm = await client.GetVmAsync(vmId);
+            var provider = MapProvider(vm.Type);
             _memoryCache.Set(cacheKey, provider, VmTypeCacheTtl);
             return provider;
         }
 
-        private static VmProvider ParseProvider(string raw) =>
-            raw?.ToLowerInvariant() switch
-            {
-                "vsphere" => VmProvider.Vsphere,
-                "proxmox" => VmProvider.Proxmox,
-                "azure" => VmProvider.Azure,
-                _ => VmProvider.Unknown,
-            };
-
-        private static string ProviderSegment(VmProvider provider) => provider switch
+        private static VmProvider MapProvider(VmType type) => type switch
         {
-            VmProvider.Vsphere => "vsphere",
-            VmProvider.Proxmox => "proxmox",
-            _ => throw new InvalidOperationException($"No URL segment for provider {provider}"),
+            VmType.Vsphere => VmProvider.Vsphere,
+            VmType.Proxmox => VmProvider.Proxmox,
+            VmType.Azure => VmProvider.Azure,
+            _ => VmProvider.Unknown,
         };
-
-        private static string BuildActionPath(VmProvider provider, Guid vmId, string action, string caller)
-        {
-            if (provider != VmProvider.Vsphere && provider != VmProvider.Proxmox)
-                throw UnsupportedProviderException(provider, vmId, caller);
-
-            return $"/api/vms/{ProviderSegment(provider)}/{vmId}/actions/{action}";
-        }
 
         private static NotSupportedException UnsupportedProviderException(VmProvider provider, Guid vmId, string operation) =>
             new NotSupportedException($"VM {vmId} has provider '{provider}', which does not support operation '{operation}'.");

@@ -117,10 +117,7 @@ namespace Steamfitter.Api.Infrastructure.Extensions
                 httpClient.BaseAddress = vmUri;
                 httpClient.DefaultRequestHeaders.Add("Authorization", authHeader);
 
-                var apiClient = new PlayerVmApiClient(httpClient, true)
-                {
-                    BaseUri = vmUri
-                };
+                var apiClient = new PlayerVmApiClient(httpClient);
 
                 return apiClient;
             });

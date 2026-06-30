@@ -16,16 +16,13 @@ namespace Steamfitter.Api.Infrastructure.Extensions
         public static PlayerVmApiClient GetVmApiClient(IHttpClientFactory httpClientFactory, string apiUrl, TokenResponse tokenResponse)
         {
             var client = ApiClientsExtensions.GetHttpClient(httpClientFactory, apiUrl, tokenResponse);
-            var apiClient = new PlayerVmApiClient(client, true)
-            {
-                BaseUri = client.BaseAddress
-            };
+            var apiClient = new PlayerVmApiClient(client);
             return apiClient;
         }
 
-        public static async Task<IEnumerable<Player.Vm.Api.Models.Vm>> GetViewVmsAsync(PlayerVmApiClient playerVmApiClient, Guid viewId, CancellationToken ct)
+        public static async Task<IEnumerable<Vm>> GetViewVmsAsync(PlayerVmApiClient playerVmApiClient, Guid viewId, CancellationToken ct)
         {
-            var vms = (await playerVmApiClient.GetViewVmsAsync(viewId, null, true, false, ct)) as IEnumerable<Player.Vm.Api.Models.Vm>;
+            var vms = await playerVmApiClient.GetViewVmsAsync(viewId, null, true, false, ct);
             return vms;
         }
 

@@ -359,7 +359,7 @@ namespace Steamfitter.Api.Services
                 // at this point, the VmMask could contain an actual mask, or a comma separated list of VM ID's
                 var vmMaskList = taskToExecute.VmMask.Split(",").ToList();
                 var vmIdList = new List<Guid>();
-                var vmList = new List<Player.Vm.Api.Models.Vm>();
+                var vmList = new List<Vm>();
                 // create the ID list, if the mask is a list of Guid's. If not Guid's, vmIdList will end up empty.
                 foreach (var mask in vmMaskList)
                 {
@@ -471,8 +471,28 @@ namespace Steamfitter.Api.Services
                 {
                     var task = await bucket;
                     var resultEntity = xref[task.Id];
-                    resultEntity.ActualOutput = task.Result == null ? "" : task.Result.ToString();
-                    resultEntity.Status = ProcessResult(resultEntity, ct);
+
+                    if (task.IsCanceled)
+                    {
+                        _logger.LogInformation("the executing task was cancelled");
+                        resultEntity.Status = Data.TaskStatus.cancelled;
+                    }
+                    else if (task.IsFaulted)
+                    {
+                        // The operation threw (e.g. a non-zero guest exit code raised
+                        // VmCommandFailedException, an API error, or a transport failure).
+                        // Surface the message so the UI shows why the task failed, and mark it failed.
+                        var ex = task.Exception?.GetBaseException();
+                        _logger.LogError(ex, "the executing task caused an exception");
+                        resultEntity.ActualOutput = ex?.Message ?? "The task failed with an unknown error.";
+                        resultEntity.Status = Data.TaskStatus.failed;
+                    }
+                    else
+                    {
+                        resultEntity.ActualOutput = task.Result == null ? "" : task.Result.ToString();
+                        resultEntity.Status = ProcessResult(resultEntity, ct);
+                    }
+
                     resultEntity.StatusDate = DateTime.UtcNow;
                     if (resultEntity.Status != Data.TaskStatus.succeeded)
                     {
@@ -484,13 +504,9 @@ namespace Steamfitter.Api.Services
                     await steamfitterContext.SaveChangesAsync();
                     await SendNotificationAsync(new List<ResultEntity>{resultEntity});
                 }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogInformation("the executing task was cancelled");
-                }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "the executing task caused an exception");
+                    _logger.LogError(ex, "recording the executing task result caused an exception");
                 }
             }
             return overallStatus;
