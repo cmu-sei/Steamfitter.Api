@@ -543,12 +543,6 @@ namespace Steamfitter.Api.Services
                             case TaskAction.vm_hw_power_off:
                                 task = STT.Task.Run(() => _vmOperationsService.VmPowerOff(resultEntity.InputString));
                                 break;
-                            case TaskAction.vm_create_from_template:
-                                task = STT.Task.Run(() => _vmOperationsService.CreateVmFromTemplate(resultEntity.InputString));
-                                break;
-                            case TaskAction.vm_hw_remove:
-                                task = STT.Task.Run(() => _vmOperationsService.VmRemove(resultEntity.InputString));
-                                break;
                             case TaskAction.vm_snapshot_create:
                                 task = STT.Task.Run(() => _vmOperationsService.VmSnapshotCreate(resultEntity.InputString));
                                 break;

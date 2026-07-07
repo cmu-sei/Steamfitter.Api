@@ -2811,12 +2811,6 @@ namespace Steamfitter.Api.Client
         [System.Runtime.Serialization.EnumMember(Value = @"vm_hw_power_on")]
         Vm_hw_power_on = 8,
 
-        [System.Runtime.Serialization.EnumMember(Value = @"vm_create_from_template")]
-        Vm_create_from_template = 9,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"vm_hw_remove")]
-        Vm_hw_remove = 10,
-
         [System.Runtime.Serialization.EnumMember(Value = @"guest_process_run_fast")]
         Guest_process_run_fast = 11,
 

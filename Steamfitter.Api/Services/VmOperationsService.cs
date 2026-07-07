@@ -32,8 +32,6 @@ namespace Steamfitter.Api.Services
         STT.Task<string> GuestFileUploadFile(string parameters);
         STT.Task<string> VmPowerOn(string parameters);
         STT.Task<string> VmPowerOff(string parameters);
-        STT.Task<string> CreateVmFromTemplate(string parameters);
-        STT.Task<string> VmRemove(string parameters);
         STT.Task<string> VmSnapshotCreate(string parameters);
         STT.Task<string> VmSnapshotRevert(string parameters);
         STT.Task<string> VmSnapshotDelete(string parameters);
@@ -143,8 +141,6 @@ namespace Steamfitter.Api.Services
                     }),
                     VmProvider.Proxmox => await client.RunGuestProcessOnProxmoxVirtualMachineAsync(vmId, new RunGuestProcessOnProxmoxVirtualMachine
                     {
-                        Username = p.Username,
-                        Password = p.Password,
                         ProgramPath = p.CommandText,
                         Arguments = p.CommandArgs,
                         WorkingDirectory = p.CommandWorkDirectory,
@@ -190,8 +186,6 @@ namespace Steamfitter.Api.Services
                     }),
                     VmProvider.Proxmox => await client.RunGuestProcessFastOnProxmoxVirtualMachineAsync(vmId, new RunGuestProcessFastOnProxmoxVirtualMachine
                     {
-                        Username = p.Username,
-                        Password = p.Password,
                         ProgramPath = p.CommandText,
                         Arguments = p.CommandArgs,
                         WorkingDirectory = p.CommandWorkDirectory,
@@ -221,8 +215,6 @@ namespace Steamfitter.Api.Services
                     }),
                     VmProvider.Proxmox => await client.ReadGuestFileFromProxmoxVirtualMachineAsync(vmId, new ReadGuestFileFromProxmoxVirtualMachine
                     {
-                        Username = p.Username,
-                        Password = p.Password,
                         GuestFilePath = p.GuestFilePath,
                     }),
                     _ => throw UnsupportedProviderException(provider, vmId, nameof(GuestReadFile)),
@@ -280,59 +272,6 @@ namespace Steamfitter.Api.Services
             });
 
         // -------- Provisioning --------
-
-        public STT.Task<string> CreateVmFromTemplate(string parameters) =>
-            LogOnFailureAsync(nameof(CreateVmFromTemplate), async () =>
-            {
-                var p = JsonSerializer.Deserialize<CreateVmFromTemplateParameters>(parameters);
-                var sourceVmId = Guid.Parse(p.Moid);
-                var provider = await GetVmProviderAsync(sourceVmId);
-
-                using var scope = _scopeFactory.CreateScope();
-                var client = await BuildTypedClientAsync(scope);
-
-                switch (provider)
-                {
-                    case VmProvider.Vsphere:
-                        {
-                            var result = await client.CloneVsphereVirtualMachineFromTemplateAsync(sourceVmId, new CloneVsphereVirtualMachineFromTemplate
-                            {
-                                CloneName = p.Name ?? p.CloneName,
-                                PowerOn = p.PowerOn,
-                            });
-                            return result?.Id.ToString() ?? string.Empty;
-                        }
-                    case VmProvider.Proxmox:
-                        {
-                            var result = await client.CloneProxmoxVirtualMachineFromTemplateAsync(sourceVmId, new CloneProxmoxVirtualMachineFromTemplate
-                            {
-                                CloneName = p.Name ?? p.CloneName,
-                                PowerOn = p.PowerOn,
-                            });
-                            return result?.VmId.ToString() ?? string.Empty;
-                        }
-                    default:
-                        throw UnsupportedProviderException(provider, sourceVmId, nameof(CreateVmFromTemplate));
-                }
-            });
-
-        public STT.Task<string> VmRemove(string parameters) =>
-            LogOnFailureAsync(nameof(VmRemove), async () =>
-            {
-                var vmId = ParseMoidAsGuid(parameters);
-                var provider = await GetVmProviderAsync(vmId);
-
-                using var scope = _scopeFactory.CreateScope();
-                var client = await BuildTypedClientAsync(scope);
-
-                var result = provider switch
-                {
-                    VmProvider.Vsphere => await client.DeleteVsphereVirtualMachineAsync(vmId),
-                    VmProvider.Proxmox => await client.DeleteProxmoxVirtualMachineAsync(vmId),
-                    _ => throw UnsupportedProviderException(provider, vmId, nameof(VmRemove)),
-                };
-                return result ?? string.Empty;
-            });
 
         // -------- Snapshots --------
 
@@ -448,7 +387,7 @@ namespace Steamfitter.Api.Services
                 VmProvider.Vsphere => await client.UploadFileToVsphereVirtualMachineAsync(
                     vmId, username ?? string.Empty, password ?? string.Empty, directoryPath ?? string.Empty, files),
                 VmProvider.Proxmox => await client.UploadFileToProxmoxVirtualMachineAsync(
-                    vmId, username ?? string.Empty, password ?? string.Empty, directoryPath ?? string.Empty, files),
+                    vmId, directoryPath ?? string.Empty, files),
                 _ => throw UnsupportedProviderException(provider, vmId, callerName),
             };
             return result ?? string.Empty;
@@ -547,15 +486,6 @@ namespace Steamfitter.Api.Services
             public string Password { get; set; }
             public string GuestFilePath { get; set; }
             public string FilePath { get; set; }
-        }
-
-        private class CreateVmFromTemplateParameters
-        {
-            public string Moid { get; set; }
-            public string Name { get; set; }
-            public string CloneName { get; set; }
-            [JsonConverter(typeof(JsonFlexibleBoolConverter))]
-            public bool PowerOn { get; set; }
         }
 
         private class SnapshotCreateParameters

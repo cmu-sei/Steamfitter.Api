@@ -16,8 +16,6 @@ namespace Steamfitter.Api.Data
         guest_file_write = 102,
         vm_hw_power_off = 103,
         vm_hw_power_on = 104,
-        vm_create_from_template = 105,
-        vm_hw_remove = 106,
         guest_process_run_fast = 107,
         guest_file_upload_content = 108,
         send_email = 109,

@@ -182,47 +182,6 @@
         },
         {
             "api": "vm",
-            "action": "vm_create_from_template",
-            "display": "Clone a VM from a template",
-            "requiresVm": true,
-            "parameters": [
-                {
-                    "key": "Moid",
-                    "display": "Template VM",
-                    "hint": "Select the source VM/template",
-                    "inputType": "guid"
-                },
-                {
-                    "key": "Name",
-                    "display": "Clone Name",
-                    "hint": "Name to assign to the cloned VM",
-                    "inputType": "text"
-                },
-                {
-                    "key": "PowerOn",
-                    "display": "Power On After Clone",
-                    "hint": "Power on the cloned VM once the clone task succeeds",
-                    "inputType": "checkbox",
-                    "default": "false"
-                }
-            ]
-        },
-        {
-            "api": "vm",
-            "action": "vm_hw_remove",
-            "display": "Delete a VM",
-            "requiresVm": true,
-            "parameters": [
-                {
-                    "key": "Moid",
-                    "display": "VM",
-                    "hint": "Select a VM",
-                    "inputType": "guid"
-                }
-            ]
-        },
-        {
-            "api": "vm",
             "action": "vm_snapshot_create",
             "display": "Create a VM snapshot",
             "requiresVm": true,
