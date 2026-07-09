@@ -44,7 +44,6 @@ namespace Steamfitter.Api.Services
         private readonly IVmOperationsService _vmOperationsService;
         private readonly ISshService _sshService;
         private readonly IEmailService _emailService;
-        private readonly IAzureVmService _azureVmService;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly StartupHealthCheck _startupHealthCheck;
         private readonly IOptionsMonitor<Infrastructure.Options.ClientOptions> _clientOptions;
@@ -59,7 +58,6 @@ namespace Steamfitter.Api.Services
             IVmOperationsService vmOperationsService,
             ISshService sshService,
             IEmailService emailService,
-            IAzureVmService azureVmService,
             ITaskExecutionQueue taskExecutionQueue,
             IHttpClientFactory httpClientFactory,
             IOptionsMonitor<Infrastructure.Options.ClientOptions> clientOptions,
@@ -74,7 +72,6 @@ namespace Steamfitter.Api.Services
             _vmOperationsService = vmOperationsService;
             _sshService = sshService;
             _emailService = emailService;
-            _azureVmService = azureVmService;
             _taskExecutionQueue = taskExecutionQueue;
             _httpClientFactory = httpClientFactory;
             _clientOptions = clientOptions;
@@ -597,33 +594,6 @@ namespace Steamfitter.Api.Services
                             default:
                                 {
                                     var message = $"Email Action {taskToExecute.Action} has not been implemented.";
-                                    _logger.LogError(message);
-                                    resultEntity.Status = Data.TaskStatus.failed;
-                                    resultEntity.StatusDate = DateTime.UtcNow;
-                                    break;
-                                }
-                        }
-                        break;
-                    }
-                case "azure": // _azureVmService
-                    {
-                        switch (taskToExecute.Action)
-                        {
-                            case TaskAction.az_vm_shell_script:
-                                task = STT.Task.Run(() => _azureVmService.RunShellScript(resultEntity.InputString));
-                                break;
-                            case TaskAction.az_get_vms:
-                                task = STT.Task.Run(() => _azureVmService.GetVms(resultEntity.InputString));
-                                break;
-                            case TaskAction.az_vm_power_off:
-                                task = STT.Task.Run(() => _azureVmService.VmPowerOff(resultEntity.InputString));
-                                break;
-                            case TaskAction.az_vm_power_on:
-                                task = STT.Task.Run(() => _azureVmService.VmPowerOn(resultEntity.InputString));
-                                break;
-                            default:
-                                {
-                                    var message = $"Azure Action {taskToExecute.Action} has not been implemented.";
                                     _logger.LogError(message);
                                     resultEntity.Status = Data.TaskStatus.failed;
                                     resultEntity.StatusDate = DateTime.UtcNow;

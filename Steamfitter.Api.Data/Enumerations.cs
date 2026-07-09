@@ -10,7 +10,7 @@ namespace Steamfitter.Api.Data
         http_post = 12,
         http_put = 13,
         http_delete = 14,
-        // vm/ssh/email/azure actions
+        // vm/ssh/email actions
         guest_process_run = 100,
         guest_file_read = 101,
         guest_file_write = 102,
@@ -19,10 +19,6 @@ namespace Steamfitter.Api.Data
         guest_process_run_fast = 107,
         guest_file_upload_content = 108,
         send_email = 109,
-        az_vm_shell_script = 110,
-        az_get_vms = 111,
-        az_vm_power_off = 112,
-        az_vm_power_on = 113,
         guest_file_upload_file = 114,
         linux_file_touch = 115,
         linux_rm = 116,

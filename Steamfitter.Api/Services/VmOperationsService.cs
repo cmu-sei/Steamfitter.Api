@@ -38,7 +38,7 @@ namespace Steamfitter.Api.Services
     }
 
     /// <summary>
-    /// One of the four VM provider kinds Player VM API tracks per VM. Mapped from the Player VM
+    /// One of the VM provider kinds Player VM API tracks per VM. Mapped from the Player VM
     /// API VmType enum (see <see cref="VmOperationsService.MapProvider"/>); Steamfitter dispatch
     /// is one branch per provider.
     /// </summary>
@@ -46,8 +46,7 @@ namespace Steamfitter.Api.Services
     {
         Unknown = 0,
         Vsphere = 1,
-        Proxmox = 2,
-        Azure = 3
+        Proxmox = 2
     }
 
     public class VmOperationsService : IVmOperationsService
@@ -430,7 +429,6 @@ namespace Steamfitter.Api.Services
         {
             VmType.Vsphere => VmProvider.Vsphere,
             VmType.Proxmox => VmProvider.Proxmox,
-            VmType.Azure => VmProvider.Azure,
             _ => VmProvider.Unknown,
         };
 

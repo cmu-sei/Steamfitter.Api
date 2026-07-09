@@ -2820,18 +2820,6 @@ namespace Steamfitter.Api.Client
         [System.Runtime.Serialization.EnumMember(Value = @"send_email")]
         Send_email = 13,
 
-        [System.Runtime.Serialization.EnumMember(Value = @"az_vm_shell_script")]
-        Az_vm_shell_script = 14,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"az_get_vms")]
-        Az_get_vms = 15,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"az_vm_power_off")]
-        Az_vm_power_off = 16,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"az_vm_power_on")]
-        Az_vm_power_on = 17,
-
         [System.Runtime.Serialization.EnumMember(Value = @"guest_file_upload_file")]
         Guest_file_upload_file = 18,
 

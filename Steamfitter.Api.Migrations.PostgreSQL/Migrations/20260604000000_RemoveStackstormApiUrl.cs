@@ -24,24 +24,18 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
             //   107 guest_process_run_fast
             //   108 guest_file_upload_content
             //   109 send_email
-            //   110 az_vm_shell_script
-            //   111 az_get_vms
-            //   112 az_vm_power_off
-            //   113 az_vm_power_on
             //   114 guest_file_upload_file
             //   115 linux_file_touch
             //   116 linux_rm
             //   117 core_remote
             const string vmActions = "(100,101,102,103,104,105,106,107,108,114)";
             const string emailActions = "(109)";
-            const string azureActions = "(110,111,112,113)";
             const string sshActions = "(115,116,117)";
 
             foreach (var table in new[] { "tasks", "results" })
             {
                 migrationBuilder.Sql($"UPDATE {table} SET api_url = 'vm'    WHERE api_url = 'stackstorm' AND action IN {vmActions};");
                 migrationBuilder.Sql($"UPDATE {table} SET api_url = 'email' WHERE api_url = 'stackstorm' AND action IN {emailActions};");
-                migrationBuilder.Sql($"UPDATE {table} SET api_url = 'azure' WHERE api_url = 'stackstorm' AND action IN {azureActions};");
                 migrationBuilder.Sql($"UPDATE {table} SET api_url = 'ssh'   WHERE api_url = 'stackstorm' AND action IN {sshActions};");
             }
         }
@@ -50,8 +44,8 @@ namespace Steamfitter.Api.Migrations.PostgreSQL.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             // Restore prior 'stackstorm' value for any rows whose api_url was rewritten.
-            migrationBuilder.Sql("UPDATE tasks   SET api_url = 'stackstorm' WHERE api_url IN ('vm','email','azure','ssh');");
-            migrationBuilder.Sql("UPDATE results SET api_url = 'stackstorm' WHERE api_url IN ('vm','email','azure','ssh');");
+            migrationBuilder.Sql("UPDATE tasks   SET api_url = 'stackstorm' WHERE api_url IN ('vm','email','ssh');");
+            migrationBuilder.Sql("UPDATE results SET api_url = 'stackstorm' WHERE api_url IN ('vm','email','ssh');");
         }
     }
 }

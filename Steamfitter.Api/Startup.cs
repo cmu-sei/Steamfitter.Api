@@ -60,7 +60,7 @@ public class Startup
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-        // Add Azure Application Insights, if connection string is supplied
+        // Add Application Insights, if connection string is supplied
         string appInsights = Configuration["ApplicationInsights:ConnectionString"];
         if (!string.IsNullOrWhiteSpace(appInsights))
         {
@@ -133,10 +133,6 @@ public class Startup
         services
             .Configure<SshOptions>(Configuration.GetSection("Ssh"))
             .AddSingleton(config => config.GetService<IOptionsMonitor<SshOptions>>().CurrentValue);
-
-        services
-            .Configure<AzureOptions>(Configuration.GetSection("Azure"))
-            .AddSingleton(config => config.GetService<IOptionsMonitor<AzureOptions>>().CurrentValue);
 
         services
             .Configure<Infrastructure.Options.XApiOptions>(Configuration.GetSection("XApiOptions"))
@@ -232,7 +228,6 @@ public class Startup
         services.AddSingleton<IVmOperationsService, VmOperationsService>();
         services.AddSingleton<ISshService, SshService>();
         services.AddSingleton<IEmailService, EmailService>();
-        services.AddSingleton<IAzureVmService, AzureVmService>();
         services.AddSingleton<ITaskExecutionQueue, TaskExecutionQueue>();
         services.AddHostedService<TaskExecutionService>();
         services.AddHostedService<TaskMaintenanceService>();
