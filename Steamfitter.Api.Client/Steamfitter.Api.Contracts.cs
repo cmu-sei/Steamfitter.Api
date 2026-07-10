@@ -2811,12 +2811,6 @@ namespace Steamfitter.Api.Client
         [System.Runtime.Serialization.EnumMember(Value = @"vm_hw_power_on")]
         Vm_hw_power_on = 8,
 
-        [System.Runtime.Serialization.EnumMember(Value = @"vm_create_from_template")]
-        Vm_create_from_template = 9,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"vm_hw_remove")]
-        Vm_hw_remove = 10,
-
         [System.Runtime.Serialization.EnumMember(Value = @"guest_process_run_fast")]
         Guest_process_run_fast = 11,
 
@@ -2825,18 +2819,6 @@ namespace Steamfitter.Api.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"send_email")]
         Send_email = 13,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"az_vm_shell_script")]
-        Az_vm_shell_script = 14,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"az_get_vms")]
-        Az_get_vms = 15,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"az_vm_power_off")]
-        Az_vm_power_off = 16,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"az_vm_power_on")]
-        Az_vm_power_on = 17,
 
         [System.Runtime.Serialization.EnumMember(Value = @"guest_file_upload_file")]
         Guest_file_upload_file = 18,

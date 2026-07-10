@@ -42,12 +42,6 @@ namespace Steamfitter.Api.Infrastructure.Extensions
                         if (databaseOptions.DevModeRecreate)
                         {
                             ctx.Database.EnsureCreated();
-
-                            if (!ctx.ScenarioTemplates.Any())
-                            {
-                                Seed.Run(ctx);
-                            }
-
                         }
                         var seedDataOptions = services.GetService<SeedDataOptions>();
                         ProcessSeedDataOptions(seedDataOptions, ctx);

@@ -60,7 +60,7 @@ public class Startup
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-        // Add Azure Application Insights, if connection string is supplied
+        // Add Application Insights, if connection string is supplied
         string appInsights = Configuration["ApplicationInsights:ConnectionString"];
         if (!string.IsNullOrWhiteSpace(appInsights))
         {
@@ -125,6 +125,14 @@ public class Startup
         services
             .Configure<FilesOptions>(Configuration.GetSection("Files"))
             .AddScoped(config => config.GetService<IOptionsMonitor<FilesOptions>>().CurrentValue);
+
+        services
+            .Configure<EmailOptions>(Configuration.GetSection("Email"))
+            .AddSingleton(config => config.GetService<IOptionsMonitor<EmailOptions>>().CurrentValue);
+
+        services
+            .Configure<SshOptions>(Configuration.GetSection("Ssh"))
+            .AddSingleton(config => config.GetService<IOptionsMonitor<SshOptions>>().CurrentValue);
 
         services
             .Configure<Infrastructure.Options.XApiOptions>(Configuration.GetSection("XApiOptions"))
@@ -217,9 +225,9 @@ public class Startup
         services.AddScoped<IIdentityResolver, IdentityResolver>();
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<ISystemRoleService, SystemRoleService>();
-        services.AddSingleton<StackStormService>();
-        services.AddSingleton<IHostedService>(x => x.GetService<StackStormService>());
-        services.AddSingleton<IStackStormService>(x => x.GetService<StackStormService>());
+        services.AddSingleton<IVmOperationsService, VmOperationsService>();
+        services.AddSingleton<ISshService, SshService>();
+        services.AddSingleton<IEmailService, EmailService>();
         services.AddSingleton<ITaskExecutionQueue, TaskExecutionQueue>();
         services.AddHostedService<TaskExecutionService>();
         services.AddHostedService<TaskMaintenanceService>();

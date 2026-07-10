@@ -1,79 +1,9 @@
 {
     "availableCommands": [
         {
-            "api": "stackstorm",
-            "action": "az_vm_shell_script",
-            "display": "AzureGov VM Shell Script Execution",
-            "requiresVm": true,
-            "parameters": [
-                {
-                    "key": "VmName",
-                    "display": "VM Name",
-                    "hint": "Select a VM",
-                    "inputType": "guid"
-                },
-                {
-                    "key": "Script",
-                    "display": "Shell Script",
-                    "hint": "Shell script to be executed",
-                    "inputType": "textArea"
-                },
-                {
-                    "key": "Params",
-                    "display": "Parameters",
-                    "hint": "Parameters to be passed to the script",
-                    "inputType": "textArea"
-                },
-                {
-                    "key": "Shell",
-                    "display": "Target Shell",
-                    "hint": "Either bash or PowerShell",
-                    "inputType": "select",
-                    "choices": [
-                        {
-                            "key": "bash",
-                            "display": "bash"
-                        },
-                        {
-                            "key": "PowerShell",
-                            "display": "PowerShell"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "api": "stackstorm",
-            "action": "az_vm_power_off",
-            "display": "AzureGov VM Power Off",
-            "requiresVm": true,
-            "parameters": [
-                {
-                    "key": "VmName",
-                    "display": "VM Name",
-                    "hint": "Select a VM",
-                    "inputType": "guid"
-                }
-            ]
-        },
-        {
-            "api": "stackstorm",
-            "action": "az_vm_power_on",
-            "display": "AzureGov VM Power On",
-            "requiresVm": true,
-            "parameters": [
-                {
-                    "key": "VmName",
-                    "display": "VM Name",
-                    "hint": "Select a VM",
-                    "inputType": "guid"
-                }
-            ]
-        },
-        {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "vm_hw_power_on",
-            "display": "vSphere Power on a VM",
+            "display": "Power on a VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -85,9 +15,9 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "vm_hw_power_off",
-            "display": "vSphere Power off a VM",
+            "display": "Power off a VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -99,9 +29,9 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "guest_file_read",
-            "display": "vSphere - Read a file from a guest VM",
+            "display": "Read a file from a guest VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -131,9 +61,132 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
+            "action": "guest_process_run",
+            "display": "Run a command on the guest VM (and capture output)",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "VM",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                },
+                {
+                    "key": "Username",
+                    "display": "Username",
+                    "hint": "Username for the guest VM user to execute the action",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Password",
+                    "display": "Password",
+                    "hint": "Password for the guest VM user to execute the action",
+                    "inputType": "password"
+                },
+                {
+                    "key": "CommandText",
+                    "display": "Command",
+                    "hint": "The command to execute on the guest VM.",
+                    "inputType": "text"
+                },
+                {
+                    "key": "CommandArgs",
+                    "display": "Arguments",
+                    "hint": "The arguments to pass to the command on the guest VM.",
+                    "inputType": "text"
+                },
+                {
+                    "key": "CommandWorkDirectory",
+                    "display": "Working Directory",
+                    "hint": "Optional working directory for the command.",
+                    "inputType": "text"
+                },
+                {
+                    "key": "TimeoutSeconds",
+                    "display": "Timeout (seconds)",
+                    "hint": "Maximum time to wait for the command to finish (defaults to 300).",
+                    "inputType": "text"
+                }
+            ]
+        },
+        {
+            "api": "vm",
+            "action": "vm_snapshot_create",
+            "display": "Create a VM snapshot",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "VM",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                },
+                {
+                    "key": "SnapshotName",
+                    "display": "Snapshot Name",
+                    "hint": "Name to assign to the snapshot",
+                    "inputType": "text"
+                },
+                {
+                    "key": "Description",
+                    "display": "Description",
+                    "hint": "Optional description for the snapshot",
+                    "inputType": "text"
+                },
+                {
+                    "key": "IncludeRam",
+                    "display": "Include RAM",
+                    "hint": "Capture VM memory (vSphere: includeMemory; Proxmox: vmstate; ignored on LXC)",
+                    "inputType": "checkbox",
+                    "default": "false"
+                }
+            ]
+        },
+        {
+            "api": "vm",
+            "action": "vm_snapshot_revert",
+            "display": "Revert a VM to a snapshot",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "VM",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                },
+                {
+                    "key": "SnapshotName",
+                    "display": "Snapshot Name",
+                    "hint": "Snapshot to revert to (vSphere: snapshot moRef value; Proxmox: snapshot name)",
+                    "inputType": "text"
+                }
+            ]
+        },
+        {
+            "api": "vm",
+            "action": "vm_snapshot_delete",
+            "display": "Delete a VM snapshot",
+            "requiresVm": true,
+            "parameters": [
+                {
+                    "key": "Moid",
+                    "display": "VM",
+                    "hint": "Select a VM",
+                    "inputType": "guid"
+                },
+                {
+                    "key": "SnapshotName",
+                    "display": "Snapshot Name",
+                    "hint": "Snapshot to delete (vSphere: snapshot moRef value; Proxmox: snapshot name)",
+                    "inputType": "text"
+                }
+            ]
+        },
+        {
+            "api": "vm",
             "action": "guest_process_run_fast",
-            "display": "vSphere Run a command on the guest VM (FASTER)",
+            "display": "Run a command on the guest VM (FASTER)",
             "requiresVm": true,
             "parameters": [
                 {
@@ -169,9 +222,9 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "guest_file_upload_content",
-            "display": "vSphere Upload a text file to a guest VM",
+            "display": "Upload a text file to a guest VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -207,9 +260,9 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "vm",
             "action": "guest_file_upload_file",
-            "display": "vSphere Upload a file to a guest VM",
+            "display": "Upload a file to a guest VM",
             "requiresVm": true,
             "parameters": [
                 {
@@ -238,14 +291,14 @@
                 },
                 {
                     "key": "FilePath",
-                    "display": "Path to a file accessible to Stackstorm to upload to the guest VM",
-                    "hint": "Path to a file (i.e. /files/file_to_send.zip)",
+                    "display": "Path to a file accessible to Steamfitter to upload to the guest VM",
+                    "hint": "Path to a file (i.e. /files/file_to_send.zip). Relative paths resolve under Files:LocalDirectory.",
                     "inputType": "text"
                 }
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "email",
             "action": "send_email",
             "display": "Send an email",
             "requiresVm": false,
@@ -305,7 +358,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "ssh",
             "action": "linux_file_touch",
             "display": "Touch a File",
             "requiresVm": false,
@@ -358,7 +411,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "ssh",
             "action": "linux_rm",
             "display": "Remove file(s)",
             "requiresVm": false,
@@ -431,7 +484,7 @@
             ]
         },
         {
-            "api": "stackstorm",
+            "api": "ssh",
             "action": "core_remote",
             "display": "Remote Command",
             "requiresVm": false,

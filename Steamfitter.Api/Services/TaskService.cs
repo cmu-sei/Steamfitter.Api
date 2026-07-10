@@ -53,7 +53,6 @@ namespace Steamfitter.Api.Services
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
-        private readonly IStackStormService _stackStormService;
         private readonly VmTaskProcessingOptions _options;
         private readonly IResultService _resultService;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -68,7 +67,6 @@ namespace Steamfitter.Api.Services
             SteamfitterContext context,
             IPrincipal user,
             IMapper mapper,
-            IStackStormService stackStormService,
             IOptions<VmTaskProcessingOptions> options,
             IResultService resultService,
             ILogger<TaskService> logger,
@@ -82,7 +80,6 @@ namespace Steamfitter.Api.Services
             _context = context;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
-            _stackStormService = stackStormService;
             _options = options.Value;
             _resultService = resultService;
             _httpClientFactory = httpClientFactory;
