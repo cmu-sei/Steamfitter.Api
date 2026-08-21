@@ -2314,8 +2314,38 @@ namespace Steamfitter.Api.Client
         [System.Text.Json.Serialization.JsonPropertyName("viewId")]
         public System.Guid? ViewId { get; set; }
 
+        /// <summary>
+        /// Ids of the Users to add to the new Scenario as Members. Deprecated as of client version 3.10.0 in favor of Users, which also carries the name to create a missing Steamfitter User with. Ids sent here are still honored, but a User created from one of them is named after its Id.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("userIds")]
         public System.Collections.Generic.ICollection<System.Guid> UserIds { get; set; }
+
+        /// <summary>
+        /// The Users to add to the new Scenario as Members. A Steamfitter User record is created for any of these that has not been seen before, so that a user who has never signed in to Steamfitter can still be given a Scenario Membership.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("users")]
+        public System.Collections.Generic.ICollection<ScenarioCloneUser> Users { get; set; }
+
+    }
+
+    /// <summary>
+    /// A User to add to a cloned Scenario, including the name to use if the User has to be created.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ScenarioCloneUser
+    {
+
+        /// <summary>
+        /// Id of the User.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid Id { get; set; }
+
+        /// <summary>
+        /// Name of the User, used only if the User has to be created.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; }
 
     }
 

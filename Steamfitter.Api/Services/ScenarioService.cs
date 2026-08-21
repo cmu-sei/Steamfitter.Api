@@ -198,12 +198,6 @@ namespace Steamfitter.Api.Services
                     scenarioEntity.ViewId = options.ViewId;
                 }
 
-                if (options.UserIds != null && options.UserIds.Any())
-                {
-                    // TODO: use the new permission/role/group to do this
-                    // await AddUsersAsync(scenarioEntity.Id, options.UserIds, ct);
-                }
-
                 await _context.SaveChangesAsync(ct);
             }
             var createOwnerMembership = new ScenarioMembershipEntity() {
@@ -213,6 +207,12 @@ namespace Steamfitter.Api.Services
             };
             await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
             await _context.SaveChangesAsync(ct);
+
+            if (options != null)
+            {
+                await AddScenarioMembersAsync(scenarioEntity.Id, options, ct);
+            }
+
             await transaction.CommitAsync(ct);
             var scenario = _mapper.Map<SAVM.Scenario>(scenarioEntity);
 
@@ -372,6 +372,82 @@ namespace Steamfitter.Api.Services
             await _context.SaveChangesAsync(ct);
 
             return newDefaultVmCredentialId;
+        }
+
+        /// <summary>
+        /// Gives each User named in the clone options a Member Membership on the new Scenario,
+        /// creating the Steamfitter User record first if the User has never been seen before.
+        /// The calling account keeps the Manager Membership it was given as the creator.
+        /// </summary>
+        private async STT.Task AddScenarioMembersAsync(Guid scenarioId, SAVM.ScenarioCloneOptions options, CancellationToken ct)
+        {
+            // Users carries a name to create missing Users with, UserIds does not, so let Users win
+            var requestedNamesByUserId = new Dictionary<Guid, string>();
+
+            if (options.UserIds != null)
+            {
+                foreach (var userId in options.UserIds.Where(x => x != Guid.Empty))
+                {
+                    requestedNamesByUserId[userId] = null;
+                }
+            }
+
+            if (options.Users != null)
+            {
+                foreach (var user in options.Users.Where(x => x != null && x.Id != Guid.Empty))
+                {
+                    requestedNamesByUserId[user.Id] = string.IsNullOrWhiteSpace(user.Name) ? null : user.Name.Trim();
+                }
+            }
+
+            // the caller is already a member as the creator of the Scenario
+            requestedNamesByUserId.Remove(_user.GetId());
+
+            if (!requestedNamesByUserId.Any())
+                return;
+
+            var userIds = requestedNamesByUserId.Keys.ToList();
+            var existingUsers = await _context.Users
+                .Where(x => userIds.Contains(x.Id))
+                .ToListAsync(ct);
+
+            foreach (var requestedUser in requestedNamesByUserId)
+            {
+                var userEntity = existingUsers.SingleOrDefault(x => x.Id == requestedUser.Key);
+
+                if (userEntity == null)
+                {
+                    _context.Users.Add(new UserEntity()
+                    {
+                        Id = requestedUser.Key,
+                        Name = requestedUser.Value ?? requestedUser.Key.ToString(),
+                        CreatedBy = _user.GetId()
+                    });
+                }
+                else if (requestedUser.Value != null && userEntity.Name != requestedUser.Value)
+                {
+                    userEntity.Name = requestedUser.Value;
+                    userEntity.DateModified = DateTime.UtcNow;
+                    userEntity.ModifiedBy = _user.GetId();
+                }
+            }
+
+            var alreadyMemberUserIds = await _context.ScenarioMemberships
+                .Where(x => x.ScenarioId == scenarioId && x.UserId.HasValue && userIds.Contains(x.UserId.Value))
+                .Select(x => x.UserId.Value)
+                .ToListAsync(ct);
+
+            foreach (var userId in userIds.Where(x => !alreadyMemberUserIds.Contains(x)))
+            {
+                _context.ScenarioMemberships.Add(new ScenarioMembershipEntity()
+                {
+                    UserId = userId,
+                    ScenarioId = scenarioId,
+                    RoleId = ScenarioRoleDefaults.ScenarioMemberRoleId
+                });
+            }
+
+            await _context.SaveChangesAsync(ct);
         }
 
     }
