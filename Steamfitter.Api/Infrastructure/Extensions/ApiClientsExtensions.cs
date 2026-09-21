@@ -12,10 +12,15 @@ namespace Steamfitter.Api.Infrastructure.Extensions
 {
     public static class ApiClientsExtensions
     {
-        public static HttpClient GetHttpClient(IHttpClientFactory httpClientFactory, string apiUrl, TokenResponse tokenResponse)
+        public static HttpClient GetHttpClient(IHttpClientFactory httpClientFactory, string apiUrl, TokenResponse tokenResponse, int? timeoutSeconds = null)
         {
             var client = httpClientFactory.CreateClient();
             client.BaseAddress = new Uri(apiUrl);
+            // Callers that do not ask for a timeout keep HttpClient's own default
+            if (timeoutSeconds.HasValue && timeoutSeconds.Value > 0)
+            {
+                client.Timeout = TimeSpan.FromSeconds(timeoutSeconds.Value);
+            }
             // Only add the header if the token was passed
             if (tokenResponse != null)
             {

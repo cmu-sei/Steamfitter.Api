@@ -643,7 +643,8 @@ namespace Steamfitter.Api.Services
                 {
                     tokenResponse = await ApiClientsExtensions.GetToken(scope);
                 }
-                var client = ApiClientsExtensions.GetHttpClient(_httpClientFactory, url, tokenResponse);
+                var httpTimeout = _vmTaskProcessingOptions.CurrentValue.HttpTimeoutSeconds;
+                var client = ApiClientsExtensions.GetHttpClient(_httpClientFactory, url, tokenResponse, httpTimeout);
                 if (!String.IsNullOrEmpty(actionParameters.Headers))
                 {
                     var replacementValues = _vmTaskProcessingOptions.CurrentValue.HttpHeaderReplacements;
