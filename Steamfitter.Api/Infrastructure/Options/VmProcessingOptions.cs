@@ -16,5 +16,11 @@ namespace Steamfitter.Api.Infrastructure.Options
         public int ExpirationCheckSeconds { get; set; }
         public Dictionary<string, string> ApiParameters { get; set; }
         public Dictionary<string, string> HttpHeaderReplacements { get; set; }
+        /// <summary>
+        /// HTTP client timeout in seconds for task execution API calls.
+        /// Should be less than TaskProcessMaxWaitSeconds to allow for retries.
+        /// Defaults to 90 seconds.
+        /// </summary>
+        public int HttpTimeoutSeconds { get; set; } = 90;
     }
 }
