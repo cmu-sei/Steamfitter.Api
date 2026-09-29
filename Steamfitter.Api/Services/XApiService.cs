@@ -278,18 +278,18 @@ namespace Steamfitter.Api.Services
             activity.definition.description.Add("en-US", task.Description ?? task.Name);
 
             var activityExtensions = new Newtonsoft.Json.Linq.JObject();
-            activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/taskAction"] = task.Action.ToString();
+            activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/task-action"] = task.Action.ToString();
             if (!string.IsNullOrWhiteSpace(task.VmMask))
             {
-                activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/vmMask"] = task.VmMask;
+                activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/vm-mask"] = task.VmMask;
             }
             if (!string.IsNullOrWhiteSpace(task.ApiUrl))
             {
-                activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/apiUrl"] = task.ApiUrl;
+                activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/api-url"] = task.ApiUrl;
             }
             if (!string.IsNullOrWhiteSpace(task.ExpectedOutput))
             {
-                activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/expectedOutput"] = task.ExpectedOutput;
+                activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/expected-output"] = task.ExpectedOutput;
             }
             activity.definition.extensions = new TinCan.Extensions(activityExtensions);
 
