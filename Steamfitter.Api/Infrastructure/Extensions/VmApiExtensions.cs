@@ -20,9 +20,14 @@ namespace Steamfitter.Api.Infrastructure.Extensions
             return apiClient;
         }
 
-        public static async Task<IEnumerable<Vm>> GetViewVmsAsync(PlayerVmApiClient playerVmApiClient, Guid viewId, CancellationToken ct)
+        /// <summary>
+        /// Every Vm in the View, including personal ones. Steamfitter's account holds the Vm permissions
+        /// at the system level but is on none of the View's teams, so the View's own Vm listing, which
+        /// only shows what a member can reach, would come back empty.
+        /// </summary>
+        public static async Task<IEnumerable<Vm>> GetAllViewVmsAsync(PlayerVmApiClient playerVmApiClient, Guid viewId, CancellationToken ct)
         {
-            var vms = await playerVmApiClient.GetViewVmsAsync(viewId, null, true, false, ct);
+            var vms = await playerVmApiClient.GetAllViewVmsAsync(viewId, ct);
             return vms;
         }
 

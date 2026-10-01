@@ -376,7 +376,7 @@ namespace Steamfitter.Api.Services
                         PlayerVmApiClient vmApiClient = null;
                         var tokenResponse = await ApiClientsExtensions.GetToken(scope);
                         vmApiClient = RefreshClient(vmApiClient, tokenResponse, ct);
-                        var viewVms = await VmApiExtensions.GetViewVmsAsync(vmApiClient, (Guid)viewId, ct);
+                        var viewVms = await VmApiExtensions.GetAllViewVmsAsync(vmApiClient, (Guid)viewId, ct);
                         foreach (var vm in viewVms)
                         {
                             if ((!matchName && vmIdList.Contains((Guid)vm.Id)) || (matchName && vm.Name.ToLower().Contains(taskToExecute.VmMask.ToLower())))
