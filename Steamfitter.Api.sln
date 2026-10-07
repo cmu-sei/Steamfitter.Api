@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Steamfitter.Api.Data", "Ste
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Steamfitter.Api.Migrations.PostgreSQL", "Steamfitter.Api.Migrations.PostgreSQL\Steamfitter.Api.Migrations.PostgreSQL.csproj", "{9B0A7220-4E76-4D56-9AA0-2280A0238AA7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Steamfitter.Api.Tests", "Steamfitter.Api.Tests\Steamfitter.Api.Tests.csproj", "{043CFE8C-41F4-4B96-8305-7FF1883122F5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{7829E76A-C737-42C7-8046-7C05A00E31F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7829E76A-C737-42C7-8046-7C05A00E31F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7829E76A-C737-42C7-8046-7C05A00E31F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{043CFE8C-41F4-4B96-8305-7FF1883122F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{043CFE8C-41F4-4B96-8305-7FF1883122F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{043CFE8C-41F4-4B96-8305-7FF1883122F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{043CFE8C-41F4-4B96-8305-7FF1883122F5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
