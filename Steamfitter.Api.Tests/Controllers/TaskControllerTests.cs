@@ -25,6 +25,9 @@ namespace Steamfitter.Api.Tests.Controllers;
 public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory factory)
     : ApiTestBase(fixture, factory)
 {
+    /// <summary>The title of the <c>ForbiddenException</c> the controllers' permission checks throw, which tells their refusal apart from the service's own 403s.</summary>
+    private const string InsufficientPermissions = "Insufficient Permissions";
+
     /// <summary>A request with no identity is answered with a 401; the anonymous client is the case under test.</summary>
     [Fact]
     public async Task An_unauthenticated_request_is_unauthorized()
@@ -140,6 +143,47 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         var scenario = TestData.Scenario(viewId: viewId);
         await Seed(scenario);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/views/{viewId}/tasks", Ct));
+    }
+
+    [Fact]
+    public async Task GetByViewId_is_forbidden_for_a_caller_holding_ViewTasks_only_on_a_scenario_of_another_view()
+    {
+        var viewId = Guid.NewGuid();
+        var scenario = TestData.Scenario(viewId: viewId);
+        var executable = TestData.ScenarioTask(scenario.Id, "Executable");
+        executable.UserExecutable = true;
+        var elsewhere = TestData.Scenario("Elsewhere", viewId: Guid.NewGuid());
+        await Seed(scenario, executable, elsewhere);
+        var actor = await Actor().OnScenario(elsewhere.Id, permissions: [ScenarioPermission.ViewTasks]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/views/{viewId}/tasks", Ct));
+    }
+
+    [Fact]
+    public async Task GetByViewId_gives_a_caller_holding_ViewScenarios_the_tasks_with_their_parameters()
+    {
+        var viewId = Guid.NewGuid();
+        var scenario = TestData.Scenario(viewId: viewId);
+        var executable = TestData.ScenarioTask(scenario.Id, "Executable");
+        executable.UserExecutable = true;
+        executable.InputString = """{"Secret":"value"}""";
+        await Seed(scenario, executable);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        var tasks = await ReadAsync<List<SAVM.Task>>(await Client(actor).GetAsync($"api/views/{viewId}/tasks", Ct));
+
+        Assert.Equal("value", Assert.Single(tasks).ActionParameters["Secret"]);
+    }
+
+    [Fact]
+    public async Task GetByViewId_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var viewId = Guid.NewGuid();
+        var scenario = TestData.Scenario(viewId: viewId);
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/views/{viewId}/tasks", Ct));
     }
@@ -408,7 +452,9 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(scenario);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ExecuteScenario]).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks/execute", TaskForm("Refused", scenarioId: scenario.Id), Ct));
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks/execute", TaskForm("Refused", scenarioId: scenario.Id), Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
     }
 
     [Fact]
@@ -418,7 +464,9 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(scenario);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks/execute", TaskForm("Refused", scenarioId: scenario.Id), Ct));
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks/execute", TaskForm("Refused", scenarioId: scenario.Id), Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
         await using var db = NewContext();
         Assert.False(await db.Tasks.AnyAsync(x => x.Name == "Refused", Ct));
     }
@@ -456,7 +504,9 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(scenario, task);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsync($"api/tasks/{task.Id}/execute", null, Ct));
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsync($"api/tasks/{task.Id}/execute", null, Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
         await using var db = NewContext();
         Assert.Equal(TaskStatus.none, (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).Status);
     }
@@ -469,7 +519,9 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(scenario, task);
         var actor = await Actor().OnNewScenario(ScenarioPermission.ExecuteScenario).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsync($"api/tasks/{task.Id}/execute", null, Ct));
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsync($"api/tasks/{task.Id}/execute", null, Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
     }
 
     [Fact]
@@ -480,7 +532,9 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(scenario, task);
         var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsync($"api/tasks/{task.Id}/execute", null, Ct));
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsync($"api/tasks/{task.Id}/execute", null, Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
     }
 
     [Fact]
@@ -522,7 +576,9 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(scenario, task);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/{task.Id}/execute/substitutions", new Dictionary<string, string>(), Ct));
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/{task.Id}/execute/substitutions", new Dictionary<string, string>(), Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
     }
 
     [Fact]
@@ -549,10 +605,12 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(scenario);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync(
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync(
             "api/tasks/execute/graded",
             new { scenarioId = scenario.Id, startTaskName = "Start", gradedTaskName = "Graded", taskSubstitutions = new Dictionary<string, string>() },
             Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
     }
 
     [Fact]

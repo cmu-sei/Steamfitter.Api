@@ -18,6 +18,9 @@ namespace Steamfitter.Api.Tests.Controllers;
 public class UserControllerTests(DatabaseFixture fixture, SteamfitterAppFactory factory)
     : ApiTestBase(fixture, factory)
 {
+    /// <summary>The title of the <c>ForbiddenException</c> the controllers' permission checks throw, which tells their refusal apart from the service's own 403s.</summary>
+    private const string InsufficientPermissions = "Insufficient Permissions";
+
     /// <summary>A request with no identity is answered with a 401; the anonymous client is the case under test.</summary>
     [Fact]
     public async Task An_unauthenticated_request_is_unauthorized()
@@ -102,6 +105,32 @@ public class UserControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
+    public async Task Create_persists_a_user_without_a_role_for_a_caller_holding_ManageUsers()
+    {
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageUsers).SeedAsync();
+        var id = Guid.NewGuid();
+
+        await AssertStatus(HttpStatusCode.Created, await Client(actor).PostAsJsonAsync("api/users", new { id, name = "No role" }, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.Users.SingleAsync(x => x.Id == id, Ct);
+        Assert.Equal(("No role", null), (stored.Name, stored.RoleId));
+    }
+
+    // Same case as Update_lets_a_caller_holding_only_ManageUsers_give_itself_the_administrator_role.
+    [Fact]
+    public async Task Create_lets_a_caller_holding_only_ManageUsers_create_an_administrator()
+    {
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageUsers).SeedAsync();
+        var id = Guid.NewGuid();
+
+        await AssertStatus(HttpStatusCode.Created, await Client(actor).PostAsJsonAsync("api/users", new { id, name = "Promoted", roleId = TestData.Roles.Administrator.ToString() }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(TestData.Roles.Administrator, (await db.Users.SingleAsync(x => x.Id == id, Ct)).RoleId);
+    }
+
+    [Fact]
     public async Task Create_is_forbidden_for_a_caller_holding_only_ViewUsers()
     {
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewUsers).SeedAsync();
@@ -132,7 +161,9 @@ public class UserControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(user);
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewUsers).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/users/{user.Id}", new { id = user.Id, name = "After" }, Ct));
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/users/{user.Id}", new { id = user.Id, name = "After" }, Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
     }
 
     [Fact]
@@ -143,6 +174,30 @@ public class UserControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/users/{actor.Id}", new { id = Guid.NewGuid(), name = "Renamed" }, Ct));
 
         Assert.Equal("You cannot change your own Id", error.Title);
+    }
+
+    [Fact]
+    public async Task Update_saves_the_callers_own_record_when_the_body_keeps_its_id()
+    {
+        var actor = await Actor().WithName("Before").WithSystemPermissions(SystemPermission.ManageUsers).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/users/{actor.Id}", new { id = actor.Id, name = "After" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal("After", (await db.Users.SingleAsync(x => x.Id == actor.Id, Ct)).Name);
+    }
+
+    /// <summary>An update body naming another id than the route's is answered with a 500.</summary>
+    [Fact]
+    public async Task Update_answers_a_body_naming_another_id_with_a_server_error()
+    {
+        var user = TestData.User(name: "Before");
+        await Seed(user);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageUsers).SeedAsync();
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError, await Client(actor).PutAsJsonAsync($"api/users/{user.Id}", new { id = Guid.NewGuid(), name = "After" }, Ct));
+
+        Assert.StartsWith("The property 'UserEntity.Id' is part of a key", error.Detail);
     }
 
     [Fact]
@@ -165,7 +220,9 @@ public class UserControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(user);
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewUsers).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/users/{user.Id}", Ct));
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/users/{user.Id}", Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
         await using var db = NewContext();
         Assert.True(await db.Users.AnyAsync(x => x.Id == user.Id, Ct));
     }
@@ -173,7 +230,9 @@ public class UserControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     [Fact]
     public async Task Delete_of_the_callers_own_account_is_forbidden()
     {
-        var error = await AssertJsonError(HttpStatusCode.Forbidden, await RootClient.DeleteAsync($"api/users/{Root.Id}", Ct));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageUsers).SeedAsync();
+
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/users/{actor.Id}", Ct));
 
         Assert.Equal("You cannot delete your own account", error.Title);
     }

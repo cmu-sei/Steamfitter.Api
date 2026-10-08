@@ -2,13 +2,14 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 // Steamfitter: the run-wide factory with step 1B (Program.Main runs InitializeDatabase with no switch to
-// skip it), one hub (EngineHub, recorded by the shared HubRecorder, which records a Clients.Groups(list)
-// send for each group), the Player and Player VM clients over OutboundHttp, and the task executors over
-// TaskActionRecorder.
+// skip it), the Bearer recipe (EngineHub names the "Bearer" scheme), one hub (EngineHub, recorded by the
+// shared HubRecorder, which records a Clients.Groups(list) send for each group), the Player and Player VM
+// clients over OutboundHttp, and the task executors over TaskActionRecorder.
 
 using System.Collections.Concurrent;
 using System.Net.Http;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -18,6 +19,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Hubs;
 using Steamfitter.Api.Services;
@@ -102,9 +104,17 @@ public sealed class SteamfitterAppFactory : WebApplicationFactory<Program>, ITes
             // test of its own that drives it directly (Services/).
             services.RemoveAll<IHostedService>();
 
+            // The Bearer recipe: EngineHub names its scheme ([Authorize(AuthenticationSchemes = "Bearer")]),
+            // so a real connection authenticates through TestAuthHandler only if it is registered under that
+            // name too. Startup's AddJwtBearer has claimed "Bearer", AddScheme refuses a duplicate, and
+            // every registration that configures AuthenticationOptions (AddAuthentication's default
+            // scheme, AddJwtBearer's scheme) is one IConfigureOptions<AuthenticationOptions>, so they all
+            // go first. The controllers' [Authorize] names no scheme and gets the default, Test.
+            services.RemoveAll<IConfigureOptions<AuthenticationOptions>>();
             services
                 .AddAuthentication(TestAuthHandler.SchemeName)
-                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, null);
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, null)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(JwtBearerDefaults.AuthenticationScheme, null);
 
             // InitializeDatabase resolves the context from a scope of its own, outside any request. Until
             // the host has started, such a resolution gets the host's own database, over that session's

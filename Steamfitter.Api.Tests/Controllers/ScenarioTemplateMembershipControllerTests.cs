@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Hubs;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Tests.Support;
 using SAVM = Steamfitter.Api.ViewModels;
 
@@ -86,6 +87,44 @@ public class ScenarioTemplateMembershipControllerTests(DatabaseFixture fixture, 
     }
 
     [Fact]
+    public async Task Create_adds_a_member_for_a_caller_holding_the_manager_role_on_the_template()
+    {
+        var template = TestData.ScenarioTemplate();
+        var user = TestData.User(name: "Joiner");
+        await Seed(template, user);
+        var actor = await Actor().OnScenarioTemplate(template.Id, roleId: TestData.ScenarioTemplateRoles.Manager).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            $"api/scenarioTemplates/{template.Id}/memberships",
+            new { scenarioTemplateId = template.Id, userId = user.Id, roleId = TestData.ScenarioTemplateRoles.Member },
+            Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioTemplateRoles.Member, (await db.ScenarioTemplateMemberships.SingleAsync(x => x.ScenarioTemplateId == template.Id && x.UserId == user.Id, Ct)).RoleId);
+    }
+
+    /// <summary>A caller holding only the system ManageScenarioTemplates makes itself the template's Manager and then holds EditScenarioTemplate on it.</summary>
+    [Fact]
+    public async Task Create_lets_a_caller_holding_only_ManageScenarioTemplates_make_itself_the_templates_manager()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarioTemplates).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            $"api/scenarioTemplates/{template.Id}/memberships",
+            new { scenarioTemplateId = template.Id, userId = actor.Id, roleId = TestData.ScenarioTemplateRoles.Manager },
+            Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioTemplateRoles.Manager, (await db.ScenarioTemplateMemberships.SingleAsync(x => x.ScenarioTemplateId == template.Id && x.UserId == actor.Id, Ct)).RoleId);
+        var claims = await ReadAsync<List<ScenarioTemplatePermissionClaim>>(await Client(actor).GetAsync($"api/scenarioTemplates/{template.Id}/me/permissions", Ct));
+        Assert.Contains(ScenarioTemplatePermission.EditScenarioTemplate, Assert.Single(claims, x => x.ScenarioTemplateId == template.Id).Permissions);
+    }
+
+    [Fact]
     public async Task Create_is_forbidden_for_a_member_holding_only_EditScenarioTemplate()
     {
         var template = TestData.ScenarioTemplate();
@@ -146,6 +185,21 @@ public class ScenarioTemplateMembershipControllerTests(DatabaseFixture fixture, 
 
         await using var db = NewContext();
         Assert.Equal(TestData.ScenarioTemplateRoles.Manager, (await db.ScenarioTemplateMemberships.SingleAsync(x => x.Id == membership.Id, Ct)).RoleId);
+    }
+
+    [Fact]
+    public async Task Update_makes_an_observer_a_member_for_a_caller_holding_the_manager_role_on_the_template()
+    {
+        var (template, membership) = await SeedTemplateWithMember();
+        var actor = await Actor().OnScenarioTemplate(template.Id, roleId: TestData.ScenarioTemplateRoles.Manager).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync(
+            $"api/scenarioTemplates/memberships/{membership.Id}",
+            new { id = membership.Id, scenarioTemplateId = template.Id, userId = membership.UserId, roleId = TestData.ScenarioTemplateRoles.Member },
+            Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioTemplateRoles.Member, (await db.ScenarioTemplateMemberships.SingleAsync(x => x.Id == membership.Id, Ct)).RoleId);
     }
 
     [Fact]

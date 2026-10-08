@@ -63,6 +63,127 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
     }
 
     [Fact]
+    public async Task JoinScenario_leaves_out_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var scenarioId = Guid.NewGuid();
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).Build());
+
+        await hub.JoinScenario(scenarioId);
+
+        await harness.Groups.DidNotReceive().AddToGroupAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_adds_a_caller_holding_only_ViewScenarios_to_the_scenario_administrator_group()
+    {
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewScenarios).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.Received(1).AddToGroupAsync(HubHarness.ConnectionId, EngineHub.SCENARIO_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_adds_a_caller_holding_only_ViewScenarioTemplates_to_their_scenarios_group_instead_of_the_scenario_administrator_group()
+    {
+        var user = new ClaimsPrincipalBuilder();
+        var scenario = TestData.Scenario();
+        await Seed(TestData.User(user.UserId), scenario,
+            TestData.ScenarioMembership(scenario.Id, userId: user.UserId, roleId: TestData.ScenarioRoles.Observer));
+        var (hub, harness) = Connect(user.WithSystemPermissions(SystemPermission.ViewScenarioTemplates).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.Received(1).AddToGroupAsync(HubHarness.ConnectionId, scenario.Id.ToString(), Arg.Any<CancellationToken>());
+        await harness.Groups.DidNotReceive().AddToGroupAsync(HubHarness.ConnectionId, EngineHub.SCENARIO_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_adds_a_caller_holding_only_ViewScenarioTemplates_to_the_template_administrator_group()
+    {
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.Received(1).AddToGroupAsync(HubHarness.ConnectionId, EngineHub.SCENARIO_TEMPLATE_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_adds_a_caller_holding_only_ViewScenarios_to_their_templates_group_instead_of_the_template_administrator_group()
+    {
+        var user = new ClaimsPrincipalBuilder();
+        var template = TestData.ScenarioTemplate();
+        await Seed(TestData.User(user.UserId), template,
+            TestData.ScenarioTemplateMembership(template.Id, userId: user.UserId, roleId: TestData.ScenarioTemplateRoles.Observer));
+        var (hub, harness) = Connect(user.WithSystemPermissions(SystemPermission.ViewScenarios).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.Received(1).AddToGroupAsync(HubHarness.ConnectionId, template.Id.ToString(), Arg.Any<CancellationToken>());
+        await harness.Groups.DidNotReceive().AddToGroupAsync(HubHarness.ConnectionId, EngineHub.SCENARIO_TEMPLATE_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_adds_a_caller_holding_only_ViewGroups_to_the_group_administrator_group()
+    {
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewGroups).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.Received(1).AddToGroupAsync(HubHarness.ConnectionId, EngineHub.GROUP_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_does_not_add_a_caller_holding_only_ViewRoles_to_the_group_administrator_group()
+    {
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewRoles).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.DidNotReceive().AddToGroupAsync(HubHarness.ConnectionId, EngineHub.GROUP_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_adds_a_caller_holding_only_ViewRoles_to_the_role_administrator_group()
+    {
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewRoles).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.Received(1).AddToGroupAsync(HubHarness.ConnectionId, EngineHub.ROLE_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_does_not_add_a_caller_holding_only_ViewUsers_to_the_role_administrator_group()
+    {
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewUsers).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.DidNotReceive().AddToGroupAsync(HubHarness.ConnectionId, EngineHub.ROLE_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_adds_a_caller_holding_only_ViewUsers_to_the_user_administrator_group()
+    {
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewUsers).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.Received(1).AddToGroupAsync(HubHarness.ConnectionId, EngineHub.USER_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinSystem_does_not_add_a_caller_holding_only_ViewGroups_to_the_user_administrator_group()
+    {
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewGroups).Build());
+
+        await hub.JoinSystem();
+
+        await harness.Groups.DidNotReceive().AddToGroupAsync(HubHarness.ConnectionId, EngineHub.USER_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task JoinSystem_adds_a_caller_holding_every_view_permission_to_the_administrator_groups()
     {
         var (hub, harness) = Connect(new ClaimsPrincipalBuilder()
@@ -71,10 +192,7 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
 
         await hub.JoinSystem();
 
-        foreach (var group in new[] { EngineHub.SCENARIO_GROUP, EngineHub.SCENARIO_TEMPLATE_GROUP, EngineHub.GROUP_GROUP, EngineHub.ROLE_GROUP, EngineHub.USER_GROUP })
-        {
-            await harness.Groups.Received(1).AddToGroupAsync(HubHarness.ConnectionId, group, Arg.Any<CancellationToken>());
-        }
+        Assert.Equal([EngineHub.SCENARIO_GROUP, EngineHub.SCENARIO_TEMPLATE_GROUP, EngineHub.GROUP_GROUP, EngineHub.ROLE_GROUP, EngineHub.USER_GROUP], harness.JoinedGroups);
     }
 
     [Fact]
@@ -132,6 +250,46 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
 
         await harness.Groups.Received(1).RemoveFromGroupAsync(HubHarness.ConnectionId, EngineHub.SCENARIO_GROUP, Arg.Any<CancellationToken>());
         await harness.Groups.Received(1).RemoveFromGroupAsync(HubHarness.ConnectionId, EngineHub.USER_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task LeaveSystem_removes_a_caller_holding_only_ViewScenarioTemplates_from_the_template_administrator_group()
+    {
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).Build());
+
+        await hub.LeaveSystem();
+
+        await harness.Groups.Received(1).RemoveFromGroupAsync(HubHarness.ConnectionId, EngineHub.SCENARIO_TEMPLATE_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task LeaveSystem_removes_a_caller_holding_only_ViewScenarioTemplates_from_their_scenarios_group_instead_of_the_scenario_administrator_group()
+    {
+        var user = new ClaimsPrincipalBuilder();
+        var scenario = TestData.Scenario();
+        await Seed(TestData.User(user.UserId), scenario,
+            TestData.ScenarioMembership(scenario.Id, userId: user.UserId, roleId: TestData.ScenarioRoles.Observer));
+        var (hub, harness) = Connect(user.WithSystemPermissions(SystemPermission.ViewScenarioTemplates).Build());
+
+        await hub.LeaveSystem();
+
+        await harness.Groups.Received(1).RemoveFromGroupAsync(HubHarness.ConnectionId, scenario.Id.ToString(), Arg.Any<CancellationToken>());
+        await harness.Groups.DidNotReceive().RemoveFromGroupAsync(HubHarness.ConnectionId, EngineHub.SCENARIO_GROUP, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task LeaveSystem_removes_a_caller_holding_only_ViewScenarios_from_their_templates_group_instead_of_the_template_administrator_group()
+    {
+        var user = new ClaimsPrincipalBuilder();
+        var template = TestData.ScenarioTemplate();
+        await Seed(TestData.User(user.UserId), template,
+            TestData.ScenarioTemplateMembership(template.Id, userId: user.UserId, roleId: TestData.ScenarioTemplateRoles.Observer));
+        var (hub, harness) = Connect(user.WithSystemPermissions(SystemPermission.ViewScenarios).Build());
+
+        await hub.LeaveSystem();
+
+        await harness.Groups.Received(1).RemoveFromGroupAsync(HubHarness.ConnectionId, template.Id.ToString(), Arg.Any<CancellationToken>());
+        await harness.Groups.DidNotReceive().RemoveFromGroupAsync(HubHarness.ConnectionId, EngineHub.SCENARIO_TEMPLATE_GROUP, Arg.Any<CancellationToken>());
     }
 
     private (EngineHub Hub, HubHarness Harness) Connect(ClaimsPrincipal user)

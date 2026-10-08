@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Hubs;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Tests.Support;
 using SAVM = Steamfitter.Api.ViewModels;
 
@@ -91,6 +92,44 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
     }
 
     [Fact]
+    public async Task Create_adds_a_member_for_a_caller_holding_the_manager_role_on_the_scenario()
+    {
+        var scenario = TestData.Scenario();
+        var user = TestData.User(name: "Joiner");
+        await Seed(scenario, user);
+        var actor = await Actor().OnScenario(scenario.Id, roleId: TestData.ScenarioRoles.Manager).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            $"api/scenarios/{scenario.Id}/memberships",
+            new { scenarioId = scenario.Id, userId = user.Id, roleId = TestData.ScenarioRoles.Member },
+            Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioRoles.Member, (await db.ScenarioMemberships.SingleAsync(x => x.ScenarioId == scenario.Id && x.UserId == user.Id, Ct)).RoleId);
+    }
+
+    /// <summary>A caller holding only the system ManageScenarios makes itself the scenario's Manager and then holds ExecuteScenario on it.</summary>
+    [Fact]
+    public async Task Create_lets_a_caller_holding_only_ManageScenarios_make_itself_the_scenarios_manager()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarios).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            $"api/scenarios/{scenario.Id}/memberships",
+            new { scenarioId = scenario.Id, userId = actor.Id, roleId = TestData.ScenarioRoles.Manager },
+            Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioRoles.Manager, (await db.ScenarioMemberships.SingleAsync(x => x.ScenarioId == scenario.Id && x.UserId == actor.Id, Ct)).RoleId);
+        var claims = await ReadAsync<List<ScenarioPermissionClaim>>(await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/me/permissions", Ct));
+        Assert.Contains(ScenarioPermission.ExecuteScenario, Assert.Single(claims, x => x.ScenarioId == scenario.Id).Permissions);
+    }
+
+    [Fact]
     public async Task Create_broadcasts_the_membership_to_the_scenario_administrators()
     {
         var scenario = TestData.Scenario();
@@ -166,6 +205,21 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
         Assert.Equal(TestData.ScenarioRoles.Manager, (await db.ScenarioMemberships.SingleAsync(x => x.Id == membership.Id, Ct)).RoleId);
         Assert.Contains(Factory.Hub<EngineHub>().ToGroup(EngineHub.SCENARIO_GROUP),
             x => x.Method == EngineMethods.ScenarioMembershipUpdated && ((SAVM.ScenarioMembership)x.Argument).Id == membership.Id);
+    }
+
+    [Fact]
+    public async Task Update_makes_an_observer_a_member_for_a_caller_holding_ManageScenarios_ViewScenarios_and_EditScenarios()
+    {
+        var (scenario, membership) = await SeedScenarioWithMember();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarios, SystemPermission.ViewScenarios, SystemPermission.EditScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync(
+            $"api/scenarios/memberships/{membership.Id}",
+            new { id = membership.Id, scenarioId = scenario.Id, userId = membership.UserId, roleId = TestData.ScenarioRoles.Member },
+            Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioRoles.Member, (await db.ScenarioMemberships.SingleAsync(x => x.Id == membership.Id, Ct)).RoleId);
     }
 
     /// <summary>A member holding ManageScenario on the membership's scenario is refused.</summary>

@@ -20,6 +20,9 @@ namespace Steamfitter.Api.Tests.Controllers;
 public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactory factory)
     : ApiTestBase(fixture, factory)
 {
+    /// <summary>The title of the <c>ForbiddenException</c> the controllers' permission checks throw.</summary>
+    private const string InsufficientPermissions = "Insufficient Permissions";
+
     /// <summary>A request with no identity is answered with a 401; the anonymous client is the case under test.</summary>
     [Fact]
     public async Task An_unauthenticated_request_is_unauthorized()
@@ -105,6 +108,18 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
+    public async Task GetByViewId_is_forbidden_for_a_caller_holding_ViewScenario_only_on_a_scenario_of_another_view()
+    {
+        var viewId = Guid.NewGuid();
+        var (_, task) = await SeedScenarioTask(viewId);
+        await Seed(TestData.Result(task.Id));
+        var (elsewhere, _) = await SeedScenarioTask(Guid.NewGuid());
+        var actor = await Actor().OnScenario(elsewhere.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/views/{viewId}/results", Ct));
+    }
+
+    [Fact]
     public async Task GetByUserId_returns_the_users_results_to_a_caller_holding_ViewScenarios()
     {
         var user = TestData.User();
@@ -177,6 +192,21 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
             .SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/vms/{Guid.NewGuid()}/results", Ct));
+    }
+
+    /// <summary>A member holding only ViewTasks on a scenario reads that scenario's results on a VM.</summary>
+    [Fact]
+    public async Task GetByVmId_returns_the_results_of_a_scenario_to_a_member_holding_only_ViewTasks_on_it()
+    {
+        var vmId = Guid.NewGuid();
+        var (scenario, task) = await SeedScenarioTask();
+        var result = TestData.Result(task.Id, vmId);
+        await Seed(result);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewTasks]).SeedAsync();
+
+        var results = await ReadAsync<List<SAVM.Result>>(await Client(actor).GetAsync($"api/vms/{vmId}/results", Ct));
+
+        Assert.Equal([result.Id], results.Select(x => x.Id));
     }
 
     [Fact]
@@ -300,6 +330,18 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
 
         await using var db = NewContext();
         Assert.Equal(actor.Id, (await db.Results.SingleAsync(x => x.ActualOutput == "System created", Ct)).CreatedBy);
+    }
+
+    [Fact]
+    public async Task Create_of_a_result_without_a_task_is_forbidden_for_a_caller_holding_EditScenarios()
+    {
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/results", new { actualOutput = "No task" }, Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
+        await using var db = NewContext();
+        Assert.False(await db.Results.AnyAsync(x => x.ActualOutput == "No task", Ct));
     }
 
     [Fact]
