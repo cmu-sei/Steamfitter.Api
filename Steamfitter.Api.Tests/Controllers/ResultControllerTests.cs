@@ -62,6 +62,29 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
+    public async Task GetByScenarioId_returns_the_scenarios_results_to_a_caller_holding_ViewScenarios()
+    {
+        var (scenario, task) = await SeedScenarioTask();
+        var result = TestData.Result(task.Id);
+        await Seed(result);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        var results = await ReadAsync<List<SAVM.Result>>(await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/results", Ct));
+
+        Assert.Equal([result.Id], results.Select(x => x.Id));
+    }
+
+    [Fact]
+    public async Task GetByScenarioId_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var (scenario, task) = await SeedScenarioTask();
+        await Seed(TestData.Result(task.Id));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/results", Ct));
+    }
+
+    [Fact]
     public async Task GetByTaskId_returns_the_tasks_results_to_a_member_holding_ViewScenario()
     {
         var (scenario, task) = await SeedScenarioTask();
@@ -79,6 +102,29 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     {
         var (_, task) = await SeedScenarioTask();
         var actor = await Actor().OnNewScenario(ScenarioPermission.ViewScenario).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/tasks/{task.Id}/results", Ct));
+    }
+
+    [Fact]
+    public async Task GetByTaskId_returns_the_tasks_results_to_a_caller_holding_ViewScenarios()
+    {
+        var (_, task) = await SeedScenarioTask();
+        var result = TestData.Result(task.Id);
+        await Seed(result);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        var results = await ReadAsync<List<SAVM.Result>>(await Client(actor).GetAsync($"api/tasks/{task.Id}/results", Ct));
+
+        Assert.Equal([result.Id], results.Select(x => x.Id));
+    }
+
+    [Fact]
+    public async Task GetByTaskId_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var (_, task) = await SeedScenarioTask();
+        await Seed(TestData.Result(task.Id));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/tasks/{task.Id}/results", Ct));
     }
@@ -115,6 +161,31 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
         await Seed(TestData.Result(task.Id));
         var (elsewhere, _) = await SeedScenarioTask(Guid.NewGuid());
         var actor = await Actor().OnScenario(elsewhere.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/views/{viewId}/results", Ct));
+    }
+
+    [Fact]
+    public async Task GetByViewId_returns_the_views_results_to_a_caller_holding_ViewScenarios()
+    {
+        var viewId = Guid.NewGuid();
+        var (_, task) = await SeedScenarioTask(viewId);
+        var result = TestData.Result(task.Id);
+        await Seed(result);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        var results = await ReadAsync<List<SAVM.Result>>(await Client(actor).GetAsync($"api/views/{viewId}/results", Ct));
+
+        Assert.Equal([result.Id], results.Select(x => x.Id));
+    }
+
+    [Fact]
+    public async Task GetByViewId_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var viewId = Guid.NewGuid();
+        var (_, task) = await SeedScenarioTask(viewId);
+        await Seed(TestData.Result(task.Id));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/views/{viewId}/results", Ct));
     }
@@ -234,6 +305,30 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
+    public async Task Get_returns_the_result_to_a_caller_holding_ViewScenarios()
+    {
+        var (_, task) = await SeedScenarioTask();
+        var result = TestData.Result(task.Id);
+        await Seed(result);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        var read = await ReadAsync<SAVM.Result>(await Client(actor).GetAsync($"api/results/{result.Id}", Ct));
+
+        Assert.Equal(result.Id, read.Id);
+    }
+
+    [Fact]
+    public async Task Get_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var (_, task) = await SeedScenarioTask();
+        var result = TestData.Result(task.Id);
+        await Seed(result);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/results/{result.Id}", Ct));
+    }
+
+    [Fact]
     public async Task Create_persists_a_result_for_a_member_holding_EditScenario()
     {
         var (scenario, task) = await SeedScenarioTask();
@@ -266,6 +361,17 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
         var actor = await Actor().OnNewScenario(ScenarioPermission.EditScenario).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/results", ResultForm(task.Id, "Refused"), Ct));
+    }
+
+    [Fact]
+    public async Task Create_is_forbidden_for_a_caller_holding_only_ViewScenarios()
+    {
+        var (_, task) = await SeedScenarioTask();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/results", ResultForm(task.Id, "Refused by tier"), Ct));
+        await using var db = NewContext();
+        Assert.False(await db.Results.AnyAsync(x => x.ActualOutput == "Refused by tier", Ct));
     }
 
     [Fact]

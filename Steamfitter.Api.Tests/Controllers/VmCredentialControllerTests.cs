@@ -52,6 +52,16 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
     }
 
     [Fact]
+    public async Task GetByScenarioTemplateId_is_forbidden_for_a_caller_holding_only_ViewScenarios()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template, TestData.VmCredential(scenarioTemplateId: template.Id));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarioTemplates/{template.Id}/vmCredentials", Ct));
+    }
+
+    [Fact]
     public async Task GetByScenarioId_returns_the_scenarios_credentials_to_a_member_holding_ViewScenario()
     {
         var scenario = TestData.Scenario();
@@ -70,6 +80,16 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var scenario = TestData.Scenario();
         await Seed(scenario);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewTasks]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/vmCredentials", Ct));
+    }
+
+    [Fact]
+    public async Task GetByScenarioId_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario, TestData.VmCredential(scenarioId: scenario.Id));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/vmCredentials", Ct));
     }
@@ -105,6 +125,17 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var credential = TestData.VmCredential(scenarioId: scenario.Id);
         await Seed(scenario, credential);
         var actor = await Actor().OnNewScenario(ScenarioPermission.ViewScenario).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
+    }
+
+    [Fact]
+    public async Task Get_of_a_scenario_credential_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id);
+        await Seed(scenario, credential);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
     }
@@ -294,6 +325,19 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
     }
 
     [Fact]
+    public async Task Get_returns_a_template_credential_to_a_caller_holding_ViewScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate();
+        var credential = TestData.VmCredential(scenarioTemplateId: template.Id, username: "readable");
+        await Seed(template, credential);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+
+        var read = await ReadAsync<SAVM.VmCredential>(await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
+
+        Assert.Equal("readable", read.Username);
+    }
+
+    [Fact]
     public async Task Create_persists_a_template_credential_for_a_member_holding_EditScenarioTemplate()
     {
         var template = TestData.ScenarioTemplate();
@@ -329,6 +373,31 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/vmCredentials", new { scenarioId = scenario.Id, username = "refused" }, Ct));
         await using var db = NewContext();
         Assert.False(await db.VmCredentials.AnyAsync(x => x.ScenarioId == scenario.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Create_persists_a_template_credential_for_a_caller_holding_EditScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Created, await Client(actor).PostAsJsonAsync("api/vmCredentials", new { scenarioTemplateId = template.Id, username = "created" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal("created", (await db.VmCredentials.SingleAsync(x => x.ScenarioTemplateId == template.Id, Ct)).Username);
+    }
+
+    [Fact]
+    public async Task Create_of_a_template_credential_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/vmCredentials", new { scenarioTemplateId = template.Id, username = "refused" }, Ct));
+        await using var db = NewContext();
+        Assert.False(await db.VmCredentials.AnyAsync(x => x.ScenarioTemplateId == template.Id, Ct));
     }
 
     [Fact]
@@ -384,6 +453,33 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
     }
 
     [Fact]
+    public async Task Update_saves_a_scenario_credential_for_a_caller_holding_EditScenarios()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id, username: "before");
+        await Seed(scenario, credential);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}", new { id = credential.Id, scenarioId = scenario.Id, username = "after" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal("after", (await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct)).Username);
+    }
+
+    [Fact]
+    public async Task Update_of_a_scenario_credential_is_forbidden_for_a_caller_holding_only_ViewScenarios()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id, username: "before");
+        await Seed(scenario, credential);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}", new { id = credential.Id, scenarioId = scenario.Id, username = "after" }, Ct));
+        await using var db = NewContext();
+        Assert.Equal("before", (await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct)).Username);
+    }
+
+    [Fact]
     public async Task Delete_removes_a_template_credential_for_a_member_holding_EditScenarioTemplate()
     {
         var template = TestData.ScenarioTemplate();
@@ -433,6 +529,33 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/vmCredentials/{credential.Id}", Ct));
+    }
+
+    [Fact]
+    public async Task Delete_removes_a_template_credential_for_a_caller_holding_EditScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate();
+        var credential = TestData.VmCredential(scenarioTemplateId: template.Id);
+        await Seed(template, credential);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NoContent, await Client(actor).DeleteAsync($"api/vmCredentials/{credential.Id}", Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.VmCredentials.AnyAsync(x => x.Id == credential.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Delete_of_a_template_credential_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate();
+        var credential = TestData.VmCredential(scenarioTemplateId: template.Id);
+        await Seed(template, credential);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/vmCredentials/{credential.Id}", Ct));
+        await using var db = NewContext();
+        Assert.True(await db.VmCredentials.AnyAsync(x => x.Id == credential.Id, Ct));
     }
 
     /// <summary>An update body without the credential's id is answered with a 500.</summary>

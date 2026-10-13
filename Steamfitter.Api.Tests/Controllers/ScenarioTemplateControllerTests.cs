@@ -259,6 +259,40 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
     }
 
     [Fact]
+    public async Task Copy_copies_the_template_for_a_creator_holding_ViewScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate("Original");
+        await Seed(template, TestData.TemplateTask(template.Id, "Copied Task"));
+        var actor = await Actor()
+            .WithName("Copier")
+            .WithSystemPermissions(SystemPermission.CreateScenarioTemplates, SystemPermission.ViewScenarioTemplates)
+            .SeedAsync();
+
+        var response = await Client(actor).PostAsync($"api/scenarioTemplates/{template.Id}/copy", null, Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        var copy = await ReadAsync<SAVM.ScenarioTemplate>(response);
+        await using var db = NewContext();
+        var stored = await db.ScenarioTemplates.Include(x => x.Tasks).SingleAsync(x => x.Id == copy.Id, Ct);
+        Assert.Equal(("Original - Copier", "Copied Task"), (stored.Name, Assert.Single(stored.Tasks).Name));
+    }
+
+    [Fact]
+    public async Task Copy_is_forbidden_for_a_creator_holding_only_ViewScenarios()
+    {
+        var template = TestData.ScenarioTemplate("Original");
+        await Seed(template);
+        var actor = await Actor()
+            .WithName("Copier")
+            .WithSystemPermissions(SystemPermission.CreateScenarioTemplates, SystemPermission.ViewScenarios)
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsync($"api/scenarioTemplates/{template.Id}/copy", null, Ct));
+        await using var db = NewContext();
+        Assert.False(await db.ScenarioTemplates.AnyAsync(x => x.Name == "Original - Copier", Ct));
+    }
+
+    [Fact]
     public async Task Update_saves_the_form_for_a_caller_holding_EditScenarioTemplates()
     {
         var template = TestData.ScenarioTemplate("Before");

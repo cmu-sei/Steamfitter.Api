@@ -48,6 +48,26 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
     }
 
     [Fact]
+    public async Task Get_returns_the_membership_to_a_caller_holding_ViewScenarios()
+    {
+        var (_, membership) = await SeedScenarioWithMember();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        var read = await ReadAsync<SAVM.ScenarioMembership>(await Client(actor).GetAsync($"api/scenarios/memberships/{membership.Id}", Ct));
+
+        Assert.Equal((membership.UserId, TestData.ScenarioRoles.Observer), (read.UserId, read.RoleId));
+    }
+
+    [Fact]
+    public async Task Get_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var (_, membership) = await SeedScenarioWithMember();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/memberships/{membership.Id}", Ct));
+    }
+
+    [Fact]
     public async Task Get_of_an_unknown_membership_is_not_found()
     {
         await AssertJsonError(HttpStatusCode.NotFound, await RootClient.GetAsync($"api/scenarios/memberships/{Guid.NewGuid()}", Ct));
@@ -69,6 +89,26 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
     {
         var (scenario, _) = await SeedScenarioWithMember();
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewTasks]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/memberships", Ct));
+    }
+
+    [Fact]
+    public async Task GetAll_returns_the_scenarios_memberships_to_a_caller_holding_ViewScenarios()
+    {
+        var (scenario, membership) = await SeedScenarioWithMember();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        var memberships = await ReadAsync<List<SAVM.ScenarioMembership>>(await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/memberships", Ct));
+
+        Assert.Equal([membership.Id], memberships.Select(x => x.Id));
+    }
+
+    [Fact]
+    public async Task GetAll_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var (scenario, _) = await SeedScenarioWithMember();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/memberships", Ct));
     }
@@ -172,6 +212,21 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
             $"api/scenarios/{scenario.Id}/memberships",
             new { scenarioId = scenario.Id, userId = user.Id, roleId = TestData.ScenarioRoles.Member },
             Ct));
+    }
+
+    [Fact]
+    public async Task Create_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var scenario = TestData.Scenario();
+        var user = TestData.User(name: "Joiner");
+        await Seed(scenario, user);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync($"api/scenarios/{scenario.Id}/memberships", new { scenarioId = scenario.Id, userId = user.Id, roleId = TestData.ScenarioRoles.Member }, Ct);
+
+        await AssertStatus(HttpStatusCode.Forbidden, response);
+        await using var db = NewContext();
+        Assert.False(await db.ScenarioMemberships.AnyAsync(x => x.UserId == user.Id, Ct));
     }
 
     /// <summary>A membership for a group is answered with a 500.</summary>
@@ -306,6 +361,29 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
         var actor = await Actor().OnNewScenario(ScenarioPermission.ManageScenario).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/scenarios/memberships/{membership.Id}", Ct));
+    }
+
+    [Fact]
+    public async Task Delete_removes_the_membership_for_a_caller_holding_ManageScenarios()
+    {
+        var (_, membership) = await SeedScenarioWithMember();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NoContent, await Client(actor).DeleteAsync($"api/scenarios/memberships/{membership.Id}", Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.ScenarioMemberships.AnyAsync(x => x.Id == membership.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Delete_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var (_, membership) = await SeedScenarioWithMember();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/scenarios/memberships/{membership.Id}", Ct));
+        await using var db = NewContext();
+        Assert.True(await db.ScenarioMemberships.AnyAsync(x => x.Id == membership.Id, Ct));
     }
 
     private async Task<(Data.Models.ScenarioEntity Scenario, Data.Models.ScenarioMembershipEntity Membership)> SeedScenarioWithMember()

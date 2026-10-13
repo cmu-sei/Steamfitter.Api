@@ -70,6 +70,19 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
+    public async Task GetByScenarioTemplateId_returns_the_templates_tasks_to_a_caller_holding_ViewScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate();
+        var task = TestData.TemplateTask(template.Id);
+        await Seed(template, task);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+
+        var tasks = await ReadAsync<List<SAVM.Task>>(await Client(actor).GetAsync($"api/scenarioTemplates/{template.Id}/tasks", Ct));
+
+        Assert.Equal([task.Id], tasks.Select(x => x.Id));
+    }
+
+    [Fact]
     public async Task GetByScenarioId_returns_the_scenarios_tasks_to_a_member_holding_ViewScenario()
     {
         var scenario = TestData.Scenario();
@@ -98,6 +111,29 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         var scenario = TestData.Scenario();
         await Seed(scenario);
         var actor = await Actor().OnNewScenario(ScenarioPermission.ViewScenario).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/tasks", Ct));
+    }
+
+    [Fact]
+    public async Task GetByScenarioId_returns_the_scenarios_tasks_to_a_caller_holding_ViewScenarios()
+    {
+        var scenario = TestData.Scenario();
+        var task = TestData.ScenarioTask(scenario.Id);
+        await Seed(scenario, task);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        var tasks = await ReadAsync<List<SAVM.Task>>(await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/tasks", Ct));
+
+        Assert.Equal([task.Id], tasks.Select(x => x.Id));
+    }
+
+    [Fact]
+    public async Task GetByScenarioId_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario, TestData.ScenarioTask(scenario.Id));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/tasks", Ct));
     }
@@ -208,6 +244,30 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         var task = TestData.ScenarioTask(scenario.Id);
         await Seed(scenario, task);
         var actor = await Actor().OnNewScenario(ScenarioPermission.ViewScenario).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/tasks/{task.Id}", Ct));
+    }
+
+    [Fact]
+    public async Task Get_returns_a_scenario_task_to_a_caller_holding_ViewScenarios()
+    {
+        var scenario = TestData.Scenario();
+        var task = TestData.ScenarioTask(scenario.Id, "Readable");
+        await Seed(scenario, task);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        var read = await ReadAsync<SAVM.Task>(await Client(actor).GetAsync($"api/tasks/{task.Id}", Ct));
+
+        Assert.Equal("Readable", read.Name);
+    }
+
+    [Fact]
+    public async Task Get_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var scenario = TestData.Scenario();
+        var task = TestData.ScenarioTask(scenario.Id);
+        await Seed(scenario, task);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/tasks/{task.Id}", Ct));
     }
@@ -326,6 +386,34 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Refused", scenarioTemplateId: template.Id), Ct));
     }
 
+    [Fact]
+    public async Task Create_persists_a_template_task_for_a_caller_holding_ManageScenarioTemplates()
+    {
+        // Gate: Steamfitter.Api/Controllers/TaskController.cs#TaskController.Create:2
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarioTemplates).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("System Template Task", scenarioTemplateId: template.Id), Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        var created = await ReadAsync<SAVM.Task>(response);
+        await using var db = NewContext();
+        Assert.Equal(template.Id, (await db.Tasks.SingleAsync(x => x.Id == created.Id, Ct)).ScenarioTemplateId);
+    }
+
+    [Fact]
+    public async Task Create_of_a_template_task_is_forbidden_for_a_caller_holding_only_EditScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Refused", scenarioTemplateId: template.Id), Ct));
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioTemplateId == template.Id, Ct));
+    }
+
     /// <summary>A task with neither a scenario nor a template is created for a caller holding only ViewScenarios.</summary>
     [Fact]
     public async Task Create_of_a_task_with_neither_a_scenario_nor_a_template_succeeds_for_a_caller_holding_only_ViewScenarios()
@@ -404,6 +492,58 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
+    public async Task Copy_copies_a_task_into_another_scenario_for_a_caller_holding_ViewScenarios_who_may_edit_the_target()
+    {
+        var source = TestData.Scenario("Source");
+        var target = TestData.Scenario("Target");
+        var task = TestData.ScenarioTask(source.Id, "Copied");
+        await Seed(source, target, task);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.ViewScenarios)
+            .OnScenario(target.Id, permissions: [ScenarioPermission.EditScenario])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PostAsJsonAsync($"api/tasks/{task.Id}/copy", new { id = target.Id, locationType = "scenario" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(["Copied"], await db.Tasks.Where(x => x.ScenarioId == target.Id).Select(x => x.Name).ToListAsync(Ct));
+    }
+
+    [Fact]
+    public async Task Copy_is_forbidden_for_a_member_who_may_edit_the_target_but_holds_only_ViewScenarioTemplates()
+    {
+        var source = TestData.Scenario("Source");
+        var target = TestData.Scenario("Target");
+        var task = TestData.ScenarioTask(source.Id);
+        await Seed(source, target, task);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.ViewScenarioTemplates)
+            .OnScenario(target.Id, permissions: [ScenarioPermission.EditScenario])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/{task.Id}/copy", new { id = target.Id, locationType = "scenario" }, Ct));
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioId == target.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Copy_into_a_scenario_is_forbidden_for_a_member_who_may_view_the_source_but_holds_only_EditScenarioTemplates()
+    {
+        var source = TestData.Scenario("Source");
+        var target = TestData.Scenario("Target");
+        var task = TestData.ScenarioTask(source.Id);
+        await Seed(source, target, task);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.EditScenarioTemplates)
+            .OnScenario(source.Id, permissions: [ScenarioPermission.ViewScenario])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/{task.Id}/copy", new { id = target.Id, locationType = "scenario" }, Ct));
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioId == target.Id, Ct));
+    }
+
+    [Fact]
     public async Task CreateFromResult_creates_a_task_from_the_results_command_for_a_member_who_may_view_and_edit()
     {
         var scenario = TestData.Scenario();
@@ -429,6 +569,61 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/copyfromresult/{result.Id}", new { id = scenario.Id, locationType = "scenario" }, Ct));
+    }
+
+    [Fact]
+    public async Task CreateFromResult_creates_a_task_in_another_scenario_for_a_caller_holding_ViewScenarios_who_may_edit_the_target()
+    {
+        var source = TestData.Scenario("Source");
+        var target = TestData.Scenario("Target");
+        var task = TestData.ScenarioTask(source.Id);
+        var result = TestData.Result(task.Id);
+        await Seed(source, target, task, result);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.ViewScenarios)
+            .OnScenario(target.Id, permissions: [ScenarioPermission.EditScenario])
+            .SeedAsync();
+
+        var created = await ReadAsync<SAVM.Task>(await Client(actor).PostAsJsonAsync($"api/tasks/copyfromresult/{result.Id}", new { id = target.Id, locationType = "scenario" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(target.Id, (await db.Tasks.SingleAsync(x => x.Id == created.Id, Ct)).ScenarioId);
+    }
+
+    [Fact]
+    public async Task CreateFromResult_is_forbidden_for_a_member_who_may_edit_the_target_but_holds_only_ViewScenarioTemplates()
+    {
+        var source = TestData.Scenario("Source");
+        var target = TestData.Scenario("Target");
+        var task = TestData.ScenarioTask(source.Id);
+        var result = TestData.Result(task.Id);
+        await Seed(source, target, task, result);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.ViewScenarioTemplates)
+            .OnScenario(target.Id, permissions: [ScenarioPermission.EditScenario])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/copyfromresult/{result.Id}", new { id = target.Id, locationType = "scenario" }, Ct));
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioId == target.Id, Ct));
+    }
+
+    [Fact]
+    public async Task CreateFromResult_is_forbidden_for_a_member_who_may_edit_the_target_but_holds_ViewScenario_only_on_another_scenario()
+    {
+        var source = TestData.Scenario("Source");
+        var target = TestData.Scenario("Target");
+        var task = TestData.ScenarioTask(source.Id);
+        var result = TestData.Result(task.Id);
+        await Seed(source, target, task, result);
+        var actor = await Actor()
+            .OnNewScenario(ScenarioPermission.ViewScenario)
+            .OnScenario(target.Id, permissions: [ScenarioPermission.EditScenario])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/copyfromresult/{result.Id}", new { id = target.Id, locationType = "scenario" }, Ct));
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioId == target.Id, Ct));
     }
 
     [Fact]
@@ -469,6 +664,37 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Equal(InsufficientPermissions, error.Title);
         await using var db = NewContext();
         Assert.False(await db.Tasks.AnyAsync(x => x.Name == "Refused", Ct));
+    }
+
+    [Fact]
+    public async Task CreateAndExecute_creates_the_task_for_a_member_holding_EditScenario_and_the_system_ExecuteScenarios()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        await Seed(scenario);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.ExecuteScenarios)
+            .OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario])
+            .SeedAsync();
+
+        var results = await ReadAsync<List<SAVM.Result>>(await Client(actor).PostAsJsonAsync("api/tasks/execute", TaskForm("Run by system", scenarioId: scenario.Id), Ct));
+
+        Assert.Empty(results);
+        await using var db = NewContext();
+        Assert.Equal(TaskStatus.pending, (await db.Tasks.SingleAsync(x => x.Name == "Run by system", Ct)).Status);
+    }
+
+    [Fact]
+    public async Task CreateAndExecute_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks/execute", TaskForm("Refused", scenarioId: scenario.Id), Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioId == scenario.Id, Ct));
     }
 
     /// <summary>A form without a scenario id is answered with a 500.</summary>
@@ -582,6 +808,21 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
+    public async Task ExecuteWithSubstitutions_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        var task = TestData.ScenarioTask(scenario.Id);
+        await Seed(scenario, task);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/{task.Id}/execute/substitutions", new Dictionary<string, string>(), Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
+        await using var db = NewContext();
+        Assert.Equal(TaskStatus.none, (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).Status);
+    }
+
+    [Fact]
     public async Task ExecuteForGrade_answers_with_the_graded_task_for_a_member_holding_ExecuteScenario()
     {
         var scenario = TestData.Scenario(status: ScenarioStatus.active);
@@ -602,8 +843,40 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     public async Task ExecuteForGrade_is_forbidden_for_a_member_holding_only_EditScenario()
     {
         var scenario = TestData.Scenario(status: ScenarioStatus.active);
-        await Seed(scenario);
+        await Seed(scenario, TestData.ScenarioTask(scenario.Id, "Start"), TestData.ScenarioTask(scenario.Id, "Graded"));
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync(
+            "api/tasks/execute/graded",
+            new { scenarioId = scenario.Id, startTaskName = "Start", gradedTaskName = "Graded", taskSubstitutions = new Dictionary<string, string>() },
+            Ct));
+
+        Assert.Equal(InsufficientPermissions, error.Title);
+    }
+
+    [Fact]
+    public async Task ExecuteForGrade_answers_with_the_graded_task_for_a_caller_holding_ExecuteScenarios()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        var start = TestData.ScenarioTask(scenario.Id, "Start");
+        var graded = TestData.ScenarioTask(scenario.Id, "Graded");
+        await Seed(scenario, start, graded);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ExecuteScenarios).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            "api/tasks/execute/graded",
+            new { scenarioId = scenario.Id, startTaskName = "Start", gradedTaskName = "Graded", taskSubstitutions = new Dictionary<string, string>() },
+            Ct);
+
+        Assert.Equal(graded.Id, (await ReadAsync<GradeCheck>(response)).GradedTaskId);
+    }
+
+    [Fact]
+    public async Task ExecuteForGrade_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        await Seed(scenario, TestData.ScenarioTask(scenario.Id, "Start"), TestData.ScenarioTask(scenario.Id, "Graded"));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
         var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync(
             "api/tasks/execute/graded",
@@ -685,6 +958,33 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate]).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}", TaskForm("After", scenarioTemplateId: template.Id), Ct));
+    }
+
+    [Fact]
+    public async Task Update_saves_a_template_task_for_a_caller_holding_EditScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate();
+        var task = TestData.TemplateTask(template.Id, "Before");
+        await Seed(template, task);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}", TaskForm("After", scenarioTemplateId: template.Id), Ct));
+
+        await using var db = NewContext();
+        Assert.Equal("After", (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).Name);
+    }
+
+    [Fact]
+    public async Task Update_of_a_template_task_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var template = TestData.ScenarioTemplate();
+        var task = TestData.TemplateTask(template.Id, "Before");
+        await Seed(template, task);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}", TaskForm("After", scenarioTemplateId: template.Id), Ct));
+        await using var db = NewContext();
+        Assert.Equal("Before", (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).Name);
     }
 
     [Fact]
@@ -918,6 +1218,38 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
+    public async Task Move_moves_a_template_task_into_another_template_for_a_caller_holding_EditScenarioTemplates()
+    {
+        var source = TestData.ScenarioTemplate("Source");
+        var target = TestData.ScenarioTemplate("Target");
+        var task = TestData.TemplateTask(source.Id);
+        await Seed(source, target, task);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}/move", new { id = target.Id, locationType = "scenarioTemplate" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(target.Id, (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).ScenarioTemplateId);
+    }
+
+    [Fact]
+    public async Task Move_into_a_template_is_forbidden_for_a_member_who_may_edit_the_source_but_holds_only_EditScenarios()
+    {
+        var source = TestData.ScenarioTemplate("Source");
+        var target = TestData.ScenarioTemplate("Target");
+        var task = TestData.TemplateTask(source.Id);
+        await Seed(source, target, task);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.EditScenarios)
+            .OnScenarioTemplate(source.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}/move", new { id = target.Id, locationType = "scenarioTemplate" }, Ct));
+        await using var db = NewContext();
+        Assert.Equal(source.Id, (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).ScenarioTemplateId);
+    }
+
+    [Fact]
     public async Task Copy_copies_a_template_task_into_another_template_for_a_member_who_may_view_the_source_and_edit_the_target()
     {
         var source = TestData.ScenarioTemplate("Source");
@@ -968,6 +1300,41 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
+    public async Task Copy_copies_a_template_task_into_another_template_for_a_caller_holding_ViewScenarioTemplates_who_may_edit_the_target()
+    {
+        var source = TestData.ScenarioTemplate("Source");
+        var target = TestData.ScenarioTemplate("Target");
+        var task = TestData.TemplateTask(source.Id, "Copied");
+        await Seed(source, target, task);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.ViewScenarioTemplates)
+            .OnScenarioTemplate(target.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PostAsJsonAsync($"api/tasks/{task.Id}/copy", new { id = target.Id, locationType = "scenarioTemplate" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(["Copied"], await db.Tasks.Where(x => x.ScenarioTemplateId == target.Id).Select(x => x.Name).ToListAsync(Ct));
+    }
+
+    [Fact]
+    public async Task Copy_of_a_template_task_is_forbidden_for_a_member_who_may_edit_the_target_but_holds_only_ViewScenarios()
+    {
+        var source = TestData.ScenarioTemplate("Source");
+        var target = TestData.ScenarioTemplate("Target");
+        var task = TestData.TemplateTask(source.Id);
+        await Seed(source, target, task);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.ViewScenarios)
+            .OnScenarioTemplate(target.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/{task.Id}/copy", new { id = target.Id, locationType = "scenarioTemplate" }, Ct));
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioTemplateId == target.Id, Ct));
+    }
+
+    [Fact]
     public async Task CreateFromResult_creates_a_template_task_from_a_template_tasks_result_for_a_member_who_may_view_and_edit()
     {
         var template = TestData.ScenarioTemplate();
@@ -1008,6 +1375,43 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate]).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/copyfromresult/{result.Id}", new { id = template.Id, locationType = "scenarioTemplate" }, Ct));
+    }
+
+    [Fact]
+    public async Task CreateFromResult_creates_a_template_task_for_a_caller_holding_ViewScenarioTemplates_who_may_edit_the_target()
+    {
+        var template = TestData.ScenarioTemplate();
+        var target = TestData.ScenarioTemplate("Target");
+        var task = TestData.TemplateTask(template.Id);
+        var result = TestData.Result(task.Id);
+        await Seed(template, target, task, result);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.ViewScenarioTemplates)
+            .OnScenarioTemplate(target.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate])
+            .SeedAsync();
+
+        var created = await ReadAsync<SAVM.Task>(await Client(actor).PostAsJsonAsync($"api/tasks/copyfromresult/{result.Id}", new { id = target.Id, locationType = "scenarioTemplate" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(target.Id, (await db.Tasks.SingleAsync(x => x.Id == created.Id, Ct)).ScenarioTemplateId);
+    }
+
+    [Fact]
+    public async Task CreateFromResult_of_a_template_tasks_result_is_forbidden_for_a_member_who_may_edit_the_target_but_holds_only_ViewScenarios()
+    {
+        var template = TestData.ScenarioTemplate();
+        var target = TestData.ScenarioTemplate("Target");
+        var task = TestData.TemplateTask(template.Id);
+        var result = TestData.Result(task.Id);
+        await Seed(template, target, task, result);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.ViewScenarios)
+            .OnScenarioTemplate(target.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/tasks/copyfromresult/{result.Id}", new { id = target.Id, locationType = "scenarioTemplate" }, Ct));
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioTemplateId == target.Id, Ct));
     }
 
     /// <summary>A task is moved into a scenario the caller may not edit when the update body names that scenario.</summary>

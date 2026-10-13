@@ -278,6 +278,38 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
     }
 
     [Fact]
+    public async Task CreateFromScenarioTemplate_creates_the_scenario_for_a_creator_holding_ViewScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate("System Template");
+        await Seed(template);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.CreateScenarios, SystemPermission.ViewScenarioTemplates)
+            .SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync($"api/scenarioTemplates/{template.Id}/scenarios", new { nameSuffix = " (run)" }, Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        var created = await ReadAsync<SAVM.Scenario>(response);
+        await using var db = NewContext();
+        var stored = await db.Scenarios.SingleAsync(x => x.Id == created.Id, Ct);
+        Assert.Equal(("System Template (run)", template.Id), (stored.Name, stored.ScenarioTemplateId.Value));
+    }
+
+    [Fact]
+    public async Task CreateFromScenarioTemplate_is_forbidden_for_a_creator_holding_only_ViewScenarios()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.CreateScenarios, SystemPermission.ViewScenarios)
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync($"api/scenarioTemplates/{template.Id}/scenarios", new { }, Ct));
+        await using var db = NewContext();
+        Assert.False(await db.Scenarios.AnyAsync(x => x.ScenarioTemplateId == template.Id, Ct));
+    }
+
+    [Fact]
     public async Task Copy_copies_the_scenario_and_its_tasks_for_a_creator_who_may_view_it()
     {
         var scenario = TestData.Scenario("Original");
@@ -387,6 +419,18 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
     }
 
     [Fact]
+    public async Task Update_is_forbidden_for_a_caller_holding_only_ExecuteScenarios()
+    {
+        var scenario = TestData.Scenario("Before");
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ExecuteScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/scenarios/{scenario.Id}", new { name = "After", status = "ready" }, Ct));
+        await using var db = NewContext();
+        Assert.Equal("Before", (await db.Scenarios.SingleAsync(x => x.Id == scenario.Id, Ct)).Name);
+    }
+
+    [Fact]
     public async Task Start_activates_the_scenario_for_a_member_holding_ExecuteScenario()
     {
         var scenario = TestData.Scenario();
@@ -449,6 +493,19 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsync($"api/scenarios/{scenario.Id}/start", null, Ct));
     }
 
+    [Fact]
+    public async Task Start_activates_the_scenario_for_a_caller_holding_ExecuteScenarios()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ExecuteScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsync($"api/scenarios/{scenario.Id}/start", null, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(ScenarioStatus.active, (await db.Scenarios.SingleAsync(x => x.Id == scenario.Id, Ct)).Status);
+    }
+
     /// <summary>Starting an unknown scenario id is answered with a 500.</summary>
     [Fact]
     public async Task Start_answers_an_unknown_scenario_with_a_server_error()
@@ -484,11 +541,31 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
     }
 
     [Fact]
+    public async Task Pause_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsync($"api/scenarios/{scenario.Id}/pause", null, Ct));
+    }
+
+    [Fact]
     public async Task Continue_is_forbidden_for_a_member_holding_only_EditScenario()
     {
         var scenario = TestData.Scenario(status: ScenarioStatus.active);
         await Seed(scenario);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsync($"api/scenarios/{scenario.Id}/continue", null, Ct));
+    }
+
+    [Fact]
+    public async Task Continue_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsync($"api/scenarios/{scenario.Id}/continue", null, Ct));
     }
@@ -512,6 +589,31 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         var scenario = TestData.Scenario(status: ScenarioStatus.active);
         await Seed(scenario);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsync($"api/scenarios/{scenario.Id}/end", null, Ct));
+        await using var db = NewContext();
+        Assert.Equal(ScenarioStatus.active, (await db.Scenarios.SingleAsync(x => x.Id == scenario.Id, Ct)).Status);
+    }
+
+    [Fact]
+    public async Task End_ends_the_scenario_for_a_caller_holding_ExecuteScenarios()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ExecuteScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsync($"api/scenarios/{scenario.Id}/end", null, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(ScenarioStatus.ended, (await db.Scenarios.SingleAsync(x => x.Id == scenario.Id, Ct)).Status);
+    }
+
+    [Fact]
+    public async Task End_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsync($"api/scenarios/{scenario.Id}/end", null, Ct));
         await using var db = NewContext();
