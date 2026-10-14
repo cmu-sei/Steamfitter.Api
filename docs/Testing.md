@@ -10,7 +10,7 @@ The suite is built on xUnit v3 and NSubstitute, and runs against a real PostgreS
 dotnet test Steamfitter.Api.Tests
 ```
 
-Docker must be running. The suite starts and disposes its own PostgreSQL container (`postgres:16-alpine`) through Testcontainers. The container starts when the first test asks for a database, so the tests that take none (the mapping, filter and handler tests) run without Docker.
+Docker must be running. The suite starts and disposes its own PostgreSQL container (`postgres:16-alpine`) through Testcontainers. The container starts when the first test asks for a database, so the tests that take none (`MappingConfigurationTests`, `JsonExceptionFilterTests` and `PermissionHandlerTests`) run without Docker.
 
 A single class or test:
 
@@ -19,7 +19,7 @@ dotnet test Steamfitter.Api.Tests --filter "FullyQualifiedName~.TaskControllerTe
 dotnet test Steamfitter.Api.Tests --filter "FullyQualifiedName~.TaskControllerTests.Execute_is_forbidden_for_a_member_holding_only_EditScenario"
 ```
 
-The leading dot keeps `ScenarioControllerTests` from also matching `ScenarioTemplateControllerTests`.
+The leading dot makes the filter match the class name from its first letter, so it cannot also match a longer class name that ends in it.
 
 To see which database the run used, pass the diagnostic flag on the command line (never in `xunit.runner.json`, where it makes the run hang after the last test):
 
@@ -51,7 +51,7 @@ The suite runs in VSTest mode of `dotnet test`, as every Crucible API does; the 
 
 The shared base classes and what each provides (`Db`, `NewContext()`, `Mediator`, `Ct`, `Seed`, `WaitUntil`; `Root`, `RootClient`, `Actor()`, `Client(actor)`, `Client()`, `ReadAsync`, `AssertStatus`, `AssertProblem`) are described in the standard's README. Steamfitter's own pieces:
 
-- `DatabaseFixture` wraps the shared `PostgresTestDatabase<SteamfitterContext>`: database prefix `steamfitter`, migrations from `Steamfitter.Api.Migrations.PostgreSQL`. It is static because the host takes a database of its own (below).
+- `DatabaseFixture` wraps the shared `PostgresTestDatabase<SteamfitterContext>`: database prefix `steamfitter`, migrations from `Steamfitter.Api.Migrations.PostgreSQL`. It is static because the host takes a database of its own (below). Its contexts come from `SteamfitterContextFactory`, which attaches the entity-event interceptor and registers the mediator and logger that `SteamfitterContext` resolves when it publishes, as production does.
 - `SteamfitterAppFactory` hosts the application once for the run (an xUnit v3 assembly fixture in `AssemblyFixtures.cs`).
 - `DatabaseTestBase`, `ApiTestBase` and `ServiceTestBase` are the three base classes. Errors are asserted with the shared `AssertJsonError(status, response)`, because `JsonExceptionFilter` answers a thrown exception with a `ProblemDetails` body under `application/json` (a `JsonResult`), where `AssertProblem` expects `application/problem+json`. A handled exception's message is the error's `Title`; a 500's is its `Detail`. `AssertProblem` is still right for model-binding failures, which `[ApiController]` answers with `application/problem+json`.
 - `TestActor` / `TestActorBuilder` seed the rows `UserClaimsService` reads: `WithAllSystemPermissions()` (the seeded Administrator role), `WithSystemPermissions(...)` and `WithRole(...)` for the user's system role; `OnScenario(id, roleId | permissions)` and `OnScenarioTemplate(...)` for memberships (one of the two is required, because the column default role, `Member`, grants view and edit); `OnNewScenario(...)` and `OnNewScenarioTemplate(...)`, which mint a resource of their own, for the near miss that holds the right permission on another resource; and `InGroup(groupId)`, whose group memberships then grant.
@@ -87,7 +87,7 @@ Each test gets its own database, cloned from the migrated template; the host is 
 
 Follow `agent-docs/api-testing/CONVENTIONS.md` section 2. In short: put the file where the code lives (`Controllers/`, `Services/`, `Hubs/`, `Infrastructure/...`), derive from `ApiTestBase` for a request, `ServiceTestBase` for a background service or the hub, `DatabaseTestBase` for the database alone, or nothing; forward the fixtures (`XTests(DatabaseFixture fixture, SteamfitterAppFactory factory) : ApiTestBase(fixture, factory)`); seed with `TestData` and `Actor()`; name the test as a sentence; pass `Ct`; re-read through `NewContext()`.
 
-Every gate gets an allowed test with exactly the permission the gate names and denied tests that are near misses, named for what the caller holds: `..._is_forbidden_for_a_caller_holding_only_ViewScenarios`, `..._is_forbidden_for_a_member_holding_only_EditScenario`, `..._is_forbidden_for_a_caller_holding_ViewScenario_only_on_another_scenario` (seeded with `OnNewScenario`). Each controller has one `An_unauthenticated_request_is_unauthorized`.
+For every authorization call site, each permission value it reads has an allowed test whose caller holds exactly that value, never `Root`. `TaskController.Execute` reads `ExecuteScenarios` and `ExecuteScenario`, so it has `Execute_resets_the_task_to_pending_for_a_caller_holding_ExecuteScenarios` and `Execute_resets_the_task_to_pending_for_a_member_holding_ExecuteScenario`. Each tier of a multi-tier gate (system, scenario, scenario template) has a near miss of its own, refused by that site and named for what the caller holds: a neighbouring permission of that tier (`Execute_is_forbidden_for_a_caller_holding_only_EditScenarios` for the system tier, `Execute_is_forbidden_for_a_member_holding_only_EditScenario` for the scenario tier), or the same value on another scenario or template (`Execute_is_forbidden_for_a_caller_holding_ExecuteScenario_only_on_another_scenario`, seeded with `OnNewScenario`; `OnNewScenarioTemplate` for a template). Each controller test class has one `An_unauthenticated_request_is_unauthorized`, except `HealthControllerTests`: the health endpoints allow anonymous callers.
 
 A defect is characterized by a passing test of the current behaviour, with at most a one-line neutral `/// <summary>`, and described in `agent-docs/api-test-bugs/steamfitter.api.md` (CONVENTIONS.md section 3); never in a test comment.
 
@@ -95,7 +95,9 @@ A defect is characterized by a passing test of the current behaviour, with at mo
 
 ```
 Steamfitter.Api.Tests/
-  Controllers/       one class per controller, over HTTP: authorization, persistence, broadcasts, error shapes
+  Controllers/       over HTTP: authorization, persistence, broadcasts, error shapes; one class per controller,
+                     except PermissionControllerTests (the three permission controllers) and
+                     ScenarioRoleControllerTests (the scenario and scenario template role controllers)
   Services/          TaskExecutionService, TaskMaintenanceService, UserClaimsService, driven directly
   Hubs/              EngineHub over HubHarness, and over a real connection (EngineHubConnectionTests)
   Infrastructure/

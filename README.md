@@ -1,6 +1,6 @@
 # Steamfitter.api Readme
 
-This project provides a restful api for steamfitter functionality in the Crucible ecosystem. By default, steamfitter.api is available at `localhost:4400`, with the Swagger page at `localhost:4400/api`.
+This project provides a restful api for steamfitter functionality in the Crucible ecosystem. When run with `dotnet run` (from the `Steamfitter.Api` directory), steamfitter.api is available at `localhost:4400`, with the Swagger page at `localhost:4400/api`. The Docker image listens on port 8080.
 
 ## Entity Description
 
@@ -17,10 +17,15 @@ This project provides a restful api for steamfitter functionality in the Crucibl
 Tasks can be executed in multiple ways:
 
 1. **VM Tasks:** Tasks that run against virtual machines using either:
-   - **VmMask:** Pattern-based VM selection (requires Scenario to be associated with a Player View)
-   - **VmList:** Explicit list of VM IDs (for ad-hoc tasks or specific VM targeting)
+   - **VmMask:** Pattern-based VM selection, matching VM names in the Scenario's Player View
+   - **VmList:** Explicit list of VM IDs (for ad-hoc tasks or specific VM targeting), which must belong to the Scenario's Player View
 
-2. **API Tasks:** Tasks that execute against external APIs without requiring VMs.
+   The VM actions (guest file and process operations, power and snapshots) run through the Player VM API, which manages vSphere and Proxmox VMs.
+
+2. **API Tasks:** Tasks that run without VMs:
+   - **HTTP:** `http_get`, `http_post`, `http_put` and `http_delete`. When `HttpTaskProcessing:AllowedHosts` is set, only the hosts it lists can be called.
+   - **SSH:** `core_remote`, `linux_file_touch` and `linux_rm`, run on the hosts named in the task's parameters, with the `Ssh` settings.
+   - **Email:** `send_email`, sent through the SMTP server in the `Email` settings.
 
 3. **Manual Tasks:** Tasks that are marked as manual execution and do not automatically execute.
 
@@ -36,17 +41,27 @@ Include the reasons why you're requesting the new feature and how it might benef
 
 # Database Migrations
 
-When the data model is changed, a new database migration must be created. All database migration commands are run from the Steamfitter.Api directory.
+When the data model is changed, a new database migration must be created. All database migration commands are run from the Steamfitter.Api directory, with `Database:Provider` set to `PostgreSQL` (for example `Database__Provider=PostgreSQL`): the default provider is `Sqlite`, and the migrations assembly is chosen by provider. The commands need the `dotnet-ef` tool, which the repository's tool manifest does not include.
 - Create a new migration:
     - dotnet ef migrations add <new_migration_name> --project ../Steamfitter.Api.Migrations.PostgreSQL/Steamfitter.Api.Migrations.PostgreSQL.csproj
 - Update the database
-    - Running the app updates the database.
+    - Running the app applies pending migrations when the provider is PostgreSQL. A Sqlite database is never migrated.
 - Roll back a migration
     - update the database to the previous migration
         - dotnet ef database update <previous_migration_name> --project ../Steamfitter.Api.Migrations.PostgreSQL/Steamfitter.Api.Migrations.PostgreSQL.csproj
     - Remove the migration
         - dotnet ef migrations remove --project ../Steamfitter.Api.Migrations.PostgreSQL/Steamfitter.Api.Migrations.PostgreSQL.csproj
 
+# Testing
+
+The tests are in the `Steamfitter.Api.Tests` project. Run them from the repository root:
+
+```bash
+dotnet test Steamfitter.Api.Tests
+```
+
+Docker must be running: the suite starts its own PostgreSQL container through Testcontainers and applies the real migrations. [docs/Testing.md](docs/Testing.md) describes the harness, how to add a test, and the CI workflow.
+
 ## License
 
-Copyright 2021 Carnegie Mellon University. See the [LICENSE.md](https://github.com/cmu-sei/Alloy.Api/blob/development/LICENSE.md) files for details.
+Copyright 2021 Carnegie Mellon University. See the [LICENSE.md](LICENSE.md) file for details.
