@@ -553,6 +553,7 @@ namespace Steamfitter.Api.Services
                                 {
                                     var message = $"Player VM API Action {taskToExecute.Action} has not been implemented.";
                                     _logger.LogError(message);
+                                    resultEntity.ActualOutput = message;
                                     resultEntity.Status = Data.TaskStatus.failed;
                                     resultEntity.StatusDate = DateTime.UtcNow;
                                     break;
@@ -577,6 +578,7 @@ namespace Steamfitter.Api.Services
                                 {
                                     var message = $"SSH Action {taskToExecute.Action} has not been implemented.";
                                     _logger.LogError(message);
+                                    resultEntity.ActualOutput = message;
                                     resultEntity.Status = Data.TaskStatus.failed;
                                     resultEntity.StatusDate = DateTime.UtcNow;
                                     break;
@@ -595,6 +597,7 @@ namespace Steamfitter.Api.Services
                                 {
                                     var message = $"Email Action {taskToExecute.Action} has not been implemented.";
                                     _logger.LogError(message);
+                                    resultEntity.ActualOutput = message;
                                     resultEntity.Status = Data.TaskStatus.failed;
                                     resultEntity.StatusDate = DateTime.UtcNow;
                                     break;
@@ -618,11 +621,27 @@ namespace Steamfitter.Api.Services
                         }
                         break;
                     }
+                case "stackstorm":
+                    {
+                        // StackStorm was removed in 3.10. Its VM, email and SSH actions were remapped by the
+                        // RemoveStackstormApiUrl migration; anything still here (e.g. the az_* actions) has no handler.
+                        var message = $"StackStorm Action {(int)taskToExecute.Action} was removed in Steamfitter 3.10 and can no longer be run.";
+                        _logger.LogError(message);
+                        resultEntity.ActualOutput = message;
+                        resultEntity.Status = Data.TaskStatus.failed;
+                        resultEntity.StatusDate = DateTime.UtcNow;
+                        break;
+                    }
                 default:
                     {
+                        // Fail the result rather than throwing, so the task reaches a terminal status
+                        // and its Failure/Completion subtasks still run.
                         var message = $"API ({taskToExecute.ApiUrl}) is not currently implemented";
                         _logger.LogError(message);
-                        throw new NotImplementedException(message);
+                        resultEntity.ActualOutput = message;
+                        resultEntity.Status = Data.TaskStatus.failed;
+                        resultEntity.StatusDate = DateTime.UtcNow;
+                        break;
                     }
             }
 
