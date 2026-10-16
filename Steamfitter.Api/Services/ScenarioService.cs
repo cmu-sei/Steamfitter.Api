@@ -75,12 +75,11 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<ViewModels.Scenario>> GetByUserAsync(CancellationToken ct)
         {
-            var userId = _user.GetId();
-            var items = await _context.ScenarioMemberships
-                .Where(m => m.Scenario.CreatedBy == userId || m.UserId == userId)
-                .Include(m => m.Scenario)
-                .ThenInclude(m => m.VmCredentials)
-                .Select(m => m.Scenario)
+            // the Scenarios the caller may view; membership alone is not enough
+            var scenarioIds = _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario);
+            var items = await _context.Scenarios
+                .Where(s => scenarioIds.Contains(s.Id))
+                .Include(s => s.VmCredentials)
                 .ToListAsync(ct);
 
             return _mapper.Map<IEnumerable<SAVM.Scenario>>(items);

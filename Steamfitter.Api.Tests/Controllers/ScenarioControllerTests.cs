@@ -73,9 +73,8 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync("api/scenarios", Ct));
     }
 
-    /// <summary>A scenario the caller created is listed once per membership it has.</summary>
     [Fact]
-    public async Task GetAll_lists_a_scenario_the_caller_created_once_per_membership_on_it()
+    public async Task GetAll_lists_a_scenario_the_caller_may_view_once_whatever_its_memberships()
     {
         var colleague = TestData.User(name: "Colleague");
         await Seed(colleague);
@@ -88,7 +87,23 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
 
         var scenarios = await ReadAsync<List<SAVM.Scenario>>(await Client(actor).GetAsync("api/scenarios", Ct));
 
-        Assert.Equal([scenario.Id, scenario.Id], scenarios.Select(x => x.Id));
+        Assert.Equal([scenario.Id], scenarios.Select(x => x.Id));
+    }
+
+    /// <summary>The list goes by permission, as GET scenarios/{id} does; membership alone is not enough.</summary>
+    [Fact]
+    public async Task GetAll_leaves_out_a_scenario_the_caller_belongs_to_without_ViewScenario()
+    {
+        var scenario = TestData.Scenario("Executed");
+        await Seed(scenario);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.CreateScenarios)
+            .OnScenario(scenario.Id, permissions: [ScenarioPermission.ExecuteScenario])
+            .SeedAsync();
+
+        var scenarios = await ReadAsync<List<SAVM.Scenario>>(await Client(actor).GetAsync("api/scenarios", Ct));
+
+        Assert.DoesNotContain(scenario.Id, scenarios.Select(x => x.Id));
     }
 
     [Fact]

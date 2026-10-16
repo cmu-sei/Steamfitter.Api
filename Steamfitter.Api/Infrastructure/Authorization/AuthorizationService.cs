@@ -34,7 +34,14 @@ public interface ISteamfitterAuthorizationService
         ScenarioTemplatePermission[] requiredScenarioTemplatePermissions,
         CancellationToken cancellationToken) where T : IAuthorizationType;
 
-    IEnumerable<Guid> GetAuthorizedScenarioIds();
+    /// <summary>The Scenarios on which the caller holds <paramref name="permission"/>; membership alone is not enough.</summary>
+    IReadOnlyList<Guid> GetAuthorizedScenarioIds(ScenarioPermission permission);
+
+    /// <summary>The Scenario Templates on which the caller holds <paramref name="permission"/>; membership alone is not enough.</summary>
+    IReadOnlyList<Guid> GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission permission);
+
+    /// <summary>Whether any of the given Scenarios belongs to the Player View.</summary>
+    Task<bool> AnyScenarioOfViewAsync(Guid viewId, IReadOnlyCollection<Guid> scenarioIds, CancellationToken cancellationToken);
     IEnumerable<SystemPermission> GetSystemPermissions();
     IEnumerable<ScenarioPermissionClaim> GetScenarioPermissions(Guid? scenarioId = null);
     IEnumerable<ScenarioTemplatePermissionClaim> GetScenarioTemplatePermissions(Guid? scenarioTemplateId = null);
@@ -104,12 +111,25 @@ public class AuthorizationService(
         return succeeded;
     }
 
-    public IEnumerable<Guid> GetAuthorizedScenarioIds()
+    public IReadOnlyList<Guid> GetAuthorizedScenarioIds(ScenarioPermission permission)
     {
-        return identityResolver.GetClaimsPrincipal().Claims
-            .Where(x => x.Type == AuthorizationConstants.ScenarioPermissionClaimType)
-            .Select(x => ScenarioPermissionClaim.FromString(x.Value).ScenarioId)
+        return GetScenarioPermissions()
+            .Where(x => x.Permissions.Contains(permission))
+            .Select(x => x.ScenarioId)
             .ToList();
+    }
+
+    public IReadOnlyList<Guid> GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission permission)
+    {
+        return GetScenarioTemplatePermissions()
+            .Where(x => x.Permissions.Contains(permission))
+            .Select(x => x.ScenarioTemplateId)
+            .ToList();
+    }
+
+    public async Task<bool> AnyScenarioOfViewAsync(Guid viewId, IReadOnlyCollection<Guid> scenarioIds, CancellationToken cancellationToken)
+    {
+        return await dbContext.Scenarios.AnyAsync(x => x.ViewId == viewId && scenarioIds.Contains(x.Id), cancellationToken);
     }
 
     public IEnumerable<SystemPermission> GetSystemPermissions()
@@ -180,7 +200,6 @@ public class AuthorizationService(
             var t when t == typeof(SAVM.Task) => await GetScenarioIdFromTask(resourceId, cancellationToken),
             var t when t == typeof(ScenarioMembership) => await GetScenarioIdFromScenarioMembership(resourceId, cancellationToken),
             var t when t == typeof(Result) => await GetScenarioIdFromResult(resourceId, cancellationToken),
-            var t when t == typeof(PlayerView) => await GetScenarioIdFromPlayerView(resourceId, cancellationToken),
             _ => throw new NotImplementedException($"Handler for type {typeof(T).Name} is not implemented.")
         };
     }
@@ -228,14 +247,6 @@ public class AuthorizationService(
         return Found<Result>(await dbContext.Results
             .Where(x => x.Id == id)
             .Select(x => new ScopeRow(x.Task.ScenarioId))
-            .FirstOrDefaultAsync(cancellationToken)).Id;
-    }
-
-    private async Task<Guid?> GetScenarioIdFromPlayerView(Guid id, CancellationToken cancellationToken)
-    {
-        return Found<PlayerView>(await dbContext.Scenarios
-            .Where(x => x.ViewId == id)
-            .Select(x => new ScopeRow(x.Id))
             .FirstOrDefaultAsync(cancellationToken)).Id;
     }
 

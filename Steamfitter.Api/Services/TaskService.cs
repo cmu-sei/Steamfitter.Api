@@ -33,7 +33,7 @@ namespace Steamfitter.Api.Services
         STT.Task<SAVM.Task> GetAsync(Guid Id, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> GetByScenarioTemplateIdAsync(Guid scenarioTemplateId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct);
-        STT.Task<IEnumerable<SAVM.Task>> GetByViewIdAsync(Guid viewId, CancellationToken ct);
+        STT.Task<IEnumerable<SAVM.Task>> GetByViewIdAsync(Guid viewId, IReadOnlyCollection<Guid> scenarioIds, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> GetByUserIdAsync(Guid userId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> GetByVmIdAsync(Guid vmId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> GetSubtasksAsync(Guid triggerTaskId, CancellationToken ct);
@@ -126,20 +126,14 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<SAVM.Task>>(tasks);
         }
 
-        public async STT.Task<IEnumerable<SAVM.Task>> GetByViewIdAsync(Guid viewId, CancellationToken ct)
+        /// <summary>The user-executable Tasks of the View's Scenarios, of only the given Scenarios when they are given.</summary>
+        public async STT.Task<IEnumerable<SAVM.Task>> GetByViewIdAsync(Guid viewId, IReadOnlyCollection<Guid> scenarioIds, CancellationToken ct)
         {
-            var fullAccess = false;
+            var tasks = _context.Tasks.Where(x => x.Scenario.ViewId == viewId && x.UserExecutable);
+            if (scenarioIds != null)
+                tasks = tasks.Where(x => scenarioIds.Contains(x.ScenarioId.Value));
 
-            var scenarioIdList = await _context.Scenarios
-                .Where(s => s.ViewId == viewId)
-                .Select(x => x.Id.ToString())
-                .ToListAsync(ct);
-
-            var tasks = await _context.Tasks
-                    .Where(x => scenarioIdList.Contains(x.ScenarioId.ToString()) && (fullAccess || x.UserExecutable))
-                    .ToListAsync(ct);
-
-            return _mapper.Map<IEnumerable<SAVM.Task>>(tasks);
+            return _mapper.Map<IEnumerable<SAVM.Task>>(await tasks.ToListAsync(ct));
         }
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByUserIdAsync(Guid userId, CancellationToken ct)

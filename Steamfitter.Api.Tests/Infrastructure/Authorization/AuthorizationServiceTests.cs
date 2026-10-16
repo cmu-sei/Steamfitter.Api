@@ -65,17 +65,6 @@ public class AuthorizationServiceTests(DatabaseFixture fixture) : DatabaseTestBa
     }
 
     [Fact]
-    public async Task A_scenario_permission_grants_for_the_view_the_scenario_belongs_to()
-    {
-        var viewId = Guid.NewGuid();
-        var scenario = TestData.Scenario(viewId: viewId);
-        await Seed(scenario);
-        var service = Service(new ClaimsPrincipalBuilder().WithScenario(scenario.Id, ScenarioPermission.ViewTasks));
-
-        Assert.True(await service.AuthorizeAsync<SAVM.PlayerView>(viewId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewTasks], Ct));
-    }
-
-    [Fact]
     public async Task A_scenario_permission_on_a_memberships_scenario_grants_for_the_membership()
     {
         var scenario = TestData.Scenario();
@@ -164,13 +153,25 @@ public class AuthorizationServiceTests(DatabaseFixture fixture) : DatabaseTestBa
     }
 
     [Fact]
-    public void GetAuthorizedScenarioIds_lists_every_scenario_the_caller_holds_a_claim_on()
+    public void GetAuthorizedScenarioIds_lists_only_the_scenarios_the_caller_holds_the_permission_on()
     {
-        var first = Guid.NewGuid();
-        var second = Guid.NewGuid();
-        var service = Service(new ClaimsPrincipalBuilder().WithScenario(first, ScenarioPermission.ViewScenario).WithScenario(second));
+        var viewed = Guid.NewGuid();
+        var memberOnly = Guid.NewGuid();
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(viewed, ScenarioPermission.ViewScenario).WithScenario(memberOnly));
 
-        Assert.Equal(new[] { first, second }.Order(), service.GetAuthorizedScenarioIds().Order());
+        Assert.Equal([viewed], service.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario));
+    }
+
+    [Fact]
+    public void GetAuthorizedScenarioTemplateIds_lists_only_the_templates_the_caller_holds_the_permission_on()
+    {
+        var viewed = Guid.NewGuid();
+        var editedOnly = Guid.NewGuid();
+        var service = Service(new ClaimsPrincipalBuilder()
+            .WithScenarioTemplate(viewed, ScenarioTemplatePermission.ViewScenarioTemplate)
+            .WithScenarioTemplate(editedOnly, ScenarioTemplatePermission.EditScenarioTemplate));
+
+        Assert.Equal([viewed], service.GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission.ViewScenarioTemplate));
     }
 
     [Fact]

@@ -265,19 +265,23 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/vms/{Guid.NewGuid()}/results", Ct));
     }
 
-    /// <summary>A member holding only ViewTasks on a scenario reads that scenario's results on a VM.</summary>
     [Fact]
-    public async Task GetByVmId_returns_the_results_of_a_scenario_to_a_member_holding_only_ViewTasks_on_it()
+    public async Task GetByVmId_leaves_out_the_results_of_a_scenario_the_member_holds_only_ViewTasks_on()
     {
         var vmId = Guid.NewGuid();
         var (scenario, task) = await SeedScenarioTask();
-        var result = TestData.Result(task.Id, vmId);
-        await Seed(result);
-        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewTasks]).SeedAsync();
+        var (viewed, viewedTask) = await SeedScenarioTask();
+        var hidden = TestData.Result(task.Id, vmId);
+        var shown = TestData.Result(viewedTask.Id, vmId);
+        await Seed(hidden, shown);
+        var actor = await Actor()
+            .OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewTasks])
+            .OnScenario(viewed.Id, permissions: [ScenarioPermission.ViewScenario])
+            .SeedAsync();
 
         var results = await ReadAsync<List<SAVM.Result>>(await Client(actor).GetAsync($"api/vms/{vmId}/results", Ct));
 
-        Assert.Equal([result.Id], results.Select(x => x.Id));
+        Assert.Equal([shown.Id], results.Select(x => x.Id));
     }
 
     [Fact]
@@ -559,20 +563,19 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
         Assert.Equal("No id", (await db.Results.SingleAsync(x => x.Id == result.Id, Ct)).ActualOutput);
     }
 
-    /// <summary>A member of one scenario of a view reads the results of every scenario of the view.</summary>
     [Fact]
-    public async Task GetByViewId_returns_the_results_of_every_scenario_of_the_view_to_a_member_of_one()
+    public async Task GetByViewId_returns_only_the_results_of_the_scenarios_of_the_view_the_member_may_view()
     {
         var viewId = Guid.NewGuid();
         var (mine, myTask) = await SeedScenarioTask(viewId);
         var (_, theirTask) = await SeedScenarioTask(viewId);
-        var theirs = TestData.Result(theirTask.Id);
-        await Seed(TestData.Result(myTask.Id), theirs);
+        var my = TestData.Result(myTask.Id);
+        await Seed(my, TestData.Result(theirTask.Id));
         var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
 
         var results = await ReadAsync<List<SAVM.Result>>(await Client(actor).GetAsync($"api/views/{viewId}/results", Ct));
 
-        Assert.Contains(theirs.Id, results.Select(x => x.Id));
+        Assert.Equal([my.Id], results.Select(x => x.Id));
     }
 
     /// <summary>Creating a result broadcasts nothing to the result's scenario.</summary>

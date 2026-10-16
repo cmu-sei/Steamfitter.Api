@@ -138,9 +138,8 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/tasks", Ct));
     }
 
-    /// <summary>A member holding only ViewTasks is answered with a 500.</summary>
     [Fact]
-    public async Task GetByViewId_answers_a_member_holding_only_ViewTasks_with_a_server_error()
+    public async Task GetByViewId_gives_a_member_holding_only_ViewTasks_the_user_executable_tasks_as_summaries()
     {
         var viewId = Guid.NewGuid();
         var scenario = TestData.Scenario(viewId: viewId);
@@ -150,10 +149,10 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await Seed(scenario, executable, TestData.ScenarioTask(scenario.Id, "Hidden"));
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewTasks]).SeedAsync();
 
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError, await Client(actor).GetAsync($"api/views/{viewId}/tasks", Ct));
+        var tasks = await ReadAsync<List<SAVM.Task>>(await Client(actor).GetAsync($"api/views/{viewId}/tasks", Ct));
 
-        Assert.StartsWith("Error mapping types.", error.Detail);
-        Assert.Contains("Steamfitter.Api.ViewModels.TaskSummary", error.Detail);
+        var listed = Assert.Single(tasks);
+        Assert.Equal((executable.Id, null), (listed.Id, listed.ActionParameters));
     }
 
     [Fact]
@@ -1628,13 +1627,14 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Equal((theirs.Id, (Guid?)null, TaskTrigger.Manual), (kept.ScenarioId.Value, kept.TriggerTaskId, kept.TriggerCondition));
     }
 
-    /// <summary>A member of one scenario of a view is given the user-executable tasks of every scenario of the view.</summary>
     [Fact]
-    public async Task GetByViewId_returns_the_tasks_of_every_scenario_of_the_view_to_a_member_of_one()
+    public async Task GetByViewId_returns_only_the_tasks_of_the_scenarios_of_the_view_the_member_may_view()
     {
         var viewId = Guid.NewGuid();
         var mine = TestData.Scenario("Mine", viewId: viewId);
-        await Seed(mine);
+        var myTask = TestData.ScenarioTask(mine.Id, "Mine");
+        myTask.UserExecutable = true;
+        await Seed(mine, myTask);
         var theirs = TestData.Scenario("Theirs", viewId: viewId);
         var theirTask = TestData.ScenarioTask(theirs.Id, "Theirs");
         theirTask.UserExecutable = true;
@@ -1643,7 +1643,32 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
 
         var tasks = await ReadAsync<List<SAVM.Task>>(await Client(actor).GetAsync($"api/views/{viewId}/tasks", Ct));
 
-        Assert.Contains(theirTask.Id, tasks.Select(x => x.Id));
+        Assert.Equal([myTask.Id], tasks.Select(x => x.Id));
+    }
+
+    /// <summary>Each scenario of the view decides for itself whether its tasks come in full or as summaries.</summary>
+    [Fact]
+    public async Task GetByViewId_gives_full_tasks_where_the_member_may_view_the_scenario_and_summaries_elsewhere()
+    {
+        var viewId = Guid.NewGuid();
+        var full = TestData.Scenario("Full", viewId: viewId);
+        var summary = TestData.Scenario("Summary", viewId: viewId);
+        var fullTask = TestData.ScenarioTask(full.Id, "Full");
+        fullTask.UserExecutable = true;
+        fullTask.InputString = """{"Secret":"full"}""";
+        var summaryTask = TestData.ScenarioTask(summary.Id, "Summary");
+        summaryTask.UserExecutable = true;
+        summaryTask.InputString = """{"Secret":"summary"}""";
+        await Seed(full, summary, fullTask, summaryTask);
+        var actor = await Actor()
+            .OnScenario(full.Id, permissions: [ScenarioPermission.ViewTasks, ScenarioPermission.ViewScenario])
+            .OnScenario(summary.Id, permissions: [ScenarioPermission.ViewTasks])
+            .SeedAsync();
+
+        var tasks = await ReadAsync<List<SAVM.Task>>(await Client(actor).GetAsync($"api/views/{viewId}/tasks", Ct));
+
+        Assert.Equal("full", tasks.Single(x => x.Id == fullTask.Id).ActionParameters["Secret"]);
+        Assert.Null(tasks.Single(x => x.Id == summaryTask.Id).ActionParameters);
     }
 
     private static object TaskForm(string name, Guid? scenarioId = null, Guid? scenarioTemplateId = null, Guid? triggerTaskId = null) => new

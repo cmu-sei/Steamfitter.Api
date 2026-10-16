@@ -40,14 +40,17 @@ namespace Steamfitter.Api.Services
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
         private readonly IHubContext<EngineHub> _engineHub;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
 
         public ScenarioTemplateService(
             SteamfitterContext context,
             ITaskService taskService,
             IPrincipal user,
             IMapper mapper,
-            IHubContext<EngineHub> engineHub)
+            IHubContext<EngineHub> engineHub,
+            ISteamfitterAuthorizationService authorizationService)
         {
+            _authorizationService = authorizationService;
             _context = context;
             _taskService = taskService;
             _user = user as ClaimsPrincipal;
@@ -65,12 +68,11 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetMineAsync(CancellationToken ct)
         {
-            var userId = _user.GetId();
-            var items = await _context.ScenarioTemplateMemberships
-                .Where(m => m.ScenarioTemplate.CreatedBy == userId || m.UserId == userId)
-                .Include(m => m.ScenarioTemplate)
-                .ThenInclude(m => m.VmCredentials)
-                .Select(m => m.ScenarioTemplate)
+            // the Scenario Templates the caller may view; membership alone is not enough
+            var scenarioTemplateIds = _authorizationService.GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission.ViewScenarioTemplate);
+            var items = await _context.ScenarioTemplates
+                .Where(st => scenarioTemplateIds.Contains(st.Id))
+                .Include(st => st.VmCredentials)
                 .ToListAsync(ct);
 
             return _mapper.Map<IEnumerable<SAVM.ScenarioTemplate>>(items);

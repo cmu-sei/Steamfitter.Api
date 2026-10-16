@@ -71,9 +71,8 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
         Assert.Equal(["EditScenarioTemplate", "ViewScenarioTemplate"], Assert.Single(templates).ScenarioTemplatePermissions.Order());
     }
 
-    /// <summary>A template the caller reaches only through a group membership is left out of the caller's list.</summary>
     [Fact]
-    public async Task GetAll_leaves_out_a_template_the_caller_is_a_member_of_through_a_group()
+    public async Task GetAll_lists_a_template_the_caller_may_view_through_a_group()
     {
         var group = TestData.Group();
         var template = TestData.ScenarioTemplate("Group's");
@@ -82,12 +81,23 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
 
         var templates = await ReadAsync<List<SAVM.ScenarioTemplate>>(await Client(actor).GetAsync("api/scenarioTemplates", Ct));
 
+        Assert.Equal([template.Id], templates.Select(x => x.Id));
+    }
+
+    [Fact]
+    public async Task GetAll_leaves_out_a_template_the_caller_belongs_to_without_ViewScenarioTemplate()
+    {
+        var template = TestData.ScenarioTemplate("Edited");
+        await Seed(template);
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        var templates = await ReadAsync<List<SAVM.ScenarioTemplate>>(await Client(actor).GetAsync("api/scenarioTemplates", Ct));
+
         Assert.Empty(templates);
     }
 
-    // Same case as GetAll_leaves_out_a_template_the_caller_is_a_member_of_through_a_group.
     [Fact]
-    public async Task GetAll_lists_a_template_the_caller_created_once_per_membership_on_it()
+    public async Task GetAll_lists_a_template_the_caller_may_view_once_whatever_its_memberships()
     {
         var colleague = TestData.User(name: "Colleague");
         await Seed(colleague);
@@ -100,7 +110,7 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
 
         var templates = await ReadAsync<List<SAVM.ScenarioTemplate>>(await Client(actor).GetAsync("api/scenarioTemplates", Ct));
 
-        Assert.Equal([template.Id, template.Id], templates.Select(x => x.Id));
+        Assert.Equal([template.Id], templates.Select(x => x.Id));
     }
 
     [Fact]

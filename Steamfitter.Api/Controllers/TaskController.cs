@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using STT = System.Threading.Tasks;
@@ -83,17 +84,20 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getViewTasks")]
         public async STT.Task<IActionResult> GetByViewId(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync<SAVM.PlayerView>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewTasks], ct))
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+                return Ok(await _taskService.GetByViewIdAsync(id, null, ct));
+
+            // each Scenario of the View decides for itself: ViewTasks lists its Tasks, and ViewScenario
+            // as well gives them in full rather than as summaries
+            var viewTasksScenarioIds = _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewTasks);
+            if (!await _authorizationService.AnyScenarioOfViewAsync(id, viewTasksScenarioIds, ct))
                 throw new ForbiddenException();
 
-            var list = await _taskService.GetByViewIdAsync(id, ct);
-
-            if (!await _authorizationService.AuthorizeAsync<SAVM.PlayerView>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
-            {
-                return Ok(_mapper.Map<IEnumerable<SAVM.Task>>(_mapper.Map<IEnumerable<SAVM.TaskSummary>>(list)));
-            }
-
-            return Ok(_mapper.Map<IEnumerable<SAVM.Task>>(list));
+            var list = await _taskService.GetByViewIdAsync(id, viewTasksScenarioIds, ct);
+            var fullScenarioIds = _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario);
+            return Ok(list.Select(x => fullScenarioIds.Contains(x.ScenarioId.Value)
+                ? x
+                : _mapper.Map<SAVM.Task>(_mapper.Map<SAVM.TaskSummary>(x))));
         }
 
         /// <summary>

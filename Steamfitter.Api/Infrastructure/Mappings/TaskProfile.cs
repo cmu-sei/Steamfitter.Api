@@ -15,6 +15,7 @@ namespace Steamfitter.Api.Infrastructure.Mappings
         {
             CreateMap<TaskSummary, Task>();
             CreateMap<TaskEntity, TaskSummary>();
+            CreateMap<Task, TaskSummary>();
             CreateMap<TaskEntity, Task>()
                 .ForMember(dest => dest.ActionParameters, m => m.MapFrom(src => ConvertToActionParameters(src)));
 
