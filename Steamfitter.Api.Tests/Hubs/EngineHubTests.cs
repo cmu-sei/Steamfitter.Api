@@ -305,13 +305,14 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
     }
 
     [Fact]
-    public async Task LeaveSystem_removes_a_caller_holding_only_ViewScenarioTemplates_from_their_scenarios_group_instead_of_the_scenario_administrator_group()
+    public async Task LeaveSystem_removes_a_caller_holding_only_ViewScenarioTemplates_from_the_groups_of_the_scenarios_they_may_view_instead_of_the_scenario_administrator_group()
     {
-        var user = new ClaimsPrincipalBuilder();
         var scenario = TestData.Scenario();
-        await Seed(TestData.User(user.UserId), scenario,
-            TestData.ScenarioMembership(scenario.Id, userId: user.UserId, roleId: TestData.ScenarioRoles.Observer));
-        var (hub, harness) = Connect(user.WithSystemPermissions(SystemPermission.ViewScenarioTemplates).Build());
+        await Seed(scenario);
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder()
+            .WithSystemPermissions(SystemPermission.ViewScenarioTemplates)
+            .WithScenario(scenario.Id, ScenarioPermission.ViewScenario)
+            .Build());
 
         await hub.LeaveSystem();
 
@@ -320,13 +321,14 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
     }
 
     [Fact]
-    public async Task LeaveSystem_removes_a_caller_holding_only_ViewScenarios_from_their_templates_group_instead_of_the_template_administrator_group()
+    public async Task LeaveSystem_removes_a_caller_holding_only_ViewScenarios_from_the_groups_of_the_templates_they_may_view_instead_of_the_template_administrator_group()
     {
-        var user = new ClaimsPrincipalBuilder();
         var template = TestData.ScenarioTemplate();
-        await Seed(TestData.User(user.UserId), template,
-            TestData.ScenarioTemplateMembership(template.Id, userId: user.UserId, roleId: TestData.ScenarioTemplateRoles.Observer));
-        var (hub, harness) = Connect(user.WithSystemPermissions(SystemPermission.ViewScenarios).Build());
+        await Seed(template);
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder()
+            .WithSystemPermissions(SystemPermission.ViewScenarios)
+            .WithScenarioTemplate(template.Id, ScenarioTemplatePermission.ViewScenarioTemplate)
+            .Build());
 
         await hub.LeaveSystem();
 

@@ -108,7 +108,6 @@ namespace Steamfitter.Api.Hubs
 
         public async STT.Task LeaveSystem()
         {
-            var userId = _user.GetId();
             var ct = new CancellationToken();
             if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
             {
@@ -116,11 +115,8 @@ namespace Steamfitter.Api.Hubs
             }
             else
             {
-                var scenarioIds = await _db.ScenarioMemberships
-                    .Where(x => x.UserId == userId)
-                    .Select(x => x.ScenarioId)
-                    .ToListAsync(ct);
-                foreach (var item in scenarioIds)
+                // the groups JoinSystem added
+                foreach (var item in _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario))
                 {
                     await Groups.RemoveFromGroupAsync(Context.ConnectionId, item.ToString());
                 }
@@ -131,11 +127,7 @@ namespace Steamfitter.Api.Hubs
             }
             else
             {
-                var scenarioTemplateIds = await _db.ScenarioTemplateMemberships
-                    .Where(x => x.UserId == userId)
-                    .Select(x => x.ScenarioTemplateId)
-                    .ToListAsync(ct);
-                foreach (var item in scenarioTemplateIds)
+                foreach (var item in _authorizationService.GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission.ViewScenarioTemplate))
                 {
                     await Groups.RemoveFromGroupAsync(Context.ConnectionId, item.ToString());
                 }
