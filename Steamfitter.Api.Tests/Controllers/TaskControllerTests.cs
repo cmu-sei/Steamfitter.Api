@@ -844,6 +844,46 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Equal((TaskStatus.pending, actor.Id), (stored.Status, stored.UserId.Value));
     }
 
+    [Theory]
+    [InlineData("moid")]
+    [InlineData("Moid")]
+    [InlineData("VmName")]
+    [InlineData("vmname")]
+    public async Task ExecuteWithSubstitutions_of_the_vm_target_is_forbidden_and_leaves_the_task_alone(string key)
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        var task = TestData.ScenarioTask(scenario.Id);
+        task.InputString = """{"Moid":"{moid}","VmName":"{VmName}"}""";
+        await Seed(scenario, task);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ExecuteScenario]).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            $"api/tasks/{task.Id}/execute/substitutions", new Dictionary<string, string> { [key] = Guid.NewGuid().ToString() }, Ct);
+
+        await AssertStatus(HttpStatusCode.Forbidden, response);
+        await using var db = NewContext();
+        Assert.Equal(TaskStatus.none, (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).Status);
+    }
+
+    [Fact]
+    public async Task ExecuteForGrade_with_a_substitution_of_the_vm_target_is_forbidden_and_leaves_the_task_alone()
+    {
+        var scenario = TestData.Scenario(status: ScenarioStatus.active);
+        var start = TestData.ScenarioTask(scenario.Id, "Start");
+        var graded = TestData.ScenarioTask(scenario.Id, "Graded");
+        await Seed(scenario, start, graded);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ExecuteScenario]).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            "api/tasks/execute/graded",
+            new { scenarioId = scenario.Id, startTaskName = "Start", gradedTaskName = "Graded", taskSubstitutions = new Dictionary<string, string> { ["moid"] = Guid.NewGuid().ToString() } },
+            Ct);
+
+        await AssertStatus(HttpStatusCode.Forbidden, response);
+        await using var db = NewContext();
+        Assert.Equal(TaskStatus.none, (await db.Tasks.SingleAsync(x => x.Id == start.Id, Ct)).Status);
+    }
+
     [Fact]
     public async Task ExecuteWithSubstitutions_is_forbidden_for_a_member_holding_only_EditScenario()
     {

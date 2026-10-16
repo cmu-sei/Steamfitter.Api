@@ -281,6 +281,7 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<Guid?> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct)
         {
+            EnsureNoReservedSubstitutions(taskSubstitutions);
             var taskToExecute = await PrepareTaskToExecute(id, ct);
             // make substitutions
             taskToExecute = MakeSubstitutions(taskToExecute, taskSubstitutions, ct);
@@ -292,6 +293,7 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct)
         {
+            EnsureNoReservedSubstitutions(gradedExecutionInfo.TaskSubstitutions);
             var scenarioId = gradedExecutionInfo.ScenarioId;
             var scenario = await _context.Scenarios.FindAsync(scenarioId);
             // verify permissions and scenario to be graded
@@ -649,6 +651,16 @@ namespace Steamfitter.Api.Services
                 parentId = (await _context.Tasks.SingleAsync(v => v.Id == parentId, ct)).TriggerTaskId;
             }
             return wouldAddToSelf;
+        }
+
+        // The task runner fills these markers from the VM it bound the result to. A caller who could
+        // substitute them would choose the VM the action runs on, outside the scenario's view.
+        private static readonly string[] ReservedSubstitutionKeys = ["moid", "VmName"];
+
+        private static void EnsureNoReservedSubstitutions(Dictionary<string, string> substitutions)
+        {
+            if (substitutions != null && substitutions.Keys.Any(key => ReservedSubstitutionKeys.Contains(key, StringComparer.OrdinalIgnoreCase)))
+                throw new ForbiddenException("The VM a Task runs on cannot be substituted.");
         }
 
         private TaskEntity MakeSubstitutions(TaskEntity taskToExecute, Dictionary<string, string> substitutions, CancellationToken ct)
