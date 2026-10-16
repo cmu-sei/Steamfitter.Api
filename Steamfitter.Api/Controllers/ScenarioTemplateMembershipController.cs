@@ -13,7 +13,6 @@ using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Services;
 using Steamfitter.Api.ViewModels;
 using System.Threading;
-using System.Data;
 
 namespace Steamfitter.Api.Controllers;
 
@@ -65,6 +64,9 @@ public class ScenarioTemplateMembershipsController : BaseController
     /// <summary>
     /// Create a new ScenarioTemplate Membership.
     /// </summary>
+    /// <remarks>
+    /// The membership is created in the ScenarioTemplate of the URL. A ScenarioTemplateId in the body is ignored.
+    /// </remarks>
     /// <param name="scenarioTemplateId"></param>
     /// <param name="scenarioTemplateMembership"></param>
     /// <param name="ct"></param>
@@ -77,9 +79,7 @@ public class ScenarioTemplateMembershipsController : BaseController
         if (!await _authorizationService.AuthorizeAsync<ScenarioTemplate>(scenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct))
             throw new ForbiddenException();
 
-        if (scenarioTemplateMembership.ScenarioTemplateId != scenarioTemplateId)
-            throw new DataException("The ScenarioTemplateId of the membership must match the ScenarioTemplateId of the URL.");
-
+        scenarioTemplateMembership.ScenarioTemplateId = scenarioTemplateId;
         var result = await _scenarioTemplateMembershipService.CreateAsync(scenarioTemplateMembership, ct);
         return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
@@ -88,7 +88,7 @@ public class ScenarioTemplateMembershipsController : BaseController
     /// Updates a ScenarioTemplateMembership
     /// </summary>
     /// <remarks>
-    /// Updates a ScenarioTemplateMembership with the attributes specified
+    /// Updates the Role of a ScenarioTemplateMembership. The membership stays in its ScenarioTemplate.
     /// </remarks>
     /// <param name="id">The Id of the Exericse to update</param>
     /// <param name="scenarioTemplateMembership">The updated ScenarioTemplateMembership values</param>
@@ -96,10 +96,9 @@ public class ScenarioTemplateMembershipsController : BaseController
     [HttpPut("ScenarioTemplates/Memberships/{id}")]
     [ProducesResponseType(typeof(ScenarioTemplateMembership), (int)HttpStatusCode.OK)]
     [SwaggerOperation(OperationId = "updateScenarioTemplateMembership")]
-    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] ScenarioTemplateMembership scenarioTemplateMembership, CancellationToken ct)
+    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] ScenarioTemplateMembershipEdit scenarioTemplateMembership, CancellationToken ct)
     {
-        var membership = await _scenarioTemplateMembershipService.GetAsync(id, ct);
-        if (!await _authorizationService.AuthorizeAsync<ScenarioTemplate>(membership.ScenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct))
+        if (!await _authorizationService.AuthorizeAsync<ScenarioTemplateMembership>(id, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct))
             throw new ForbiddenException();
 
         var updatedScenarioTemplateMembership = await _scenarioTemplateMembershipService.UpdateAsync(id, scenarioTemplateMembership, ct);
@@ -115,8 +114,7 @@ public class ScenarioTemplateMembershipsController : BaseController
     [SwaggerOperation(OperationId = "DeleteScenarioTemplateMembership")]
     public async Task<IActionResult> DeleteMembership([FromRoute] Guid id, CancellationToken ct)
     {
-        var membership = await _scenarioTemplateMembershipService.GetAsync(id, ct);
-        if (!await _authorizationService.AuthorizeAsync<ScenarioTemplate>(membership.ScenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct))
+        if (!await _authorizationService.AuthorizeAsync<ScenarioTemplateMembership>(id, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct))
             throw new ForbiddenException();
 
         await _scenarioTemplateMembershipService.DeleteAsync(id, ct);

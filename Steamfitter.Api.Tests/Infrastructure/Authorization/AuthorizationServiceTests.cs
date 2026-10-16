@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Steamfitter.Api.Data;
+using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Tests.Support;
 using SAVM = Steamfitter.Api.ViewModels;
 
@@ -89,25 +90,67 @@ public class AuthorizationServiceTests(DatabaseFixture fixture) : DatabaseTestBa
     [Fact]
     public async Task A_template_permission_grants_for_the_template()
     {
-        var templateId = Guid.NewGuid();
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var templateId = template.Id;
         var service = Service(new ClaimsPrincipalBuilder().WithScenarioTemplate(templateId, ScenarioTemplatePermission.ViewScenarioTemplate));
 
         Assert.True(await service.AuthorizeAsync<SAVM.ScenarioTemplate>(templateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], Ct));
     }
 
-    /// <summary>The template lookup for a scenario id throws.</summary>
     [Fact]
-    public async Task The_template_lookup_for_a_scenario_throws()
+    public async Task A_task_that_is_not_there_is_not_found()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
+
+        await Assert.ThrowsAsync<EntityNotFoundException<SAVM.Task>>(() =>
+            service.AuthorizeAsync<SAVM.Task>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+    }
+
+    [Fact]
+    public async Task A_scenario_that_is_not_there_is_not_found()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
+
+        await Assert.ThrowsAsync<EntityNotFoundException<SAVM.Scenario>>(() =>
+            service.AuthorizeAsync<SAVM.Scenario>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+    }
+
+    [Fact]
+    public async Task A_result_that_is_not_there_is_not_found()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
+
+        await Assert.ThrowsAsync<EntityNotFoundException<SAVM.Result>>(() =>
+            service.AuthorizeAsync<SAVM.Result>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+    }
+
+    [Fact]
+    public async Task A_template_that_is_not_there_is_not_found()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithScenarioTemplate(Guid.NewGuid(), ScenarioTemplatePermission.ViewScenarioTemplate));
+
+        await Assert.ThrowsAsync<EntityNotFoundException<SAVM.ScenarioTemplate>>(() =>
+            service.AuthorizeAsync<SAVM.ScenarioTemplate>(Guid.NewGuid(), [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], Ct));
+    }
+
+    [Fact]
+    public async Task A_system_permission_grants_before_the_lookup_so_a_missing_record_is_left_to_the_service()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewScenarios));
+
+        Assert.True(await service.AuthorizeAsync<SAVM.Task>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+    }
+
+    [Fact]
+    public async Task A_template_task_grants_nothing_through_a_scenario_permission()
     {
         var template = TestData.ScenarioTemplate();
-        var scenario = TestData.Scenario(scenarioTemplateId: template.Id);
-        await Seed(template, scenario);
-        var service = Service(new ClaimsPrincipalBuilder().WithScenarioTemplate(template.Id, ScenarioTemplatePermission.ViewScenarioTemplate));
+        var task = TestData.TemplateTask(template.Id);
+        await Seed(template, task);
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.AuthorizeAsync<SAVM.Scenario>(scenario.Id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], Ct));
-
-        Assert.Equal("Nullable object must have a value.", error.Message);
+        Assert.False(await service.AuthorizeAsync<SAVM.Task>(task.Id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
     }
 
     [Fact]

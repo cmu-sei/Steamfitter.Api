@@ -169,11 +169,14 @@ public class AuthorizationService(
         return permissionResult.Succeeded;
     }
 
+    // Each lookup throws EntityNotFoundException when the record is not there, so a missing record
+    // answers 404 instead of a 403 or a 500. A record that is there but has no scenario (or no
+    // template) resolves to null, which grants nothing.
     private async Task<Guid?> GetScenarioId<T>(Guid resourceId, CancellationToken cancellationToken)
     {
         return typeof(T) switch
         {
-            var t when t == typeof(Scenario) => resourceId,
+            var t when t == typeof(Scenario) => await GetScenarioIdFromScenario(resourceId, cancellationToken),
             var t when t == typeof(SAVM.Task) => await GetScenarioIdFromTask(resourceId, cancellationToken),
             var t when t == typeof(ScenarioMembership) => await GetScenarioIdFromScenarioMembership(resourceId, cancellationToken),
             var t when t == typeof(Result) => await GetScenarioIdFromResult(resourceId, cancellationToken),
@@ -186,83 +189,81 @@ public class AuthorizationService(
     {
         return typeof(T) switch
         {
-            var t when t == typeof(ScenarioTemplate) => resourceId,
-            var t when t == typeof(Scenario) => await GetScenarioTemplateIdFromScenario(resourceId, cancellationToken),
-            var t when t == typeof(SAVM.Task) => await GetScenarioIdFromTaskTemplate(resourceId, cancellationToken),
-            var t when t == typeof(ScenarioMembership) => await GetScenarioTemplateIdFromScenarioTemplateMembership(resourceId, cancellationToken),
+            var t when t == typeof(ScenarioTemplate) => await GetScenarioTemplateIdFromScenarioTemplate(resourceId, cancellationToken),
+            var t when t == typeof(SAVM.Task) => await GetScenarioTemplateIdFromTask(resourceId, cancellationToken),
+            var t when t == typeof(ScenarioTemplateMembership) => await GetScenarioTemplateIdFromScenarioTemplateMembership(resourceId, cancellationToken),
             _ => throw new NotImplementedException($"Handler for type {typeof(T).Name} is not implemented.")
         };
     }
 
-    private async Task<Guid> GetScenarioIdFromTask(Guid id, CancellationToken cancellationToken)
+    private static ScopeRow Found<TEntity>(ScopeRow row) where TEntity : class =>
+        row ?? throw new EntityNotFoundException<TEntity>();
+
+    private async Task<Guid?> GetScenarioIdFromScenario(Guid id, CancellationToken cancellationToken)
     {
-        return (Guid)await dbContext.Tasks
+        return Found<Scenario>(await dbContext.Scenarios
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.Id))
+            .FirstOrDefaultAsync(cancellationToken)).Id;
     }
 
-    private async Task<Guid> GetScenarioIdFromTaskTemplate(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioIdFromTask(Guid id, CancellationToken cancellationToken)
     {
-        return (Guid)await dbContext.Tasks
+        return Found<SAVM.Task>(await dbContext.Tasks
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioTemplateId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.ScenarioId))
+            .FirstOrDefaultAsync(cancellationToken)).Id;
     }
 
-    private async Task<Guid> GetScenarioIdFromScenarioMembership(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioIdFromScenarioMembership(Guid id, CancellationToken cancellationToken)
     {
-        return await dbContext.ScenarioMemberships
+        return Found<ScenarioMembership>(await dbContext.ScenarioMemberships
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.ScenarioId))
+            .FirstOrDefaultAsync(cancellationToken)).Id;
     }
 
-    private async Task<Guid> GetScenarioIdFromResult(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioIdFromResult(Guid id, CancellationToken cancellationToken)
     {
-        var taskId = await dbContext.Results
+        return Found<Result>(await dbContext.Results
             .Where(x => x.Id == id)
-            .Select(x => x.TaskId)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (taskId == null)
-            throw new EntityNotFoundException<Result>();
-
-        return (Guid)await dbContext.Tasks
-            .Where(m => m.Id == taskId)
-            .Select(m => m.ScenarioId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.Task.ScenarioId))
+            .FirstOrDefaultAsync(cancellationToken)).Id;
     }
 
-    private async Task<Guid> GetScenarioIdFromPlayerView(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioIdFromPlayerView(Guid id, CancellationToken cancellationToken)
     {
-        return (Guid)await dbContext.Scenarios
+        return Found<PlayerView>(await dbContext.Scenarios
             .Where(x => x.ViewId == id)
-            .Select(x => x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.Id))
+            .FirstOrDefaultAsync(cancellationToken)).Id;
     }
 
-    private async Task<Guid> GetScenarioTemplateIdFromScenario(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioTemplateIdFromScenarioTemplate(Guid id, CancellationToken cancellationToken)
     {
-        return (Guid)await dbContext.Tasks
+        return Found<ScenarioTemplate>(await dbContext.ScenarioTemplates
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.Id))
+            .FirstOrDefaultAsync(cancellationToken)).Id;
     }
 
-    private async Task<Guid> GetScenarioTemplateIdFromScenarioTemplateMembership(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioTemplateIdFromTask(Guid id, CancellationToken cancellationToken)
     {
-        return await dbContext.ScenarioTemplateMemberships
+        return Found<SAVM.Task>(await dbContext.Tasks
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioTemplateId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.ScenarioTemplateId))
+            .FirstOrDefaultAsync(cancellationToken)).Id;
     }
 
-    private async Task<Guid> GetScenarioTemplateIdFromTask(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioTemplateIdFromScenarioTemplateMembership(Guid id, CancellationToken cancellationToken)
     {
-        return (Guid)await dbContext.Tasks
+        return Found<ScenarioTemplateMembership>(await dbContext.ScenarioTemplateMemberships
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioTemplateId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.ScenarioTemplateId))
+            .FirstOrDefaultAsync(cancellationToken)).Id;
     }
+
+    /// <summary>The scope a looked-up record belongs to; null when it belongs to none.</summary>
+    private sealed record ScopeRow(Guid? Id);
 
 }

@@ -272,18 +272,25 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/tasks/{task.Id}", Ct));
     }
 
-    /// <summary>A template task is answered with a 500 for a member of its template without ViewScenarios.</summary>
     [Fact]
-    public async Task Get_answers_a_template_task_with_a_server_error_for_a_member_of_its_template()
+    public async Task Get_of_a_template_task_is_forbidden_for_a_member_of_its_template_without_ViewScenarios()
     {
         var template = TestData.ScenarioTemplate();
         var task = TestData.TemplateTask(template.Id);
         await Seed(template, task);
         var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate]).SeedAsync();
 
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError, await Client(actor).GetAsync($"api/tasks/{task.Id}", Ct));
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/tasks/{task.Id}", Ct));
+    }
 
-        Assert.Equal("Nullable object must have a value.", error.Detail);
+    [Fact]
+    public async Task Get_of_a_task_that_is_not_there_is_not_found_for_a_member_of_a_scenario()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).GetAsync($"api/tasks/{Guid.NewGuid()}", Ct));
     }
 
     [Fact]

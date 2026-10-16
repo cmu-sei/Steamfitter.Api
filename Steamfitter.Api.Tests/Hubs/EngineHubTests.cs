@@ -21,7 +21,9 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
     [Fact]
     public async Task JoinScenario_adds_a_caller_holding_ViewScenario_on_it_to_the_scenarios_group()
     {
-        var scenarioId = Guid.NewGuid();
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var scenarioId = scenario.Id;
         var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithScenario(scenarioId, ScenarioPermission.ViewScenario).Build());
 
         await hub.JoinScenario(scenarioId);
@@ -30,9 +32,22 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
     }
 
     [Fact]
-    public async Task JoinScenario_adds_a_caller_holding_ViewScenarios_to_the_scenarios_group()
+    public async Task JoinScenario_of_a_scenario_that_is_not_there_joins_nothing()
     {
         var scenarioId = Guid.NewGuid();
+        var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithScenario(scenarioId, ScenarioPermission.ViewScenario).Build());
+
+        await hub.JoinScenario(scenarioId);
+
+        await harness.Groups.DidNotReceive().AddToGroupAsync(HubHarness.ConnectionId, scenarioId.ToString(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task JoinScenario_adds_a_caller_holding_ViewScenarios_to_the_scenarios_group()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var scenarioId = scenario.Id;
         var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewScenarios).Build());
 
         await hub.JoinScenario(scenarioId);
@@ -43,7 +58,9 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
     [Fact]
     public async Task JoinScenario_leaves_out_a_caller_holding_ViewScenario_only_on_another_scenario()
     {
-        var scenarioId = Guid.NewGuid();
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var scenarioId = scenario.Id;
         var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario).Build());
 
         await hub.JoinScenario(scenarioId);
@@ -54,7 +71,9 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
     [Fact]
     public async Task JoinScenario_leaves_out_a_member_holding_only_ViewTasks()
     {
-        var scenarioId = Guid.NewGuid();
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var scenarioId = scenario.Id;
         var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithScenario(scenarioId, ScenarioPermission.ViewTasks).Build());
 
         await hub.JoinScenario(scenarioId);
@@ -65,7 +84,9 @@ public class EngineHubTests(DatabaseFixture fixture) : ServiceTestBase(fixture)
     [Fact]
     public async Task JoinScenario_leaves_out_a_caller_holding_only_ViewScenarioTemplates()
     {
-        var scenarioId = Guid.NewGuid();
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var scenarioId = scenario.Id;
         var (hub, harness) = Connect(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).Build());
 
         await hub.JoinScenario(scenarioId);

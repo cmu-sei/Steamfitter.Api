@@ -17,4 +17,13 @@ namespace Steamfitter.Api.ViewModels
 
         public Guid RoleId { get; set; }
     }
+
+    /// <summary>
+    /// The one field a Scenario Membership's edit request carries. The Scenario, User and Group are
+    /// not among them, so an edit cannot move a membership or hand it to someone else.
+    /// </summary>
+    public class ScenarioMembershipEdit
+    {
+        public Guid RoleId { get; set; }
+    }
 }

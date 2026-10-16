@@ -11,6 +11,7 @@ using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using Steamfitter.Api.Infrastructure.Authorization;
+using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.ViewModels;
 using System;
@@ -41,9 +42,22 @@ namespace Steamfitter.Api.Hubs
 
         public async STT.Task JoinScenario(Guid scenarioId)
         {
-            if (await _authorizationService.AuthorizeAsync<Scenario>(scenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], new CancellationToken()))
+            if (await CanViewScenarioAsync(scenarioId))
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, scenarioId.ToString());
+            }
+        }
+
+        // a scenario that is not there joins nothing, the same as one the caller may not view
+        private async STT.Task<bool> CanViewScenarioAsync(Guid scenarioId)
+        {
+            try
+            {
+                return await _authorizationService.AuthorizeAsync<Scenario>(scenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Context.ConnectionAborted);
+            }
+            catch (EntityNotFoundException<Scenario>)
+            {
+                return false;
             }
         }
 
