@@ -241,6 +241,67 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         Assert.False(await db.Scenarios.AnyAsync(x => x.Name == "Refused", Ct));
     }
 
+    /// <summary>A User's Id is the Id of their personal Task Builder scenario, made on first use.</summary>
+    [Fact]
+    public async Task Create_with_the_id_of_a_user_is_forbidden()
+    {
+        var victim = TestData.User(name: "Victim");
+        await Seed(victim);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/scenarios", new { id = victim.Id, name = "Squatted" }, Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.Scenarios.AnyAsync(x => x.Id == victim.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Create_with_the_id_of_a_template_is_forbidden()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/scenarios", new { id = template.Id, name = "Squatted" }, Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.Scenarios.AnyAsync(x => x.Id == template.Id, Ct));
+    }
+
+    /// <summary>Blueprint names the Id of each scenario it pushes.</summary>
+    [Fact]
+    public async Task Create_with_a_fresh_id_uses_it()
+    {
+        var id = Guid.NewGuid();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarios).SeedAsync();
+
+        var created = await ReadAsync<SAVM.Scenario>(await Client(actor).PostAsJsonAsync("api/scenarios", new { id, name = "Pushed" }, Ct));
+
+        Assert.Equal(id, created.Id);
+    }
+
+    [Fact]
+    public async Task CreateFromScenarioTemplate_adds_an_existing_user_without_renaming_them()
+    {
+        var template = TestData.ScenarioTemplate("Template");
+        var member = TestData.User(name: "Real Name");
+        await Seed(template, member);
+        var actor = await Actor()
+            .WithSystemPermissions(SystemPermission.CreateScenarios)
+            .OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate])
+            .SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            $"api/scenarioTemplates/{template.Id}/scenarios",
+            new { users = new[] { new { id = member.Id, name = "Renamed" } } },
+            Ct);
+
+        var created = await ReadAsync<SAVM.Scenario>(response);
+        await using var db = NewContext();
+        Assert.Equal("Real Name", (await db.Users.SingleAsync(x => x.Id == member.Id, Ct)).Name);
+        Assert.True(await db.ScenarioMemberships.AnyAsync(x => x.ScenarioId == created.Id && x.UserId == member.Id, Ct));
+    }
+
     [Fact]
     public async Task CreateFromScenarioTemplate_copies_the_templates_tasks_and_adds_the_named_users_as_members()
     {

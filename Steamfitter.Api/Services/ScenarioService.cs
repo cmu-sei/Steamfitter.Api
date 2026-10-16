@@ -135,6 +135,7 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioCreate scenarioForm, CancellationToken ct)
         {
+            await EnsureIdIsFreeAsync(scenarioForm.Id, ct);
             await EnsureCanBindViewAsync(scenarioForm.ViewId, ct);
             var scenarioEntity = _mapper.Map<ScenarioEntity>(scenarioForm);
             scenarioEntity.Id = scenarioForm.Id.HasValue ? scenarioForm.Id.Value : Guid.NewGuid();
@@ -369,6 +370,20 @@ namespace Steamfitter.Api.Services
         }
 
         /// <summary>
+        /// A caller may choose a new Scenario's Id, as Blueprint does. It must not be a User's Id, which is
+        /// the Id of that User's personal Task Builder Scenario, nor a Scenario Template's, which names the
+        /// same hub group as the template's events.
+        /// </summary>
+        private async STT.Task EnsureIdIsFreeAsync(Guid? id, CancellationToken ct)
+        {
+            if (id == null)
+                return;
+
+            if (await _context.Users.AnyAsync(x => x.Id == id, ct) || await _context.ScenarioTemplates.AnyAsync(x => x.Id == id, ct))
+                throw new ForbiddenException($"The Id {id} cannot be used for a new Scenario.");
+        }
+
+        /// <summary>
         /// A Scenario's Tasks run on every VM of its View with the service account, so binding one needs
         /// ManageView on that View in Player. A caller holding ManageScenarios is trusted to bind any View.
         /// </summary>
@@ -446,6 +461,7 @@ namespace Steamfitter.Api.Services
             {
                 var userEntity = existingUsers.SingleOrDefault(x => x.Id == requestedUser.Key);
 
+                // the name is used only to create a missing User; renaming one takes ManageUsers
                 if (userEntity == null)
                 {
                     _context.Users.Add(new UserEntity()
@@ -454,12 +470,6 @@ namespace Steamfitter.Api.Services
                         Name = requestedUser.Value ?? requestedUser.Key.ToString(),
                         CreatedBy = _user.GetId()
                     });
-                }
-                else if (requestedUser.Value != null && userEntity.Name != requestedUser.Value)
-                {
-                    userEntity.Name = requestedUser.Value;
-                    userEntity.DateModified = DateTime.UtcNow;
-                    userEntity.ModifiedBy = _user.GetId();
                 }
             }
 
