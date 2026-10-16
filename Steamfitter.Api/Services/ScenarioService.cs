@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Extensions;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
 
@@ -131,6 +132,8 @@ namespace Steamfitter.Api.Services
         {
             var scenarioEntity = _mapper.Map<ScenarioEntity>(scenarioForm);
             scenarioEntity.Id = scenarioForm.Id.HasValue ? scenarioForm.Id.Value : Guid.NewGuid();
+            // a new scenario has no credentials for a default to name
+            scenarioEntity.DefaultVmCredentialId = null;
             scenarioEntity.DateCreated = DateTime.UtcNow;
             scenarioEntity.CreatedBy = _user.GetId();
             scenarioEntity.StartDate = scenarioEntity.StartDate.ToUniversalTime();
@@ -268,6 +271,7 @@ namespace Steamfitter.Api.Services
             if (scenarioToUpdate == null)
                 throw new EntityNotFoundException<SAVM.Scenario>();
 
+            await ScopeValidation.EnsureVmCredentialIsInParentAsync(scenarioForm.DefaultVmCredentialId, id, null, _context, ct);
             _mapper.Map(scenarioForm, scenarioToUpdate);
             scenarioToUpdate.DateModified = DateTime.UtcNow;
             scenarioToUpdate.ModifiedBy = _user.GetId();

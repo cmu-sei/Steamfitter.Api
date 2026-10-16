@@ -53,7 +53,6 @@ namespace Steamfitter.Api.ViewModels
         public Guid? ViewId { get; set; }
         public string View { get; set; }
         public Guid? DefaultVmCredentialId { get; set; }
-        public List<VmCredential> VmCredentials { get; set; }
     }
 
     public class ScenarioCloneOptions

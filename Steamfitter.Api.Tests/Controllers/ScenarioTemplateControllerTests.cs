@@ -318,6 +318,54 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
     }
 
     [Fact]
+    public async Task Update_leaves_a_credential_of_another_template_alone_when_the_body_nests_it()
+    {
+        var mine = TestData.ScenarioTemplate("Mine");
+        var theirs = TestData.ScenarioTemplate("Theirs");
+        var credential = TestData.VmCredential(scenarioTemplateId: theirs.Id, username: "theirs");
+        await Seed(mine, theirs, credential);
+        var actor = await Actor().OnScenarioTemplate(mine.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        var body = new { name = "Mine", vmCredentials = new[] { new { id = credential.Id, scenarioTemplateId = mine.Id, username = "taken", password = "taken" } } };
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/scenarioTemplates/{mine.Id}", body, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct);
+        Assert.Equal((theirs.Id, "theirs"), (stored.ScenarioTemplateId.Value, stored.Username));
+    }
+
+    [Fact]
+    public async Task Update_naming_a_credential_of_another_template_as_the_default_is_not_found()
+    {
+        var mine = TestData.ScenarioTemplate("Mine");
+        var theirs = TestData.ScenarioTemplate("Theirs");
+        var credential = TestData.VmCredential(scenarioTemplateId: theirs.Id);
+        await Seed(mine, theirs, credential);
+        var actor = await Actor().OnScenarioTemplate(mine.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).PutAsJsonAsync(
+            $"api/scenarioTemplates/{mine.Id}", new { name = "Mine", defaultVmCredentialId = credential.Id }, Ct));
+
+        await using var db = NewContext();
+        Assert.Null((await db.ScenarioTemplates.SingleAsync(x => x.Id == mine.Id, Ct)).DefaultVmCredentialId);
+    }
+
+    [Fact]
+    public async Task Update_sets_a_credential_of_the_template_as_its_default()
+    {
+        var template = TestData.ScenarioTemplate();
+        var credential = TestData.VmCredential(scenarioTemplateId: template.Id);
+        await Seed(template, credential);
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync(
+            $"api/scenarioTemplates/{template.Id}", new { name = "Template", defaultVmCredentialId = credential.Id }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(credential.Id, (await db.ScenarioTemplates.SingleAsync(x => x.Id == template.Id, Ct)).DefaultVmCredentialId);
+    }
+
+    [Fact]
     public async Task Update_broadcasts_the_template_to_its_own_group()
     {
         var template = TestData.ScenarioTemplate("Before");

@@ -15,6 +15,7 @@ using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Hubs;
 using Steamfitter.Api.Infrastructure.Extensions;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
 using Steamfitter.Api.ViewModels;
@@ -89,6 +90,8 @@ namespace Steamfitter.Api.Services
         public async STT.Task<ViewModels.ScenarioTemplate> CreateAsync(ViewModels.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct)
         {
             var scenarioTemplateEntity = _mapper.Map<ScenarioTemplateEntity>(scenarioTemplateForm);
+            // a new template has no credentials for a default to name
+            scenarioTemplateEntity.DefaultVmCredentialId = null;
             scenarioTemplateEntity.DateCreated = DateTime.UtcNow;
             scenarioTemplateEntity.CreatedBy = _user.GetId();
 
@@ -146,6 +149,7 @@ namespace Steamfitter.Api.Services
             if (scenarioTemplateToUpdate == null)
                 throw new EntityNotFoundException<SAVM.ScenarioTemplate>();
 
+            await ScopeValidation.EnsureVmCredentialIsInParentAsync(scenarioTemplateForm.DefaultVmCredentialId, null, id, _context, ct);
             _mapper.Map(scenarioTemplateForm, scenarioTemplateToUpdate);
             scenarioTemplateToUpdate.DateModified = DateTime.UtcNow;
             scenarioTemplateToUpdate.ModifiedBy = _user.GetId();

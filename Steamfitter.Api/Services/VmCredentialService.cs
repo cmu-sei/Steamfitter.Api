@@ -25,8 +25,8 @@ namespace Steamfitter.Api.Services
         STT.Task<SAVM.VmCredential> GetAsync(Guid Id, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.VmCredential>> GetByScenarioTemplateIdAsync(Guid scenarioTemplateId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.VmCredential>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct);
-        STT.Task<SAVM.VmCredential> CreateAsync(SAVM.VmCredential Task, CancellationToken ct);
-        STT.Task<SAVM.VmCredential> UpdateAsync(Guid Id, SAVM.VmCredential Task, CancellationToken ct);
+        STT.Task<SAVM.VmCredential> CreateAsync(SAVM.VmCredentialCreate vmCredential, CancellationToken ct);
+        STT.Task<SAVM.VmCredential> UpdateAsync(Guid Id, SAVM.VmCredentialEdit vmCredential, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
     }
 
@@ -80,40 +80,34 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<SAVM.VmCredential>>(vmCredentials);
         }
 
-        public async STT.Task<SAVM.VmCredential> CreateAsync(SAVM.VmCredential vmCredential, CancellationToken ct)
+        public async STT.Task<SAVM.VmCredential> CreateAsync(SAVM.VmCredentialCreate vmCredential, CancellationToken ct)
         {
-            if (vmCredential.ScenarioTemplateId == null && vmCredential.ScenarioId == null)
-                throw new ArgumentException("A VmCredential MUST be associated to either a Scenario Template or a Scenario.");
+            if ((vmCredential.ScenarioTemplateId == null) == (vmCredential.ScenarioId == null))
+                throw new ForbiddenException("A VmCredential must belong to exactly one Scenario Template or Scenario.");
 
-            vmCredential.DateCreated = DateTime.UtcNow;
-            vmCredential.CreatedBy = _user.GetId();
             var vmCredentialEntity = _mapper.Map<VmCredentialEntity>(vmCredential);
+            vmCredentialEntity.DateCreated = DateTime.UtcNow;
+            vmCredentialEntity.CreatedBy = _user.GetId();
 
             _context.VmCredentials.Add(vmCredentialEntity);
             await _context.SaveChangesAsync(ct);
-            vmCredential = await GetAsync(vmCredentialEntity.Id, ct);
 
-            return vmCredential;
+            return await GetAsync(vmCredentialEntity.Id, ct);
         }
 
-        public async STT.Task<SAVM.VmCredential> UpdateAsync(Guid id, SAVM.VmCredential vmCredential, CancellationToken ct)
+        public async STT.Task<SAVM.VmCredential> UpdateAsync(Guid id, SAVM.VmCredentialEdit vmCredential, CancellationToken ct)
         {
             var vmCredentialToUpdate = await _context.VmCredentials.SingleOrDefaultAsync(v => v.Id == id, ct);
 
             if (vmCredentialToUpdate == null)
                 throw new EntityNotFoundException<SAVM.VmCredential>();
 
-            vmCredential.CreatedBy = vmCredentialToUpdate.CreatedBy;
-            vmCredential.DateCreated = vmCredentialToUpdate.DateCreated;
-            vmCredential.DateModified = DateTime.UtcNow;
-            vmCredential.ModifiedBy = _user.GetId();
             _mapper.Map(vmCredential, vmCredentialToUpdate);
-
-            _context.VmCredentials.Update(vmCredentialToUpdate);
+            vmCredentialToUpdate.DateModified = DateTime.UtcNow;
+            vmCredentialToUpdate.ModifiedBy = _user.GetId();
             await _context.SaveChangesAsync(ct);
-            var updatedVmCredential = _mapper.Map(vmCredentialToUpdate, vmCredential);
 
-            return updatedVmCredential;
+            return _mapper.Map<SAVM.VmCredential>(vmCredentialToUpdate);
         }
 
         public async STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct)

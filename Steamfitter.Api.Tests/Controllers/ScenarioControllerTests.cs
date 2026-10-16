@@ -387,6 +387,39 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
     }
 
     [Fact]
+    public async Task Update_leaves_a_credential_of_another_scenario_alone_when_the_body_nests_it()
+    {
+        var mine = TestData.Scenario("Mine");
+        var theirs = TestData.Scenario("Theirs");
+        var credential = TestData.VmCredential(scenarioId: theirs.Id, username: "theirs");
+        await Seed(mine, theirs, credential);
+        var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        var body = new { name = "Mine", vmCredentials = new[] { new { id = credential.Id, scenarioId = mine.Id, username = "taken", password = "taken" } } };
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/scenarios/{mine.Id}", body, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct);
+        Assert.Equal((theirs.Id, "theirs"), (stored.ScenarioId.Value, stored.Username));
+    }
+
+    [Fact]
+    public async Task Update_naming_a_credential_of_another_scenario_as_the_default_is_not_found()
+    {
+        var mine = TestData.Scenario("Mine");
+        var theirs = TestData.Scenario("Theirs");
+        var credential = TestData.VmCredential(scenarioId: theirs.Id);
+        await Seed(mine, theirs, credential);
+        var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).PutAsJsonAsync(
+            $"api/scenarios/{mine.Id}", new { name = "Mine", defaultVmCredentialId = credential.Id }, Ct));
+
+        await using var db = NewContext();
+        Assert.Null((await db.Scenarios.SingleAsync(x => x.Id == mine.Id, Ct)).DefaultVmCredentialId);
+    }
+
+    [Fact]
     public async Task Update_saves_the_form_for_a_caller_holding_EditScenarios()
     {
         var scenario = TestData.Scenario("Before");
