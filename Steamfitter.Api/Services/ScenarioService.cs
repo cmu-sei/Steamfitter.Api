@@ -26,10 +26,10 @@ namespace Steamfitter.Api.Services
         STT.Task<IEnumerable<ViewModels.Scenario>> GetByViewIdAsync(Guid viewId, CancellationToken ct);
         STT.Task<ViewModels.Scenario> GetAsync(Guid Id, CancellationToken ct);
         STT.Task<ViewModels.Scenario> GetMyScenarioAsync(CancellationToken ct);
-        STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioForm scenarioForm, CancellationToken ct);
+        STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioCreate scenarioForm, CancellationToken ct);
         STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, SAVM.ScenarioCloneOptions options, CancellationToken ct);
         STT.Task<ViewModels.Scenario> CreateFromScenarioAsync(Guid scenarioId, CancellationToken ct);
-        STT.Task<ViewModels.Scenario> UpdateAsync(Guid Id, ViewModels.ScenarioForm scenarioForm, CancellationToken ct);
+        STT.Task<ViewModels.Scenario> UpdateAsync(Guid Id, ViewModels.ScenarioEdit scenarioForm, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
         STT.Task<ViewModels.Scenario> StartAsync(Guid Id, CancellationToken ct);
         STT.Task<ViewModels.Scenario> PauseAsync(Guid Id, CancellationToken ct);
@@ -44,13 +44,19 @@ namespace Steamfitter.Api.Services
         private readonly IMapper _mapper;
         private readonly ITaskService _taskService;
         private readonly IXApiService _xApiService;
+        private readonly IPlayerService _playerService;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
 
         public ScenarioService(SteamfitterContext context,
                                 IPrincipal user,
                                 IMapper mapper,
                                 ITaskService taskService,
-                                IXApiService xApiService)
+                                IXApiService xApiService,
+                                IPlayerService playerService,
+                                ISteamfitterAuthorizationService authorizationService)
         {
+            _playerService = playerService;
+            _authorizationService = authorizationService;
             _context = context;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
@@ -128,8 +134,9 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<SAVM.Scenario>(item);
         }
 
-        public async STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioForm scenarioForm, CancellationToken ct)
+        public async STT.Task<ViewModels.Scenario> CreateAsync(ViewModels.ScenarioCreate scenarioForm, CancellationToken ct)
         {
+            await EnsureCanBindViewAsync(scenarioForm.ViewId, ct);
             var scenarioEntity = _mapper.Map<ScenarioEntity>(scenarioForm);
             scenarioEntity.Id = scenarioForm.Id.HasValue ? scenarioForm.Id.Value : Guid.NewGuid();
             // a new scenario has no credentials for a default to name
@@ -155,6 +162,7 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.Scenario> CreateFromScenarioTemplateAsync(Guid scenarioTemplateId, SAVM.ScenarioCloneOptions options, CancellationToken ct)
         {
+            await EnsureCanBindViewAsync(options?.ViewId, ct);
             await using var transaction = await _context.Database.BeginTransactionAsync(ct);
             var scenarioTemplateEntity = _context.ScenarioTemplates.Find(scenarioTemplateId);
             if (scenarioTemplateEntity == null)
@@ -228,6 +236,8 @@ namespace Steamfitter.Api.Services
             var oldScenarioEntity = _context.Scenarios.Find(oldScenarioId);
             if (oldScenarioEntity == null)
                 throw new EntityNotFoundException<SAVM.Scenario>($"Scenario {oldScenarioId} was not found.");
+            // the copy runs its Tasks on the original's View, so viewing the original is not enough
+            await EnsureCanBindViewAsync(oldScenarioEntity.ViewId, ct);
 
             var newScenarioEntity = _mapper.Map<ScenarioEntity>(oldScenarioEntity);
             newScenarioEntity.CreatedBy = _user.GetId();
@@ -264,12 +274,15 @@ namespace Steamfitter.Api.Services
             return scenario;
         }
 
-        public async STT.Task<SAVM.Scenario> UpdateAsync(Guid id, ViewModels.ScenarioForm scenarioForm, CancellationToken ct)
+        public async STT.Task<SAVM.Scenario> UpdateAsync(Guid id, ViewModels.ScenarioEdit scenarioForm, CancellationToken ct)
         {
             var scenarioToUpdate = await _context.Scenarios.SingleOrDefaultAsync(v => v.Id == id, ct);
 
             if (scenarioToUpdate == null)
                 throw new EntityNotFoundException<SAVM.Scenario>();
+
+            if (scenarioForm.ViewId != scenarioToUpdate.ViewId)
+                await EnsureCanBindViewAsync(scenarioForm.ViewId, ct);
 
             await ScopeValidation.EnsureVmCredentialIsInParentAsync(scenarioForm.DefaultVmCredentialId, id, null, _context, ct);
             _mapper.Map(scenarioForm, scenarioToUpdate);
@@ -354,6 +367,19 @@ namespace Steamfitter.Api.Services
             var updatedScenario = _mapper.Map<SAVM.Scenario>(scenario);
 
             return updatedScenario;
+        }
+
+        /// <summary>
+        /// A Scenario's Tasks run on every VM of its View with the service account, so binding one needs
+        /// ManageView on that View in Player. A caller holding ManageScenarios is trusted to bind any View.
+        /// </summary>
+        private async STT.Task EnsureCanBindViewAsync(Guid? viewId, CancellationToken ct)
+        {
+            if (viewId == null || await _authorizationService.AuthorizeAsync([SystemPermission.ManageScenarios], ct))
+                return;
+
+            if (!await _playerService.CanManageViewAsync(viewId.Value, ct))
+                throw new ForbiddenException($"Binding a Scenario to View {viewId} needs ManageView on it in Player.");
         }
 
         private async STT.Task<Guid?> CopyVmCredentials(Guid? oldDefaultVmCredentialId, Guid? scenarioTemplateId, Guid? scenarioId, List<VmCredentialEntity> oldVmCredentials, CancellationToken ct)
