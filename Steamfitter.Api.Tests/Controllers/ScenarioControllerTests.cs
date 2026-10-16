@@ -634,6 +634,23 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
     }
 
     [Fact]
+    public async Task Delete_keeps_a_subtask_of_another_scenario_and_detaches_it()
+    {
+        var scenario = TestData.Scenario("Deleted");
+        var theirs = TestData.Scenario("Theirs");
+        var task = TestData.ScenarioTask(scenario.Id, "Deleted task");
+        var foreign = TestData.ScenarioTask(theirs.Id, "Foreign child", triggerTaskId: task.Id);
+        await Seed(scenario, theirs, task, foreign);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NoContent, await Client(actor).DeleteAsync($"api/scenarios/{scenario.Id}", Ct));
+
+        await using var db = NewContext();
+        var kept = await db.Tasks.SingleAsync(x => x.Id == foreign.Id, Ct);
+        Assert.Equal((theirs.Id, (Guid?)null, TaskTrigger.Manual), (kept.ScenarioId.Value, kept.TriggerTaskId, kept.TriggerCondition));
+    }
+
+    [Fact]
     public async Task Delete_removes_the_scenario_for_a_caller_holding_ManageScenarios()
     {
         var scenario = TestData.Scenario();

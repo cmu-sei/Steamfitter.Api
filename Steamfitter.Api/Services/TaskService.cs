@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Infrastructure.Options;
@@ -36,13 +37,14 @@ namespace Steamfitter.Api.Services
         STT.Task<IEnumerable<SAVM.Task>> GetByUserIdAsync(Guid userId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> GetByVmIdAsync(Guid vmId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> GetSubtasksAsync(Guid triggerTaskId, CancellationToken ct);
-        STT.Task<SAVM.Task> CreateAsync(SAVM.TaskForm taskForm, CancellationToken ct);
-        STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskForm taskForm, CancellationToken ct);
+        STT.Task<SAVM.Task> CreateAsync(SAVM.TaskCreate taskForm, CancellationToken ct);
+        STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskCreate taskForm, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Result>> ExecuteAsync(Guid id, CancellationToken ct);
         STT.Task<Guid?> ExecuteWithSubstitutionsAsync(Guid id, Dictionary<string, string> taskSubstitutions, CancellationToken ct);
         STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct);
-        STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.TaskForm taskForm, CancellationToken ct);
+        STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.TaskEdit taskForm, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
+        STT.Task DetachChildrenInOtherScopesAsync(IReadOnlyCollection<Guid> taskIds, Guid? scenarioId, Guid? scenarioTemplateId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct);
         STT.Task<SAVM.Task> CreateFromResultAsync(Guid resultId, Guid newLocationId, string newLocationType, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct);
@@ -163,8 +165,12 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
         }
 
-        public async STT.Task<SAVM.Task> CreateAsync(SAVM.TaskForm taskForm, CancellationToken ct)
+        public async STT.Task<SAVM.Task> CreateAsync(SAVM.TaskCreate taskForm, CancellationToken ct)
         {
+            if ((taskForm.ScenarioId == null) == (taskForm.ScenarioTemplateId == null))
+                throw new ForbiddenException("A Task must belong to exactly one Scenario or Scenario Template.");
+            await ScopeValidation.EnsureTaskIsInParentAsync(taskForm.TriggerTaskId, taskForm.ScenarioId, taskForm.ScenarioTemplateId, _context, ct);
+
             var vmListCount = taskForm.VmList != null ? taskForm.VmList.Count : 0;
             if (vmListCount > 0)
             {
@@ -201,7 +207,7 @@ namespace Steamfitter.Api.Services
             return task;
         }
 
-        public async STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskForm taskForm, CancellationToken ct)
+        public async STT.Task<IEnumerable<SAVM.Result>> CreateAndExecuteAsync(SAVM.TaskCreate taskForm, CancellationToken ct)
         {
             // create the TaskEntity
             var task = await CreateAsync(taskForm, ct);
@@ -328,7 +334,7 @@ namespace Steamfitter.Api.Services
             return gradedTaskId;
         }
 
-        public async STT.Task<SAVM.Task> UpdateAsync(Guid id, SAVM.TaskForm taskForm, CancellationToken ct)
+        public async STT.Task<SAVM.Task> UpdateAsync(Guid id, SAVM.TaskEdit taskForm, CancellationToken ct)
         {
             var taskToUpdate = await _context.Tasks.SingleOrDefaultAsync(v => v.Id == id, ct);
 
@@ -374,6 +380,9 @@ namespace Steamfitter.Api.Services
             if (taskToDelete == null)
                 throw new EntityNotFoundException<SAVM.Task>();
 
+            var deletedTaskIds = new List<Guid> { id };
+            deletedTaskIds.AddRange(await GetDescendantIdsInScopeAsync(id, taskToDelete.ScenarioId, taskToDelete.ScenarioTemplateId, ct));
+            await DetachChildrenInOtherScopesAsync(deletedTaskIds, taskToDelete.ScenarioId, taskToDelete.ScenarioTemplateId, ct);
             _context.Tasks.Remove(taskToDelete);
             await _context.SaveChangesAsync(ct);
 
@@ -509,14 +518,16 @@ namespace Steamfitter.Api.Services
             // return the new task with all of its new subtasks
             var entities = new List<TaskEntity>();
             entities.Add(newTaskEntity);
-            entities.AddRange(await CopySubTasks(id, newTaskEntity.Id, ct));
+            entities.AddRange(await CopySubTasks(existingTaskEntity, newTaskEntity.Id, ct));
 
             return entities;
         }
 
-        private async STT.Task<IEnumerable<TaskEntity>> CopySubTasks(Guid oldTaskEntityId, Guid newTaskEntityId, CancellationToken ct)
+        private async STT.Task<IEnumerable<TaskEntity>> CopySubTasks(TaskEntity oldTaskEntity, Guid newTaskEntityId, CancellationToken ct)
         {
-            var oldSubTaskEntityIds = _context.Tasks.Where(dt => dt.TriggerTaskId == oldTaskEntityId).Select(dt => dt.Id).ToList();
+            var oldSubTaskEntityIds = await ChildrenInScope([oldTaskEntity.Id], oldTaskEntity.ScenarioId, oldTaskEntity.ScenarioTemplateId)
+                .Select(dt => dt.Id)
+                .ToListAsync(ct);
             var subEntities = new List<TaskEntity>();
             foreach (var oldSubTaskEntityId in oldSubTaskEntityIds)
             {
@@ -533,7 +544,9 @@ namespace Steamfitter.Api.Services
             var existingTaskEntity = await _context.Tasks.SingleAsync(v => v.Id == id, ct);
             if (existingTaskEntity == null)
                 throw new EntityNotFoundException<SAVM.Task>();
-            // determine where the copy goes
+            var sourceScenarioId = existingTaskEntity.ScenarioId;
+            var sourceScenarioTemplateId = existingTaskEntity.ScenarioTemplateId;
+            // determine where the task goes
             existingTaskEntity.TriggerTaskId = null;
             existingTaskEntity.ScenarioTemplateId = null;
             existingTaskEntity.ScenarioId = null;
@@ -563,14 +576,17 @@ namespace Steamfitter.Api.Services
             var movedTask = _mapper.Map<SAVM.Task>(existingTaskEntity);
             var entities = new List<TaskEntity>();
             entities.Add(existingTaskEntity);
-            entities.AddRange(await MoveSubTasks(existingTaskEntity.Id, ct));
+            entities.AddRange(await MoveSubTasks(existingTaskEntity.Id, sourceScenarioId, sourceScenarioTemplateId, ct));
 
             return entities;
         }
 
-        private async STT.Task<IEnumerable<TaskEntity>> MoveSubTasks(Guid taskEntityId, CancellationToken ct)
+        private async STT.Task<IEnumerable<TaskEntity>> MoveSubTasks(Guid taskEntityId, Guid? sourceScenarioId, Guid? sourceScenarioTemplateId, CancellationToken ct)
         {
-            var subTaskEntityIds = _context.Tasks.Where(dt => dt.TriggerTaskId == taskEntityId).Select(dt => dt.Id).ToList();
+            // only the subtasks that were in the moved task's Scenario or Scenario Template move with it
+            var subTaskEntityIds = await ChildrenInScope([taskEntityId], sourceScenarioId, sourceScenarioTemplateId)
+                .Select(dt => dt.Id)
+                .ToListAsync(ct);
             var subEntities = new List<TaskEntity>();
             foreach (var subTaskEntityId in subTaskEntityIds)
             {
@@ -580,6 +596,45 @@ namespace Steamfitter.Api.Services
 
             return subEntities;
         }
+
+        /// <summary>
+        /// The trigger relationship cascades on delete. A child in another Scenario or Scenario Template
+        /// must not be deleted with its trigger, so it is detached first. It is made manual, so that being
+        /// a top-level Task does not start it with its Scenario.
+        /// </summary>
+        public async STT.Task DetachChildrenInOtherScopesAsync(IReadOnlyCollection<Guid> taskIds, Guid? scenarioId, Guid? scenarioTemplateId, CancellationToken ct)
+        {
+            var children = await _context.Tasks
+                .Where(t => t.TriggerTaskId.HasValue && taskIds.Contains(t.TriggerTaskId.Value)
+                    && (t.ScenarioId != scenarioId || t.ScenarioTemplateId != scenarioTemplateId))
+                .ToListAsync(ct);
+            foreach (var child in children)
+            {
+                child.TriggerTaskId = null;
+                child.TriggerCondition = TaskTrigger.Manual;
+            }
+            await _context.SaveChangesAsync(ct);
+        }
+
+        private async STT.Task<List<Guid>> GetDescendantIdsInScopeAsync(Guid taskId, Guid? scenarioId, Guid? scenarioTemplateId, CancellationToken ct)
+        {
+            var descendantIds = new List<Guid>();
+            var parentIds = new List<Guid> { taskId };
+            while (parentIds.Any())
+            {
+                parentIds = await ChildrenInScope(parentIds, scenarioId, scenarioTemplateId)
+                    .Select(t => t.Id)
+                    .Where(x => !descendantIds.Contains(x))
+                    .ToListAsync(ct);
+                descendantIds.AddRange(parentIds);
+            }
+            return descendantIds;
+        }
+
+        // the children of the given tasks that share their Scenario or Scenario Template
+        private IQueryable<TaskEntity> ChildrenInScope(IReadOnlyCollection<Guid> parentIds, Guid? scenarioId, Guid? scenarioTemplateId) =>
+            _context.Tasks.Where(t => t.TriggerTaskId.HasValue && parentIds.Contains(t.TriggerTaskId.Value)
+                && t.ScenarioId == scenarioId && t.ScenarioTemplateId == scenarioTemplateId);
 
         private async STT.Task<bool> PreventAddingToSelfAsync(Guid existingId, TaskEntity newLocationEntity, CancellationToken ct)
         {

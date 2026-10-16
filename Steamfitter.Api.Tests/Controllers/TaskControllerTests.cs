@@ -347,26 +347,27 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Refused", scenarioId: scenario.Id), Ct));
     }
 
-    /// <summary>A scenario task is refused to a caller holding the system ManageScenarios.</summary>
     [Fact]
-    public async Task Create_of_a_scenario_task_is_forbidden_for_a_caller_holding_ManageScenarios()
+    public async Task Create_of_a_scenario_task_is_allowed_for_a_caller_holding_ManageScenarios()
     {
         var scenario = TestData.Scenario();
         await Seed(scenario);
         var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarios).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Refused", scenarioId: scenario.Id), Ct));
+        await AssertStatus(HttpStatusCode.Created, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Allowed", scenarioId: scenario.Id), Ct));
     }
 
-    // Same case as Create_of_a_scenario_task_is_forbidden_for_a_caller_holding_ManageScenarios.
     [Fact]
-    public async Task Create_of_a_scenario_task_is_allowed_for_a_caller_holding_only_ManageScenarioTemplates()
+    public async Task Create_of_a_scenario_task_is_forbidden_for_a_caller_holding_only_ManageScenarioTemplates()
     {
         var scenario = TestData.Scenario();
         await Seed(scenario);
         var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarioTemplates).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Created, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Allowed", scenarioId: scenario.Id), Ct));
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Refused", scenarioId: scenario.Id), Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioId == scenario.Id, Ct));
     }
 
     [Fact]
@@ -421,17 +422,62 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioTemplateId == template.Id, Ct));
     }
 
-    /// <summary>A task with neither a scenario nor a template is created for a caller holding only ViewScenarios.</summary>
     [Fact]
-    public async Task Create_of_a_task_with_neither_a_scenario_nor_a_template_succeeds_for_a_caller_holding_only_ViewScenarios()
+    public async Task Create_of_a_task_with_neither_a_scenario_nor_a_template_is_forbidden_even_for_an_administrator()
     {
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+        var name = $"Orphan {Guid.NewGuid()}";
 
-        var response = await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Orphan"), Ct);
+        await AssertStatus(HttpStatusCode.Forbidden, await RootClient.PostAsJsonAsync("api/tasks", TaskForm(name), Ct));
 
-        await AssertStatus(HttpStatusCode.Created, response);
         await using var db = NewContext();
-        Assert.True(await db.Tasks.AnyAsync(x => x.Name == "Orphan" && x.UserId == actor.Id, Ct));
+        Assert.False(await db.Tasks.AnyAsync(x => x.Name == name, Ct));
+    }
+
+    [Fact]
+    public async Task Create_of_a_task_with_both_a_scenario_and_a_template_is_forbidden()
+    {
+        var scenario = TestData.Scenario();
+        var template = TestData.ScenarioTemplate();
+        await Seed(scenario, template);
+        var actor = await Actor()
+            .OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario])
+            .OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ManageScenarioTemplate])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Both", scenarioId: scenario.Id, scenarioTemplateId: template.Id), Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioId == scenario.Id || x.ScenarioTemplateId == template.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Create_under_a_trigger_task_of_another_scenario_is_not_found()
+    {
+        var mine = TestData.Scenario("Mine");
+        var theirs = TestData.Scenario("Theirs");
+        var theirStart = TestData.ScenarioTask(theirs.Id, "Their start");
+        await Seed(mine, theirs, theirStart);
+        var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Planted", scenarioId: mine.Id, triggerTaskId: theirStart.Id), Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.TriggerTaskId == theirStart.Id || x.ScenarioId == mine.Id, Ct));
+    }
+
+    /// <summary>Blueprint pushes a chain of tasks, each triggered by the one it created before it in the same scenario.</summary>
+    [Fact]
+    public async Task Create_under_a_trigger_task_of_the_same_scenario_chains_it()
+    {
+        var scenario = TestData.Scenario();
+        var start = TestData.ScenarioTask(scenario.Id, "Start");
+        await Seed(scenario, start);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+
+        var created = await ReadAsync<SAVM.Task>(await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Next", scenarioId: scenario.Id, triggerTaskId: start.Id), Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(start.Id, (await db.Tasks.SingleAsync(x => x.Id == created.Id, Ct)).TriggerTaskId);
     }
 
     /// <summary>A form with no action parameters is answered with a 500.</summary>
@@ -704,13 +750,10 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioId == scenario.Id, Ct));
     }
 
-    /// <summary>A form without a scenario id is answered with a 500.</summary>
     [Fact]
-    public async Task CreateAndExecute_answers_a_form_without_a_scenario_with_a_server_error()
+    public async Task CreateAndExecute_of_a_form_without_a_scenario_is_forbidden()
     {
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError, await RootClient.PostAsJsonAsync("api/tasks/execute", TaskForm("No scenario"), Ct));
-
-        Assert.Equal("Nullable object must have a value.", error.Detail);
+        await AssertStatus(HttpStatusCode.Forbidden, await RootClient.PostAsJsonAsync("api/tasks/execute", TaskForm("No scenario"), Ct));
     }
 
     [Fact]
@@ -1008,6 +1051,47 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
             .SeedAsync();
 
         await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}/move", new { id = target.Id, locationType = "scenario" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(["Child", "Parent"], await db.Tasks.Where(x => x.ScenarioId == target.Id).Select(x => x.Name).OrderBy(x => x).ToListAsync(Ct));
+    }
+
+    [Fact]
+    public async Task Move_leaves_a_subtask_of_another_scenario_where_it_is()
+    {
+        var source = TestData.Scenario("Source");
+        var target = TestData.Scenario("Target");
+        var theirs = TestData.Scenario("Theirs");
+        var task = TestData.ScenarioTask(source.Id, "Parent");
+        var foreign = TestData.ScenarioTask(theirs.Id, "Foreign child", triggerTaskId: task.Id);
+        await Seed(source, target, theirs, task, foreign);
+        var actor = await Actor()
+            .OnScenario(source.Id, permissions: [ScenarioPermission.EditScenario])
+            .OnScenario(target.Id, permissions: [ScenarioPermission.EditScenario])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}/move", new { id = target.Id, locationType = "scenario" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(theirs.Id, (await db.Tasks.SingleAsync(x => x.Id == foreign.Id, Ct)).ScenarioId);
+    }
+
+    [Fact]
+    public async Task Copy_copies_only_the_subtasks_of_the_source_scenario()
+    {
+        var source = TestData.Scenario("Source");
+        var target = TestData.Scenario("Target");
+        var theirs = TestData.Scenario("Theirs");
+        var task = TestData.ScenarioTask(source.Id, "Parent");
+        var child = TestData.ScenarioTask(source.Id, "Child", triggerTaskId: task.Id);
+        var foreign = TestData.ScenarioTask(theirs.Id, "Foreign child", triggerTaskId: task.Id);
+        await Seed(source, target, theirs, task, child, foreign);
+        var actor = await Actor()
+            .OnScenario(source.Id, permissions: [ScenarioPermission.ViewScenario])
+            .OnScenario(target.Id, permissions: [ScenarioPermission.EditScenario])
+            .SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PostAsJsonAsync($"api/tasks/{task.Id}/copy", new { id = target.Id, locationType = "scenario" }, Ct));
 
         await using var db = NewContext();
         Assert.Equal(["Child", "Parent"], await db.Tasks.Where(x => x.ScenarioId == target.Id).Select(x => x.Name).OrderBy(x => x).ToListAsync(Ct));
@@ -1421,20 +1505,87 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioTemplateId == target.Id, Ct));
     }
 
-    /// <summary>A task is moved into a scenario the caller may not edit when the update body names that scenario.</summary>
+    /// <summary>The edit body carries no parent: a task stays in its scenario and under its trigger whatever the body names.</summary>
     [Fact]
-    public async Task Update_moves_a_task_into_another_scenario_the_body_names()
+    public async Task Update_keeps_the_task_in_its_scenario_and_under_its_trigger_whatever_the_body_names()
     {
         var mine = TestData.Scenario("Mine");
         var theirs = TestData.Scenario("Theirs");
-        var task = TestData.ScenarioTask(mine.Id, "Moved");
-        await Seed(mine, theirs, task);
+        var trigger = TestData.ScenarioTask(mine.Id, "Trigger");
+        var task = TestData.ScenarioTask(mine.Id, "Kept", triggerTaskId: trigger.Id);
+        var theirStart = TestData.ScenarioTask(theirs.Id, "Their start");
+        await Seed(mine, theirs, trigger, task, theirStart);
         var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}", TaskForm("Moved", scenarioId: theirs.Id), Ct));
+        var body = new Dictionary<string, object>
+        {
+            ["name"] = "Renamed",
+            ["scenarioId"] = theirs.Id,
+            ["triggerTaskId"] = theirStart.Id,
+            ["userId"] = Guid.NewGuid(),
+            ["currentIteration"] = 7,
+            ["action"] = "send_email",
+            ["apiUrl"] = "email",
+            ["vmMask"] = "",
+            ["actionParameters"] = new Dictionary<string, string> { ["Subject"] = "hello" },
+            ["triggerCondition"] = "Success",
+            ["expectedOutput"] = ""
+        };
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}", body, Ct));
 
         await using var db = NewContext();
-        Assert.Equal(theirs.Id, (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).ScenarioId);
+        var stored = await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct);
+        Assert.Equal(("Renamed", mine.Id, (Guid?)trigger.Id, task.UserId, 0), (stored.Name, stored.ScenarioId.Value, stored.TriggerTaskId, stored.UserId, stored.CurrentIteration));
+        Assert.False(await db.Tasks.AnyAsync(x => x.TriggerTaskId == theirStart.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Update_of_a_task_with_neither_a_scenario_nor_a_template_is_forbidden()
+    {
+        var scenario = TestData.Scenario();
+        var orphan = TestData.ScenarioTask(scenario.Id, "Orphan");
+        orphan.ScenarioId = null;
+        await Seed(scenario, orphan);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/tasks/{orphan.Id}", TaskForm("Taken"), Ct));
+
+        await using var db = NewContext();
+        Assert.Equal("Orphan", (await db.Tasks.SingleAsync(x => x.Id == orphan.Id, Ct)).Name);
+    }
+
+    [Fact]
+    public async Task Delete_of_a_task_with_neither_a_scenario_nor_a_template_is_forbidden()
+    {
+        var scenario = TestData.Scenario();
+        var orphan = TestData.ScenarioTask(scenario.Id, "Orphan");
+        orphan.ScenarioId = null;
+        await Seed(scenario, orphan);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/tasks/{orphan.Id}", Ct));
+
+        await using var db = NewContext();
+        Assert.True(await db.Tasks.AnyAsync(x => x.Id == orphan.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Delete_detaches_a_subtask_of_another_scenario_and_makes_it_manual()
+    {
+        var mine = TestData.Scenario("Mine");
+        var theirs = TestData.Scenario("Theirs");
+        var task = TestData.ScenarioTask(mine.Id, "Deleted");
+        var child = TestData.ScenarioTask(mine.Id, "Deleted child", triggerTaskId: task.Id);
+        var foreign = TestData.ScenarioTask(theirs.Id, "Foreign grandchild", triggerTaskId: child.Id);
+        await Seed(mine, theirs, task, child, foreign);
+        var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NoContent, await Client(actor).DeleteAsync($"api/tasks/{task.Id}", Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.Tasks.AnyAsync(x => x.Id == task.Id || x.Id == child.Id, Ct));
+        var kept = await db.Tasks.SingleAsync(x => x.Id == foreign.Id, Ct);
+        Assert.Equal((theirs.Id, (Guid?)null, TaskTrigger.Manual), (kept.ScenarioId.Value, kept.TriggerTaskId, kept.TriggerCondition));
     }
 
     /// <summary>A member of one scenario of a view is given the user-executable tasks of every scenario of the view.</summary>
@@ -1455,11 +1606,12 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Contains(theirTask.Id, tasks.Select(x => x.Id));
     }
 
-    private static object TaskForm(string name, Guid? scenarioId = null, Guid? scenarioTemplateId = null) => new
+    private static object TaskForm(string name, Guid? scenarioId = null, Guid? scenarioTemplateId = null, Guid? triggerTaskId = null) => new
     {
         name,
         scenarioId,
         scenarioTemplateId,
+        triggerTaskId,
         action = "send_email",
         apiUrl = "email",
         vmMask = "",

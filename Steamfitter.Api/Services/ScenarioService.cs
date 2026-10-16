@@ -285,6 +285,8 @@ namespace Steamfitter.Api.Services
             if (scenarioToDelete == null)
                 throw new EntityNotFoundException<SAVM.Scenario>();
 
+            var taskIds = await _context.Tasks.Where(t => t.ScenarioId == id).Select(t => t.Id).ToListAsync(ct);
+            await _taskService.DetachChildrenInOtherScopesAsync(taskIds, id, null, ct);
             _context.Scenarios.Remove(scenarioToDelete);
             await _context.SaveChangesAsync(ct);
 
