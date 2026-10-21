@@ -228,6 +228,38 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
     }
 
     [Fact]
+    public async Task Create_answers_an_existing_credential_id_with_a_server_error()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id, username: "Original");
+        await Seed(scenario, credential);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PostAsJsonAsync("api/vmCredentials",
+                new { id = credential.Id, scenarioId = scenario.Id, username = "Replacement" }, Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal("Original", (await db.VmCredentials.SingleAsync(Ct)).Username);
+    }
+
+    [Fact]
+    public async Task Update_moves_another_templates_credential_into_the_template_the_body_names()
+    {
+        var mine = TestData.ScenarioTemplate("Mine");
+        var theirs = TestData.ScenarioTemplate("Theirs");
+        var credential = TestData.VmCredential(scenarioTemplateId: theirs.Id);
+        await Seed(mine, theirs, credential);
+        var actor = await Actor().OnScenarioTemplate(mine.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}",
+            new { id = credential.Id, scenarioTemplateId = mine.Id, username = "Moved" }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(mine.Id, (await db.VmCredentials.SingleAsync(Ct)).ScenarioTemplateId);
+    }
+
+    [Fact]
     public async Task Delete_removes_a_scenario_credential_for_a_member_holding_EditScenario()
     {
         var scenario = TestData.Scenario();

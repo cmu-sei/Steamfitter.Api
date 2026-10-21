@@ -1430,6 +1430,40 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Equal(theirs.Id, (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).ScenarioId);
     }
 
+    [Fact]
+    public async Task Update_moves_a_task_into_another_template_the_body_names()
+    {
+        var mine = TestData.ScenarioTemplate("Mine");
+        var theirs = TestData.ScenarioTemplate("Theirs");
+        var task = TestData.TemplateTask(mine.Id);
+        await Seed(mine, theirs, task);
+        var actor = await Actor().OnScenarioTemplate(mine.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}", TaskForm("Moved", scenarioTemplateId: theirs.Id), Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(theirs.Id, (await db.Tasks.SingleAsync(Ct)).ScenarioTemplateId);
+    }
+
+    [Fact]
+    public async Task Update_links_a_task_to_a_trigger_in_another_scenario()
+    {
+        var mine = TestData.Scenario("Mine");
+        var theirs = TestData.Scenario("Theirs");
+        var task = TestData.ScenarioTask(mine.Id);
+        var trigger = TestData.ScenarioTask(theirs.Id);
+        await Seed(mine, theirs, task, trigger);
+        var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}",
+            new { name = "Linked", scenarioId = mine.Id, triggerTaskId = trigger.Id, triggerCondition = "Success",
+                action = "send_email", apiUrl = "email", vmMask = "", actionParameters = new { } }, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct);
+        Assert.Equal((mine.Id, trigger.Id, TaskTrigger.Success), (stored.ScenarioId, stored.TriggerTaskId, stored.TriggerCondition));
+    }
+
     /// <summary>A member of one scenario of a view is given the user-executable tasks of every scenario of the view.</summary>
     [Fact]
     public async Task GetByViewId_returns_the_tasks_of_every_scenario_of_the_view_to_a_member_of_one()

@@ -131,6 +131,21 @@ public class UserControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
+    public async Task Create_answers_an_existing_user_id_with_a_server_error()
+    {
+        var user = TestData.User(name: "Original");
+        await Seed(user);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PostAsJsonAsync("api/users", new { id = user.Id, name = "Replacement" }, Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal("Original", (await db.Users.SingleAsync(x => x.Id == user.Id, Ct)).Name);
+        Assert.False(await db.Users.AnyAsync(x => x.Name == "Replacement", Ct));
+    }
+
+    [Fact]
     public async Task Create_is_forbidden_for_a_caller_holding_only_ViewUsers()
     {
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewUsers).SeedAsync();

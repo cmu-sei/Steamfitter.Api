@@ -102,6 +102,37 @@ public class SystemRoleControllerTests(DatabaseFixture fixture, SteamfitterAppFa
     }
 
     [Fact]
+    public async Task Create_answers_an_existing_role_id_with_a_server_error()
+    {
+        var role = TestData.SystemRole("Original");
+        await Seed(role);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PostAsJsonAsync("api/system-roles", new { id = role.Id, name = "Replacement" }, Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal("Original", (await db.SystemRoles.SingleAsync(x => x.Id == role.Id, Ct)).Name);
+        Assert.False(await db.SystemRoles.AnyAsync(x => x.Name == "Replacement", Ct));
+    }
+
+    [Fact]
+    public async Task Update_answers_a_name_that_is_already_taken_with_a_server_error()
+    {
+        var taken = TestData.SystemRole("Taken");
+        var role = TestData.SystemRole("Original");
+        await Seed(taken, role);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PutAsJsonAsync($"api/system-roles/{role.Id}", new { id = role.Id, name = taken.Name }, Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal("Original", (await db.SystemRoles.SingleAsync(x => x.Id == role.Id, Ct)).Name);
+        Assert.Equal(1, await db.SystemRoles.CountAsync(x => x.Name == taken.Name, Ct));
+    }
+
+    [Fact]
     public async Task Update_saves_the_role_for_a_caller_holding_ManageRoles()
     {
         var role = TestData.SystemRole("Before");
