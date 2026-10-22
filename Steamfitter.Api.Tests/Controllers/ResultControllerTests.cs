@@ -556,6 +556,22 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
         Assert.Empty(Factory.Hub<EngineHub>().ToGroup(scenario.Id));
     }
 
+    [Fact]
+    public async Task Create_answers_an_existing_result_id_with_a_server_error()
+    {
+        var (_, task) = await SeedScenarioTask();
+        var result = TestData.Result(task.Id);
+        result.ActualOutput = "Original";
+        await Seed(result);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PostAsJsonAsync("api/results", ResultForm(task.Id, "Replacement", result.Id), Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal("Original", (await db.Results.SingleAsync(Ct)).ActualOutput);
+    }
+
     private async Task<(Data.Models.ScenarioEntity Scenario, Data.Models.TaskEntity Task)> SeedScenarioTask(Guid? viewId = null)
     {
         var scenario = TestData.Scenario(viewId: viewId);
