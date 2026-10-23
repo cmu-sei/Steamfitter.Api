@@ -141,9 +141,10 @@ namespace Steamfitter.Api.Controllers
             if ((taskForm.ScenarioId == null) == (taskForm.ScenarioTemplateId == null))
                 throw new ForbiddenException("A Task must belong to exactly one Scenario or Scenario Template.");
 
+            // creating a task is an edit of its parent, as copying, moving or creating one from a result is
             if (taskForm.ScenarioId != null
-                ? !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(taskForm.ScenarioId, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct)
-                : !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(taskForm.ScenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct))
+                ? !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(taskForm.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)
+                : !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(taskForm.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
                 throw new ForbiddenException();
 
             var createdTask = await _taskService.CreateAsync(taskForm, ct);
