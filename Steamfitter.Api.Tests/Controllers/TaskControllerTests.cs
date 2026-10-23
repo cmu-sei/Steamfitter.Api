@@ -1579,6 +1579,40 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
+    public async Task Update_keeps_a_template_task_in_its_template_whatever_the_body_names()
+    {
+        var mine = TestData.ScenarioTemplate("Mine");
+        var theirs = TestData.ScenarioTemplate("Theirs");
+        var task = TestData.TemplateTask(mine.Id);
+        await Seed(mine, theirs, task);
+        var actor = await Actor().OnScenarioTemplate(mine.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}", TaskForm("Kept", scenarioTemplateId: theirs.Id), Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(mine.Id, (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).ScenarioTemplateId);
+    }
+
+    [Fact]
+    public async Task Update_does_not_link_a_task_to_a_trigger_in_another_scenario()
+    {
+        var mine = TestData.Scenario("Mine");
+        var theirs = TestData.Scenario("Theirs");
+        var task = TestData.ScenarioTask(mine.Id);
+        var trigger = TestData.ScenarioTask(theirs.Id);
+        await Seed(mine, theirs, task, trigger);
+        var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}",
+            new { name = "Linked", scenarioId = mine.Id, triggerTaskId = trigger.Id, triggerCondition = "Success",
+                action = "send_email", apiUrl = "email", vmMask = "", actionParameters = new { } }, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct);
+        Assert.Equal((mine.Id, (Guid?)null), (stored.ScenarioId.Value, stored.TriggerTaskId));
+    }
+
+    [Fact]
     public async Task Update_of_a_task_with_neither_a_scenario_nor_a_template_is_forbidden()
     {
         var scenario = TestData.Scenario();

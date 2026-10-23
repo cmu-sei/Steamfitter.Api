@@ -281,6 +281,38 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
     }
 
     [Fact]
+    public async Task Create_ignores_an_existing_credential_id_in_the_body()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id, username: "Original");
+        await Seed(scenario, credential);
+
+        var created = await ReadAsync<SAVM.VmCredential>(await RootClient.PostAsJsonAsync("api/vmCredentials",
+            new { id = credential.Id, scenarioId = scenario.Id, username = "Replacement" }, Ct));
+
+        Assert.NotEqual(credential.Id, created.Id);
+        await using var db = NewContext();
+        Assert.Equal("Original", (await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct)).Username);
+    }
+
+    [Fact]
+    public async Task Update_of_another_templates_credential_is_forbidden_when_the_body_names_a_template_the_caller_edits()
+    {
+        var mine = TestData.ScenarioTemplate("Mine");
+        var theirs = TestData.ScenarioTemplate("Theirs");
+        var credential = TestData.VmCredential(scenarioTemplateId: theirs.Id, username: "theirs");
+        await Seed(mine, theirs, credential);
+        var actor = await Actor().OnScenarioTemplate(mine.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}",
+            new { id = credential.Id, scenarioTemplateId = mine.Id, username = "Moved" }, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct);
+        Assert.Equal((theirs.Id, "theirs"), (stored.ScenarioTemplateId.Value, stored.Username));
+    }
+
+    [Fact]
     public async Task Delete_removes_a_scenario_credential_for_a_member_holding_EditScenario()
     {
         var scenario = TestData.Scenario();

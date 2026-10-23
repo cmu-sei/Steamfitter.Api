@@ -85,6 +85,31 @@ public class TaskMaintenanceServiceTests(DatabaseFixture fixture) : ServiceTestB
         }, "the scenario to end");
     }
 
+    [Fact]
+    public async Task Start_returns_success_when_a_negative_period_faults_maintenance_without_logging()
+    {
+        var logger = new RecordingLogger<TaskMaintenanceService>();
+        var host = HostFor(Root, options => options.VmTaskProcessing.ExpirationCheckSeconds = -2);
+        var health = host.Resolve<TaskMaintenanceServiceHealthCheck>();
+        health.LastRun = DateTime.MinValue;
+        var service = new TaskMaintenanceService(logger, host.Resolve<IOptionsMonitor<VmTaskProcessingOptions>>(),
+            host.Resolve<IServiceScopeFactory>(), TestMapper.Mapper, host.Resolve<IHubContext<EngineHub>>(), health);
+
+        await service.StartAsync(Ct);
+        try
+        {
+            await WaitUntil(() => Task.FromResult(health.LastRun != DateTime.MinValue), "the first maintenance pass");
+
+            Assert.NotEqual(DateTime.MinValue, health.LastRun);
+            Assert.Empty(logger.At(LogLevel.Error));
+            Assert.Contains(logger.At(LogLevel.Debug), x => x.Message == "The TaskMaintenanceService is ready to process tasks.");
+        }
+        finally
+        {
+            await service.StopAsync(Ct);
+        }
+    }
+
     private async Task<Guid> SeedOverduePendingResult(Guid? scenarioId = null)
     {
         var scenario = TestData.Scenario(status: ScenarioStatus.active);

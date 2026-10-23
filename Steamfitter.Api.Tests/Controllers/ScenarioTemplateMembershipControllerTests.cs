@@ -240,6 +240,62 @@ public class ScenarioTemplateMembershipControllerTests(DatabaseFixture fixture, 
             $"api/scenarioTemplates/memberships/{Guid.NewGuid()}", new { roleId = TestData.ScenarioTemplateRoles.Manager }, Ct));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Create_stores_a_duplicate_membership_when_one_principal_column_is_null(bool groupMembership)
+    {
+        var template = TestData.ScenarioTemplate();
+        var user = TestData.User();
+        var group = TestData.Group();
+        Guid? userId = groupMembership ? null : user.Id;
+        Guid? groupId = groupMembership ? group.Id : null;
+        var membership = TestData.ScenarioTemplateMembership(template.Id, userId: userId, groupId: groupId);
+        await Seed(template, user, group, membership);
+
+        var response = await RootClient.PostAsJsonAsync($"api/scenarioTemplates/{template.Id}/memberships",
+            new { scenarioTemplateId = template.Id, userId, groupId, roleId = membership.RoleId }, Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        Assert.NotEqual(membership.Id, (await ReadAsync<SAVM.ScenarioTemplateMembership>(response)).Id);
+        await using var db = NewContext();
+        Assert.Equal(2, await db.ScenarioTemplateMemberships.CountAsync(x => x.ScenarioTemplateId == template.Id && x.UserId == userId && x.GroupId == groupId, Ct));
+    }
+
+    [Fact]
+    public async Task Create_answers_an_existing_membership_id_with_a_server_error()
+    {
+        var (template, membership) = await SeedTemplateWithMember();
+        var otherUser = TestData.User();
+        await Seed(otherUser);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PostAsJsonAsync($"api/scenarioTemplates/{template.Id}/memberships",
+                new { id = membership.Id, scenarioTemplateId = template.Id, userId = otherUser.Id, roleId = membership.RoleId }, Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal(membership.UserId, (await db.ScenarioTemplateMemberships.SingleAsync(Ct)).UserId);
+    }
+
+    [Fact]
+    public async Task Update_lets_a_caller_holding_only_ManageScenarioTemplates_promote_its_observer_membership_to_manager()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarioTemplates)
+            .OnScenarioTemplate(template.Id, roleId: TestData.ScenarioTemplateRoles.Observer).SeedAsync();
+        var membership = Assert.Single(actor.ScenarioTemplateMemberships);
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/scenarioTemplates/memberships/{membership.Id}",
+            new { id = membership.Id, scenarioTemplateId = template.Id, userId = actor.Id, roleId = TestData.ScenarioTemplateRoles.Manager }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioTemplateRoles.Manager, (await db.ScenarioTemplateMemberships.SingleAsync(x => x.Id == membership.Id, Ct)).RoleId);
+        var claims = await ReadAsync<List<ScenarioTemplatePermissionClaim>>(await Client(actor).GetAsync($"api/scenarioTemplates/{template.Id}/me/permissions", Ct));
+        Assert.Contains(ScenarioTemplatePermission.EditScenarioTemplate, Assert.Single(claims, x => x.ScenarioTemplateId == template.Id).Permissions);
+    }
+
     [Fact]
     public async Task Update_changes_the_role_for_a_member_holding_ManageScenarioTemplate()
     {

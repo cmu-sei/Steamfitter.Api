@@ -246,6 +246,55 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
     }
 
     [Fact]
+    public async Task Create_stores_a_duplicate_user_membership_with_a_null_group()
+    {
+        var (scenario, membership) = await SeedScenarioWithMember();
+
+        var response = await RootClient.PostAsJsonAsync($"api/scenarios/{scenario.Id}/memberships",
+            new { scenarioId = scenario.Id, userId = membership.UserId, roleId = membership.RoleId }, Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        var created = await ReadAsync<SAVM.ScenarioMembership>(response);
+        Assert.NotEqual(membership.Id, created.Id);
+        await using var db = NewContext();
+        Assert.Equal(2, await db.ScenarioMemberships.CountAsync(x => x.ScenarioId == scenario.Id && x.UserId == membership.UserId && x.GroupId == null, Ct));
+    }
+
+    [Fact]
+    public async Task Create_answers_an_existing_membership_id_with_a_server_error()
+    {
+        var (scenario, membership) = await SeedScenarioWithMember();
+        var otherUser = TestData.User();
+        await Seed(otherUser);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PostAsJsonAsync($"api/scenarios/{scenario.Id}/memberships",
+                new { id = membership.Id, scenarioId = scenario.Id, userId = otherUser.Id, roleId = membership.RoleId }, Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal(membership.UserId, (await db.ScenarioMemberships.SingleAsync(Ct)).UserId);
+    }
+
+    [Fact]
+    public async Task Update_lets_a_caller_holding_only_ManageScenarios_promote_its_observer_membership_to_manager()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarios)
+            .OnScenario(scenario.Id, roleId: TestData.ScenarioRoles.Observer).SeedAsync();
+        var membership = Assert.Single(actor.ScenarioMemberships);
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/scenarios/memberships/{membership.Id}",
+            new { id = membership.Id, scenarioId = scenario.Id, userId = actor.Id, roleId = TestData.ScenarioRoles.Manager }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioRoles.Manager, (await db.ScenarioMemberships.SingleAsync(x => x.Id == membership.Id, Ct)).RoleId);
+        var claims = await ReadAsync<List<ScenarioPermissionClaim>>(await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/me/permissions", Ct));
+        Assert.Contains(ScenarioPermission.ExecuteScenario, Assert.Single(claims, x => x.ScenarioId == scenario.Id).Permissions);
+    }
+
+    [Fact]
     public async Task Update_changes_the_role_for_a_caller_holding_ManageScenarios()
     {
         var (scenario, membership) = await SeedScenarioWithMember();

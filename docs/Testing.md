@@ -98,11 +98,11 @@ Steamfitter.Api.Tests/
   Controllers/       over HTTP: authorization, persistence, broadcasts, error shapes; one class per controller,
                      except PermissionControllerTests (the three permission controllers) and
                      ScenarioRoleControllerTests (the scenario and scenario template role controllers)
-  Services/          TaskExecutionService, TaskMaintenanceService, UserClaimsService, driven directly
+  Services/          TaskExecutionService, TaskMaintenanceService, UserClaimsService, XApiService, driven directly
   Hubs/              EngineHub over HubHarness, and over a real connection (EngineHubConnectionTests)
   Infrastructure/
     Authorization/   the permission handlers and AuthorizationService
-    Extensions/      the scopes the default policy and the MVC AuthorizeFilter require
+    Extensions/      the scopes the default policy and the MVC AuthorizeFilter require; the HTTP client timeout
     Filters/         JsonExceptionFilter, malformed requests and enum values
     Mappings/        the AutoMapper configuration
   Support/           Steamfitter's harness files, its extras and the harness self-tests

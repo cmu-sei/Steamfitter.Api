@@ -589,6 +589,21 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
         Assert.Empty(Factory.Hub<EngineHub>().ToGroup(scenario.Id));
     }
 
+    [Fact]
+    public async Task Create_ignores_an_existing_result_id_in_the_body()
+    {
+        var (_, task) = await SeedScenarioTask();
+        var result = TestData.Result(task.Id);
+        result.ActualOutput = "Original";
+        await Seed(result);
+
+        var created = await ReadAsync<SAVM.Result>(await RootClient.PostAsJsonAsync("api/results", ResultForm(task.Id, "Replacement", result.Id), Ct));
+
+        Assert.NotEqual(result.Id, created.Id);
+        await using var db = NewContext();
+        Assert.Equal("Original", (await db.Results.SingleAsync(x => x.Id == result.Id, Ct)).ActualOutput);
+    }
+
     private async Task<(Data.Models.ScenarioEntity Scenario, Data.Models.TaskEntity Task)> SeedScenarioTask(Guid? viewId = null)
     {
         var scenario = TestData.Scenario(viewId: viewId);

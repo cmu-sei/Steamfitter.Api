@@ -132,14 +132,117 @@ public class TaskExecutionServiceTests(DatabaseFixture fixture) : ServiceTestBas
         Assert.Empty(RootHost.Executors.CallsContaining("marker-other-scenario"));
     }
 
-    private async Task<TaskEntity> SeedActiveTask(TaskAction action, string apiUrl, string inputString, ScenarioStatus status = ScenarioStatus.active, string expectedOutput = "")
+    /// <summary>
+    /// A row left on the removed StackStorm API (the az_* actions, which TaskAction no longer names) fails
+    /// with a message saying so, rather than leaving its result pending.
+    /// </summary>
+    [Fact]
+    public async Task A_task_left_on_the_removed_stackstorm_api_fails_saying_the_action_was_removed()
     {
-        var scenario = TestData.Scenario(status: status);
+        var task = await SeedActiveTask((TaskAction)105, "stackstorm", "{}");
+
+        await Run(RootHost, task);
+        var result = await WaitForFinishedResult(task.Id);
+
+        Assert.Equal(
+            (TaskStatus.failed, "StackStorm Action 105 was removed in Steamfitter 3.10 and can no longer be run."),
+            (result.Status, result.ActualOutput));
+        Assert.Empty(RootHost.Executors.Calls);
+    }
+
+    [Fact]
+    public async Task A_task_whose_api_has_no_handler_fails_and_its_task_reaches_a_terminal_status()
+    {
+        var task = await SeedActiveTask(TaskAction.send_email, "nonesuch", "{}");
+
+        await Run(RootHost, task);
+        var result = await WaitForFinishedResult(task.Id);
+
+        Assert.Equal((TaskStatus.failed, "API (nonesuch) is not currently implemented"), (result.Status, result.ActualOutput));
+        await WaitForTaskStatus(task.Id, TaskStatus.failed);
+    }
+
+    [Theory]
+    [InlineData("vm", TaskAction.send_email, "Player VM API Action send_email has not been implemented.")]
+    [InlineData("ssh", TaskAction.send_email, "SSH Action send_email has not been implemented.")]
+    [InlineData("email", TaskAction.linux_rm, "Email Action linux_rm has not been implemented.")]
+    public async Task An_action_its_api_has_no_handler_for_fails_with_the_message_as_its_output(string apiUrl, TaskAction action, string message)
+    {
+        var task = await SeedActiveTask(action, apiUrl, "{}");
+
+        await Run(RootHost, task);
+        var result = await WaitForFinishedResult(task.Id);
+
+        Assert.Equal((TaskStatus.failed, message), (result.Status, result.ActualOutput));
+    }
+
+    /// <summary>A task that fails for want of a handler still runs its Failure subtask.</summary>
+    [Fact]
+    public async Task A_task_whose_api_has_no_handler_runs_its_failure_subtask()
+    {
+        var task = await SeedActiveTask((TaskAction)105, "stackstorm", "{}");
+        var onFailure = TestData.ScenarioTask(task.ScenarioId.Value, "On Failure", triggerTaskId: task.Id);
+        onFailure.TriggerCondition = TaskTrigger.Failure;
+        onFailure.InputString = """{"Subject":"marker-on-failure"}""";
+        var onSuccess = TestData.ScenarioTask(task.ScenarioId.Value, "On Success", triggerTaskId: task.Id);
+        onSuccess.InputString = """{"Subject":"marker-on-success"}""";
+        await Seed(onFailure, onSuccess);
+
+        await Run(RootHost, task);
+        var result = await WaitForFinishedResult(onFailure.Id);
+
+        Assert.Equal(TaskStatus.succeeded, result.Status);
+        Assert.Single(RootHost.Executors.CallsContaining("marker-on-failure"));
+        Assert.Empty(RootHost.Executors.CallsContaining("marker-on-success"));
+    }
+
+    /// <summary>
+    /// A VM task lists the View's Vms through the Player VM API's <c>views/{viewId}/vms/all</c>, which
+    /// returns every Vm in the View to Steamfitter's system-level account, and creates a result for each
+    /// Vm its mask matches.
+    /// </summary>
+    [Fact]
+    public async Task A_vm_task_runs_against_the_vms_of_the_view_that_the_vm_api_lists_for_all_vms()
+    {
+        var user = new ClaimsPrincipalBuilder().WithSystemPermissions(Enum.GetValues<SystemPermission>()).Build();
+        // IdentityModel refuses a discovery document over http except on loopback, one without a key set,
+        // and a password grant without a user name.
+        var host = HostFor(user, options =>
+        {
+            options.ResourceOwnerAuthorization.Authority = "http://localhost:5000";
+            options.ResourceOwnerAuthorization.UserName = "steamfitter";
+            options.ResourceOwnerAuthorization.Password = "secret";
+        });
+        var viewId = Guid.NewGuid();
+        var target = Guid.NewGuid();
+        var other = Guid.NewGuid();
+        host.OutboundHttp
+            .AnswersJson("GET .well-known/openid-configuration", """{"issuer":"http://localhost:5000","token_endpoint":"http://localhost:5000/connect/token","jwks_uri":"http://localhost:5000/jwks"}""")
+            .AnswersJson("GET jwks", """{"keys":[]}""")
+            .AnswersJson("POST connect/token", """{"access_token":"vm-api-token","token_type":"Bearer","expires_in":3600}""")
+            .AnswersJson($"GET api/views/{viewId}/vms/all", $$"""[{"id":"{{target}}","name":"target-vm"},{"id":"{{other}}","name":"other-vm"}]""")
+            .RefusesUnmatched();
+        var task = await SeedActiveTask(TaskAction.guest_process_run, "vm", """{"Moid":"{moid}","marker":"marker-all-vms"}""", viewId: viewId, vmMask: "target");
+
+        await Run(host, task);
+        var result = await WaitForFinishedResult(task.Id);
+
+        Assert.Equal((TaskStatus.succeeded, target, "target-vm"), (result.Status, result.VmId, result.VmName));
+        var call = Assert.Single(host.Executors.CallsContaining("marker-all-vms"));
+        Assert.Equal(nameof(IVmOperationsService.GuestCommand), call.Operation);
+        Assert.Contains(target.ToString(), call.Parameters);
+        Assert.Equal("Bearer vm-api-token", Assert.Single(host.OutboundHttp.Sent, x => x.Path == $"api/views/{viewId}/vms/all").Authorization);
+    }
+
+    private async Task<TaskEntity> SeedActiveTask(TaskAction action, string apiUrl, string inputString, ScenarioStatus status = ScenarioStatus.active, string expectedOutput = "", Guid? viewId = null, string vmMask = "")
+    {
+        var scenario = TestData.Scenario(status: status, viewId: viewId);
         var task = TestData.ScenarioTask(scenario.Id);
         task.Action = action;
         task.ApiUrl = apiUrl;
         task.InputString = inputString;
         task.ExpectedOutput = expectedOutput;
+        task.VmMask = vmMask;
         task.UserId = Guid.NewGuid();
         await Seed(scenario, task);
 
@@ -155,6 +258,15 @@ public class TaskExecutionServiceTests(DatabaseFixture fixture) : ServiceTestBas
         {
             host.Resolve<ITaskExecutionQueue>().Add(task);
         }
+    }
+
+    private async Task WaitForTaskStatus(Guid taskId, TaskStatus status)
+    {
+        await WaitUntil(async () =>
+        {
+            await using var db = NewContext();
+            return await db.Tasks.AnyAsync(x => x.Id == taskId && x.Status == status, Ct);
+        }, $"task {taskId} to reach {status}");
     }
 
     private async Task<ResultEntity> WaitForFinishedResult(Guid taskId)

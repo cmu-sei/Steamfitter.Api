@@ -218,6 +218,21 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         Assert.Equal((actor.Id, TestData.ScenarioRoles.Manager), (membership.UserId.Value, membership.RoleId));
     }
 
+    [Fact]
+    public async Task Create_answers_an_existing_scenario_id_with_a_server_error()
+    {
+        var scenario = TestData.Scenario("Original");
+        await Seed(scenario);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PostAsJsonAsync("api/scenarios", new { id = scenario.Id, name = "Replacement" }, Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal("Original", (await db.Scenarios.SingleAsync(Ct)).Name);
+        Assert.False(await db.ScenarioMemberships.AnyAsync(x => x.ScenarioId == scenario.Id, Ct));
+    }
+
     /// <summary>The scenario's own group gets the summary first, then the full scenario; the administrators get the full one.</summary>
     [Fact]
     public async Task Create_broadcasts_the_scenario_to_the_scenario_administrators_and_its_own_group()

@@ -90,6 +90,20 @@ public class GroupControllerTests(DatabaseFixture fixture, SteamfitterAppFactory
     }
 
     [Fact]
+    public async Task Create_answers_an_existing_group_id_with_a_server_error()
+    {
+        var group = TestData.Group("Original");
+        await Seed(group);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PostAsJsonAsync("api/groups", new { id = group.Id, name = "Replacement" }, Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal("Original", (await db.Groups.SingleAsync(Ct)).Name);
+    }
+
+    [Fact]
     public async Task Create_is_forbidden_for_a_caller_holding_only_ViewGroups()
     {
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewGroups).SeedAsync();
@@ -244,6 +258,24 @@ public class GroupControllerTests(DatabaseFixture fixture, SteamfitterAppFactory
 
         var error = await AssertJsonError(HttpStatusCode.InternalServerError, response);
         Assert.Contains("saving the entity changes", error.Detail);
+    }
+
+    [Fact]
+    public async Task CreateMembership_answers_an_existing_membership_id_with_a_server_error()
+    {
+        var group = TestData.Group();
+        var originalUser = TestData.User();
+        var otherUser = TestData.User();
+        var membership = TestData.GroupMembership(group.Id, originalUser.Id);
+        await Seed(group, originalUser, otherUser, membership);
+
+        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+            await RootClient.PostAsJsonAsync($"api/groups/{group.Id}/memberships",
+                new { id = membership.Id, groupId = group.Id, userId = otherUser.Id }, Ct));
+
+        Assert.Contains("saving the entity changes", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal(originalUser.Id, (await db.GroupMemberships.SingleAsync(Ct)).UserId);
     }
 
     [Fact]
