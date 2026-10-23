@@ -11,6 +11,7 @@ using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using Steamfitter.Api.Infrastructure.Authorization;
+using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.ViewModels;
 using System;
@@ -41,9 +42,22 @@ namespace Steamfitter.Api.Hubs
 
         public async STT.Task JoinScenario(Guid scenarioId)
         {
-            if (await _authorizationService.AuthorizeAsync<Scenario>(scenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], new CancellationToken()))
+            if (await CanViewScenarioAsync(scenarioId))
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, scenarioId.ToString());
+            }
+        }
+
+        // a scenario that is not there joins nothing, the same as one the caller may not view
+        private async STT.Task<bool> CanViewScenarioAsync(Guid scenarioId)
+        {
+            try
+            {
+                return await _authorizationService.AuthorizeAsync<Scenario>(scenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Context.ConnectionAborted);
+            }
+            catch (EntityNotFoundException<Scenario>)
+            {
+                return false;
             }
         }
 
@@ -54,7 +68,6 @@ namespace Steamfitter.Api.Hubs
 
         public async STT.Task JoinSystem()
         {
-            var userId = _user.GetId();
             var ct = new CancellationToken();
             if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
             {
@@ -62,11 +75,8 @@ namespace Steamfitter.Api.Hubs
             }
             else
             {
-                var scenarioIds = await _db.ScenarioMemberships
-                    .Where(x => x.UserId == userId)
-                    .Select(x => x.ScenarioId)
-                    .ToListAsync(ct);
-                foreach (var item in scenarioIds)
+                // the Scenarios the caller may view, as JoinScenario decides; membership alone is not enough
+                foreach (var item in _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario))
                 {
                     await Groups.AddToGroupAsync(Context.ConnectionId, item.ToString());
                 }
@@ -77,11 +87,7 @@ namespace Steamfitter.Api.Hubs
             }
             else
             {
-                var scenarioTemplateIds = await _db.ScenarioTemplateMemberships
-                    .Where(x => x.UserId == userId)
-                    .Select(x => x.ScenarioTemplateId)
-                    .ToListAsync(ct);
-                foreach (var item in scenarioTemplateIds)
+                foreach (var item in _authorizationService.GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission.ViewScenarioTemplate))
                 {
                     await Groups.AddToGroupAsync(Context.ConnectionId, item.ToString());
                 }
@@ -102,7 +108,6 @@ namespace Steamfitter.Api.Hubs
 
         public async STT.Task LeaveSystem()
         {
-            var userId = _user.GetId();
             var ct = new CancellationToken();
             if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
             {
@@ -110,11 +115,8 @@ namespace Steamfitter.Api.Hubs
             }
             else
             {
-                var scenarioIds = await _db.ScenarioMemberships
-                    .Where(x => x.UserId == userId)
-                    .Select(x => x.ScenarioId)
-                    .ToListAsync(ct);
-                foreach (var item in scenarioIds)
+                // the groups JoinSystem added
+                foreach (var item in _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario))
                 {
                     await Groups.RemoveFromGroupAsync(Context.ConnectionId, item.ToString());
                 }
@@ -125,11 +127,7 @@ namespace Steamfitter.Api.Hubs
             }
             else
             {
-                var scenarioTemplateIds = await _db.ScenarioTemplateMemberships
-                    .Where(x => x.UserId == userId)
-                    .Select(x => x.ScenarioTemplateId)
-                    .ToListAsync(ct);
-                foreach (var item in scenarioTemplateIds)
+                foreach (var item in _authorizationService.GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission.ViewScenarioTemplate))
                 {
                     await Groups.RemoveFromGroupAsync(Context.ConnectionId, item.ToString());
                 }

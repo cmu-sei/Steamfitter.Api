@@ -22,12 +22,12 @@ namespace Steamfitter.Api.Services
     {
         STT.Task<ViewModels.Result> GetAsync(Guid id, CancellationToken ct);
         STT.Task<IEnumerable<ViewModels.Result>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct);
-        STT.Task<IEnumerable<ViewModels.Result>> GetByViewIdAsync(Guid viewId, CancellationToken ct);
+        STT.Task<IEnumerable<ViewModels.Result>> GetByViewIdAsync(Guid viewId, IReadOnlyCollection<Guid> scenarioIds, CancellationToken ct);
         STT.Task<IEnumerable<ViewModels.Result>> GetByUserIdAsync(Guid userId, CancellationToken ct);
         STT.Task<IEnumerable<ViewModels.Result>> GetByVmIdAsync(Guid vmId, bool hasSystemPermission, IEnumerable<Guid> authorizedScenarioIds, CancellationToken ct);
         STT.Task<IEnumerable<ViewModels.Result>> GetByTaskIdAsync(Guid taskId, CancellationToken ct);
-        STT.Task<ViewModels.Result> CreateAsync(ViewModels.Result result, CancellationToken ct);
-        STT.Task<ViewModels.Result> UpdateAsync(Guid id, ViewModels.Result result, CancellationToken ct);
+        STT.Task<ViewModels.Result> CreateAsync(ViewModels.ResultCreate result, CancellationToken ct);
+        STT.Task<ViewModels.Result> UpdateAsync(Guid id, ViewModels.ResultEdit result, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct);
     }
 
@@ -62,13 +62,14 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
         }
 
-        public async STT.Task<IEnumerable<ViewModels.Result>> GetByViewIdAsync(Guid viewId, CancellationToken ct)
+        /// <summary>The Results of the View's Scenarios, of only the given Scenarios when they are given.</summary>
+        public async STT.Task<IEnumerable<ViewModels.Result>> GetByViewIdAsync(Guid viewId, IReadOnlyCollection<Guid> scenarioIds, CancellationToken ct)
         {
-            var scenarioIdList = _context.Scenarios.Where(s => s.ViewId == viewId).Select(s => s.Id.ToString()).ToList();
-            var taskIdList = _context.Tasks.Where(dt => scenarioIdList.Contains(dt.ScenarioId.ToString())).Select(dt => dt.Id.ToString()).ToList();
-            var results = _context.Results.Where(r => taskIdList.Contains(r.TaskId.ToString()));
+            var results = _context.Results.Where(r => r.Task.Scenario.ViewId == viewId);
+            if (scenarioIds != null)
+                results = results.Where(r => scenarioIds.Contains(r.Task.ScenarioId.Value));
 
-            return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
+            return _mapper.Map<IEnumerable<ViewModels.Result>>(await results.ToListAsync(ct));
         }
 
         public async STT.Task<IEnumerable<ViewModels.Result>> GetByUserIdAsync(Guid userId, CancellationToken ct)
@@ -100,11 +101,12 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
         }
 
-        public async STT.Task<ViewModels.Result> CreateAsync(ViewModels.Result result, CancellationToken ct)
+        public async STT.Task<ViewModels.Result> CreateAsync(ViewModels.ResultCreate result, CancellationToken ct)
         {
-            result.DateCreated = DateTime.UtcNow;
-            result.CreatedBy = _user.GetId();
             var resultEntity = _mapper.Map<ResultEntity>(result);
+            resultEntity.Status = TaskStatus.none;
+            resultEntity.DateCreated = DateTime.UtcNow;
+            resultEntity.CreatedBy = _user.GetId();
 
             _context.Results.Add(resultEntity);
             await _context.SaveChangesAsync(ct);
@@ -112,23 +114,19 @@ namespace Steamfitter.Api.Services
             return await GetAsync(resultEntity.Id, ct);
         }
 
-        public async STT.Task<ViewModels.Result> UpdateAsync(Guid id, ViewModels.Result result, CancellationToken ct)
+        public async STT.Task<ViewModels.Result> UpdateAsync(Guid id, ViewModels.ResultEdit result, CancellationToken ct)
         {
             var resultToUpdate = await _context.Results.SingleOrDefaultAsync(v => v.Id == id, ct);
 
             if (resultToUpdate == null)
                 throw new EntityNotFoundException<SAVM.Result>();
 
-            result.DateCreated = resultToUpdate.DateCreated;
-            result.CreatedBy = resultToUpdate.CreatedBy;
-            result.DateModified = DateTime.UtcNow;
-            result.ModifiedBy = _user.GetId();
             _mapper.Map(result, resultToUpdate);
-
-            _context.Results.Update(resultToUpdate);
+            resultToUpdate.DateModified = DateTime.UtcNow;
+            resultToUpdate.ModifiedBy = _user.GetId();
             await _context.SaveChangesAsync(ct);
 
-            return _mapper.Map(resultToUpdate, result);
+            return _mapper.Map<SAVM.Result>(resultToUpdate);
         }
 
         public async STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct)

@@ -111,6 +111,27 @@ public class TaskExecutionServiceTests(DatabaseFixture fixture) : ServiceTestBas
         Assert.Empty(RootHost.Executors.CallsContaining("marker-inactive"));
     }
 
+    [Fact]
+    public async Task A_subtask_in_another_scenario_is_not_run_when_its_trigger_finishes()
+    {
+        var parent = await SeedActiveTask(TaskAction.send_email, "email", """{"Subject":"marker-parent"}""");
+        var sibling = TestData.ScenarioTask(parent.ScenarioId.Value, "Same scenario child", triggerTaskId: parent.Id);
+        sibling.InputString = """{"Subject":"marker-same-scenario"}""";
+        sibling.UserId = parent.UserId;
+        var other = TestData.Scenario("Other", status: ScenarioStatus.active);
+        var foreign = TestData.ScenarioTask(other.Id, "Other scenario child", triggerTaskId: parent.Id);
+        foreign.InputString = """{"Subject":"marker-other-scenario"}""";
+        foreign.UserId = parent.UserId;
+        await Seed(sibling, other, foreign);
+
+        await Run(RootHost, parent);
+        await WaitForFinishedResult(sibling.Id);
+
+        await using var db = NewContext();
+        Assert.False(await db.Results.AnyAsync(x => x.TaskId == foreign.Id, Ct));
+        Assert.Empty(RootHost.Executors.CallsContaining("marker-other-scenario"));
+    }
+
     /// <summary>
     /// A row left on the removed StackStorm API (the az_* actions, which TaskAction no longer names) fails
     /// with a message saying so, rather than leaving its result pending.

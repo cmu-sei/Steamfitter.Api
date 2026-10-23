@@ -326,9 +326,8 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
         Assert.Equal(TestData.ScenarioRoles.Member, (await db.ScenarioMemberships.SingleAsync(x => x.Id == membership.Id, Ct)).RoleId);
     }
 
-    /// <summary>A member holding ManageScenario on the membership's scenario is refused.</summary>
     [Fact]
-    public async Task Update_is_forbidden_for_a_member_holding_ManageScenario_on_the_memberships_scenario()
+    public async Task Update_changes_the_role_for_a_member_holding_ManageScenario_on_the_memberships_scenario()
     {
         var (scenario, membership) = await SeedScenarioWithMember();
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
@@ -338,14 +337,14 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
             new { id = membership.Id, scenarioId = scenario.Id, userId = membership.UserId, roleId = TestData.ScenarioRoles.Manager },
             Ct);
 
-        await AssertStatus(HttpStatusCode.Forbidden, response);
+        await AssertStatus(HttpStatusCode.OK, response);
         await using var db = NewContext();
-        Assert.Equal(TestData.ScenarioRoles.Observer, (await db.ScenarioMemberships.SingleAsync(x => x.Id == membership.Id, Ct)).RoleId);
+        Assert.Equal(TestData.ScenarioRoles.Manager, (await db.ScenarioMemberships.SingleAsync(x => x.Id == membership.Id, Ct)).RoleId);
     }
 
-    // Same case as Update_is_forbidden_for_a_member_holding_ManageScenario_on_the_memberships_scenario.
+    /// <summary>The decision is made on the membership of the URL, so naming a membership the caller manages in the body buys nothing.</summary>
     [Fact]
-    public async Task Update_makes_an_observer_the_manager_of_a_scenario_when_the_body_names_a_membership_they_manage_as_the_scenario()
+    public async Task Update_is_forbidden_for_an_observer_whose_body_names_a_membership_they_manage_as_the_scenario()
     {
         var managed = TestData.Scenario("Managed");
         var observed = TestData.Scenario("Observed");
@@ -362,10 +361,70 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
             new { id = observedMembership, scenarioId = managedMembership, userId = actor.Id, roleId = TestData.ScenarioRoles.Manager },
             Ct);
 
-        await AssertStatus(HttpStatusCode.OK, response);
+        await AssertStatus(HttpStatusCode.Forbidden, response);
         await using var db = NewContext();
         var stored = await db.ScenarioMemberships.SingleAsync(x => x.Id == observedMembership, Ct);
-        Assert.Equal((observed.Id, TestData.ScenarioRoles.Manager), (stored.ScenarioId, stored.RoleId));
+        Assert.Equal((observed.Id, TestData.ScenarioRoles.Observer), (stored.ScenarioId, stored.RoleId));
+    }
+
+    [Fact]
+    public async Task Update_of_a_membership_that_is_not_there_is_not_found()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).PutAsJsonAsync(
+            $"api/scenarios/memberships/{Guid.NewGuid()}", new { roleId = TestData.ScenarioRoles.Manager }, Ct));
+    }
+
+    [Fact]
+    public async Task Delete_of_a_membership_that_is_not_there_is_not_found()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).DeleteAsync($"api/scenarios/memberships/{Guid.NewGuid()}", Ct));
+    }
+
+    [Fact]
+    public async Task Create_puts_the_membership_in_the_scenario_of_the_url_whatever_the_body_names()
+    {
+        var scenario = TestData.Scenario();
+        var other = TestData.Scenario("Other");
+        var user = TestData.User(name: "Joiner");
+        await Seed(scenario, other, user);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            $"api/scenarios/{scenario.Id}/memberships",
+            new { scenarioId = other.Id, userId = user.Id, roleId = TestData.ScenarioRoles.Member },
+            Ct);
+
+        await AssertStatus(HttpStatusCode.Created, response);
+        await using var db = NewContext();
+        Assert.True(await db.ScenarioMemberships.AnyAsync(x => x.ScenarioId == scenario.Id && x.UserId == user.Id, Ct));
+        Assert.False(await db.ScenarioMemberships.AnyAsync(x => x.ScenarioId == other.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Create_is_forbidden_in_a_scenario_the_caller_does_not_manage_even_when_the_body_names_one_they_do()
+    {
+        var managed = TestData.Scenario("Managed");
+        var target = TestData.Scenario("Target");
+        var user = TestData.User(name: "Joiner");
+        await Seed(managed, target, user);
+        var actor = await Actor().OnScenario(managed.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync(
+            $"api/scenarios/{target.Id}/memberships",
+            new { scenarioId = managed.Id, userId = user.Id, roleId = TestData.ScenarioRoles.Manager },
+            Ct);
+
+        await AssertStatus(HttpStatusCode.Forbidden, response);
+        await using var db = NewContext();
+        Assert.False(await db.ScenarioMemberships.AnyAsync(x => x.UserId == user.Id, Ct));
     }
 
     [Fact]

@@ -48,10 +48,11 @@ public class MappingConfigurationTests
         Assert.Equal("not json", task.ActionParameters["BadInputString"]);
     }
 
-    // Same case as TaskControllerTests.GetByViewId_answers_a_member_holding_only_ViewTasks_with_a_server_error.
     [Fact]
-    public void The_configuration_has_no_map_from_a_task_to_its_summary()
+    public void A_task_maps_to_its_summary_without_its_parameters()
     {
-        Assert.Null(TestMapper.Configuration.Internal().FindTypeMapFor<SAVM.Task, SAVM.TaskSummary>());
+        var summary = TestMapper.Mapper.Map<SAVM.TaskSummary>(new SAVM.Task { Id = Guid.NewGuid(), Name = "Task", ActionParameters = new() { ["Secret"] = "value" } });
+
+        Assert.Equal("Task", summary.Name);
     }
 }

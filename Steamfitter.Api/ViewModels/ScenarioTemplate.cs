@@ -19,12 +19,17 @@ namespace Steamfitter.Api.ViewModels
         public IEnumerable<string> ScenarioTemplatePermissions { get; set; }
     }
 
+    /// <summary>
+    /// The fields a Scenario Template's create and edit requests carry. Its VmCredentials are not among
+    /// them: they are written through the VmCredentials endpoints, which authorize their own parent.
+    /// </summary>
     public class ScenarioTemplateForm
     {
         public string Name { get; set; }
         public string Description { get; set; }
         public int? DurationHours { get; set; }
+
+        /// <summary>A VmCredential of this Scenario Template. Ignored on create, when the template has none yet.</summary>
         public Guid? DefaultVmCredentialId { get; set; }
-        public List<VmCredential> VmCredentials { get; set; }
     }
 }

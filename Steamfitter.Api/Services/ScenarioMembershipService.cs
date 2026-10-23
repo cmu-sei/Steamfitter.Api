@@ -23,7 +23,7 @@ namespace Steamfitter.Api.Services
         STT.Task<ViewModels.ScenarioMembership> GetAsync(Guid id, CancellationToken ct);
         STT.Task<IEnumerable<ViewModels.ScenarioMembership>> GetByScenarioAsync(Guid scenarioId, CancellationToken ct);
         STT.Task<ViewModels.ScenarioMembership> CreateAsync(ViewModels.ScenarioMembership scenarioMembership, CancellationToken ct);
-        STT.Task<ViewModels.ScenarioMembership> UpdateAsync(Guid id, ViewModels.ScenarioMembership scenarioMembership, CancellationToken ct);
+        STT.Task<ViewModels.ScenarioMembership> UpdateAsync(Guid id, ViewModels.ScenarioMembershipEdit scenarioMembership, CancellationToken ct);
         STT.Task DeleteAsync(Guid id, CancellationToken ct);
     }
 
@@ -73,7 +73,7 @@ namespace Steamfitter.Api.Services
 
             return scenario;
         }
-        public async STT.Task<ViewModels.ScenarioMembership> UpdateAsync(Guid id, ViewModels.ScenarioMembership scenarioMembership, CancellationToken ct)
+        public async STT.Task<ViewModels.ScenarioMembership> UpdateAsync(Guid id, ViewModels.ScenarioMembershipEdit scenarioMembership, CancellationToken ct)
         {
             var scenarioMembershipToUpdate = await _context.ScenarioMemberships.SingleOrDefaultAsync(v => v.Id == id, ct);
             if (scenarioMembershipToUpdate == null)

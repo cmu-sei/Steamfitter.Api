@@ -210,9 +210,9 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         Assert.Equal("before", (await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct)).Username);
     }
 
-    /// <summary>A credential of another scenario is moved into the scenario the body names.</summary>
+    /// <summary>The decision is made on the credential's stored scenario, so editing the scenario named in the body buys nothing.</summary>
     [Fact]
-    public async Task Update_moves_a_credential_of_another_scenario_into_the_scenario_the_body_names()
+    public async Task Update_of_a_credential_of_another_scenario_is_forbidden_when_the_body_names_a_scenario_the_caller_edits()
     {
         var mine = TestData.Scenario("Mine");
         var theirs = TestData.Scenario("Theirs");
@@ -220,43 +220,96 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         await Seed(mine, theirs, credential);
         var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
-        var response = await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}", new { id = credential.Id, scenarioId = mine.Id, username = "theirs" }, Ct);
+        var response = await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}", new { id = credential.Id, scenarioId = mine.Id, username = "taken" }, Ct);
 
-        await AssertStatus(HttpStatusCode.OK, response);
+        await AssertStatus(HttpStatusCode.Forbidden, response);
         await using var db = NewContext();
-        Assert.Equal(mine.Id, (await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct)).ScenarioId);
+        var stored = await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct);
+        Assert.Equal((theirs.Id, "theirs"), (stored.ScenarioId.Value, stored.Username));
     }
 
     [Fact]
-    public async Task Create_answers_an_existing_credential_id_with_a_server_error()
+    public async Task Update_keeps_the_credential_in_its_scenario_whatever_the_body_names()
+    {
+        var mine = TestData.Scenario("Mine");
+        var other = TestData.Scenario("Other");
+        var credential = TestData.VmCredential(scenarioId: mine.Id, username: "before");
+        await Seed(mine, other, credential);
+        var actor = await Actor()
+            .OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario])
+            .OnScenario(other.Id, permissions: [ScenarioPermission.EditScenario])
+            .SeedAsync();
+
+        var response = await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}", new { id = credential.Id, scenarioId = other.Id, username = "after" }, Ct);
+
+        await AssertStatus(HttpStatusCode.OK, response);
+        await using var db = NewContext();
+        var stored = await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct);
+        Assert.Equal((mine.Id, "after"), (stored.ScenarioId.Value, stored.Username));
+    }
+
+    [Fact]
+    public async Task Update_of_a_credential_that_is_not_there_is_not_found()
+    {
+        await AssertStatus(HttpStatusCode.NotFound, await RootClient.PutAsJsonAsync($"api/vmCredentials/{Guid.NewGuid()}", new { username = "after" }, Ct));
+    }
+
+    [Fact]
+    public async Task Create_naming_both_a_scenario_and_a_template_is_forbidden()
+    {
+        var mine = TestData.Scenario("Mine");
+        var template = TestData.ScenarioTemplate("Theirs");
+        await Seed(mine, template);
+        var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync("api/vmCredentials", new { scenarioId = mine.Id, scenarioTemplateId = template.Id, username = "both" }, Ct);
+
+        await AssertStatus(HttpStatusCode.Forbidden, response);
+        await using var db = NewContext();
+        Assert.False(await db.VmCredentials.AnyAsync(x => x.ScenarioId == mine.Id || x.ScenarioTemplateId == template.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Create_naming_neither_a_scenario_nor_a_template_is_forbidden()
+    {
+        var username = $"orphan-{Guid.NewGuid()}";
+
+        await AssertStatus(HttpStatusCode.Forbidden, await RootClient.PostAsJsonAsync("api/vmCredentials", new { username }, Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.VmCredentials.AnyAsync(x => x.Username == username, Ct));
+    }
+
+    [Fact]
+    public async Task Create_ignores_an_existing_credential_id_in_the_body()
     {
         var scenario = TestData.Scenario();
         var credential = TestData.VmCredential(scenarioId: scenario.Id, username: "Original");
         await Seed(scenario, credential);
 
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
-            await RootClient.PostAsJsonAsync("api/vmCredentials",
-                new { id = credential.Id, scenarioId = scenario.Id, username = "Replacement" }, Ct));
+        var created = await ReadAsync<SAVM.VmCredential>(await RootClient.PostAsJsonAsync("api/vmCredentials",
+            new { id = credential.Id, scenarioId = scenario.Id, username = "Replacement" }, Ct));
 
-        Assert.Contains("saving the entity changes", error.Detail);
+        Assert.NotEqual(credential.Id, created.Id);
         await using var db = NewContext();
-        Assert.Equal("Original", (await db.VmCredentials.SingleAsync(Ct)).Username);
+        Assert.Equal("Original", (await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct)).Username);
     }
 
     [Fact]
-    public async Task Update_moves_another_templates_credential_into_the_template_the_body_names()
+    public async Task Update_of_another_templates_credential_is_forbidden_when_the_body_names_a_template_the_caller_edits()
     {
         var mine = TestData.ScenarioTemplate("Mine");
         var theirs = TestData.ScenarioTemplate("Theirs");
-        var credential = TestData.VmCredential(scenarioTemplateId: theirs.Id);
+        var credential = TestData.VmCredential(scenarioTemplateId: theirs.Id, username: "theirs");
         await Seed(mine, theirs, credential);
         var actor = await Actor().OnScenarioTemplate(mine.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}",
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}",
             new { id = credential.Id, scenarioTemplateId = mine.Id, username = "Moved" }, Ct));
 
         await using var db = NewContext();
-        Assert.Equal(mine.Id, (await db.VmCredentials.SingleAsync(Ct)).ScenarioTemplateId);
+        var stored = await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct);
+        Assert.Equal((theirs.Id, "theirs"), (stored.ScenarioTemplateId.Value, stored.Username));
     }
 
     [Fact]
@@ -590,17 +643,16 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         Assert.True(await db.VmCredentials.AnyAsync(x => x.Id == credential.Id, Ct));
     }
 
-    /// <summary>An update body without the credential's id is answered with a 500.</summary>
     [Fact]
-    public async Task Update_answers_a_body_without_the_credentials_id_with_a_server_error()
+    public async Task Update_saves_a_body_without_the_credentials_id()
     {
         var scenario = TestData.Scenario();
         var credential = TestData.VmCredential(scenarioId: scenario.Id, username: "before");
         await Seed(scenario, credential);
 
-        var response = await RootClient.PutAsJsonAsync($"api/vmCredentials/{credential.Id}", new { scenarioId = scenario.Id, username = "after" }, Ct);
+        await AssertStatus(HttpStatusCode.OK, await RootClient.PutAsJsonAsync($"api/vmCredentials/{credential.Id}", new { username = "after" }, Ct));
 
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError, response);
-        Assert.StartsWith("The property 'VmCredentialEntity.Id' is part of a key", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal("after", (await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct)).Username);
     }
 }

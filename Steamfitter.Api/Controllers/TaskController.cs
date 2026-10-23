@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using STT = System.Threading.Tasks;
@@ -83,17 +84,20 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getViewTasks")]
         public async STT.Task<IActionResult> GetByViewId(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync<SAVM.PlayerView>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewTasks], ct))
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+                return Ok(await _taskService.GetByViewIdAsync(id, null, ct));
+
+            // each Scenario of the View decides for itself: ViewTasks lists its Tasks, and ViewScenario
+            // as well gives them in full rather than as summaries
+            var viewTasksScenarioIds = _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewTasks);
+            if (!await _authorizationService.AnyScenarioOfViewAsync(id, viewTasksScenarioIds, ct))
                 throw new ForbiddenException();
 
-            var list = await _taskService.GetByViewIdAsync(id, ct);
-
-            if (!await _authorizationService.AuthorizeAsync<SAVM.PlayerView>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
-            {
-                return Ok(_mapper.Map<IEnumerable<SAVM.Task>>(_mapper.Map<IEnumerable<SAVM.TaskSummary>>(list)));
-            }
-
-            return Ok(_mapper.Map<IEnumerable<SAVM.Task>>(list));
+            var list = await _taskService.GetByViewIdAsync(id, viewTasksScenarioIds, ct);
+            var fullScenarioIds = _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario);
+            return Ok(list.Select(x => fullScenarioIds.Contains(x.ScenarioId.Value)
+                ? x
+                : _mapper.Map<SAVM.Task>(_mapper.Map<SAVM.TaskSummary>(x))));
         }
 
         /// <summary>
@@ -125,19 +129,22 @@ namespace Steamfitter.Api.Controllers
         /// <remarks>
         /// Creates a new Task with the attributes specified
         /// <para />
-        /// Accessible only to a SuperUser or an Administrator
+        /// The Task must belong to exactly one Scenario or Scenario Template, and a trigger Task must belong to the same one.
         /// </remarks>
         /// <param name="taskForm">The data to create the Task with</param>
         /// <param name="ct"></param>
         [HttpPost("Tasks")]
         [ProducesResponseType(typeof(SAVM.Task), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createTask")]
-        public async STT.Task<IActionResult> Create([FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
+        public async STT.Task<IActionResult> Create([FromBody] SAVM.TaskCreate taskForm, CancellationToken ct)
         {
-            if ((taskForm.ScenarioId != null &&
-                    !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(taskForm.ScenarioId, [SystemPermission.ManageScenarioTemplates], [ScenarioPermission.ManageScenario], ct))
-                || (taskForm.ScenarioTemplateId != null &&
-                    !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(taskForm.ScenarioTemplateId, [SystemPermission.ManageScenarioTemplates], [ScenarioTemplatePermission.ManageScenarioTemplate], ct)))
+            if ((taskForm.ScenarioId == null) == (taskForm.ScenarioTemplateId == null))
+                throw new ForbiddenException("A Task must belong to exactly one Scenario or Scenario Template.");
+
+            // creating a task is an edit of its parent, as copying, moving or creating one from a result is
+            if (taskForm.ScenarioId != null
+                ? !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(taskForm.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)
+                : !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(taskForm.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
                 throw new ForbiddenException();
 
             var createdTask = await _taskService.CreateAsync(taskForm, ct);
@@ -207,7 +214,10 @@ namespace Steamfitter.Api.Controllers
             if (result == null)
                 throw new EntityNotFoundException<Result>();
 
-            var existingTask = await _taskService.GetAsync((Guid)result.TaskId, ct);
+            if (result.TaskId == null)
+                throw new EntityNotFoundException<SAVM.Task>();
+
+            var existingTask = await _taskService.GetAsync(result.TaskId.Value, ct);
             if (existingTask == null)
                 throw new EntityNotFoundException<SAVM.Task>();
 
@@ -243,9 +253,13 @@ namespace Steamfitter.Api.Controllers
         [HttpPost("Tasks/execute")]
         [ProducesResponseType(typeof(SAVM.Result[]), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createAndExecuteTask")]
-        public async STT.Task<IActionResult> CreateAndExecute([FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
+        public async STT.Task<IActionResult> CreateAndExecute([FromBody] SAVM.TaskCreate taskForm, CancellationToken ct)
         {
-            await CheckTaskEditAuthorization((Guid)taskForm.ScenarioId, "scenario", ct);
+            // only a Scenario Task can be executed
+            if (taskForm.ScenarioId == null || taskForm.ScenarioTemplateId != null)
+                throw new ForbiddenException("A Task to execute must belong to a Scenario, and only to a Scenario.");
+
+            await CheckTaskEditAuthorization(taskForm.ScenarioId.Value, "scenario", ct);
             if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(taskForm.ScenarioId, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
                 throw new ForbiddenException();
 
@@ -336,7 +350,8 @@ namespace Steamfitter.Api.Controllers
         /// Updates a Task
         /// </summary>
         /// <remarks>
-        /// Updates a Task with the attributes specified
+        /// Updates a Task with the attributes specified. The Task stays in its Scenario or Scenario Template
+        /// and keeps its trigger Task; use PUT tasks/{id}/move to move it.
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified Task
         /// </remarks>
@@ -346,7 +361,7 @@ namespace Steamfitter.Api.Controllers
         [HttpPut("Tasks/{id}")]
         [ProducesResponseType(typeof(SAVM.Task), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "updateTask")]
-        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.TaskForm taskForm, CancellationToken ct)
+        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.TaskEdit taskForm, CancellationToken ct)
         {
             await CheckTaskEditAuthorization(id, "task", ct);
             var updatedTask = await _taskService.UpdateAsync(id, taskForm, ct);
@@ -391,7 +406,6 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteTask")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
-            var existingTask = await _taskService.GetAsync(id, ct);
             await CheckTaskEditAuthorization(id, "task", ct);
 
             await _taskService.DeleteAsync(id, ct);
@@ -430,6 +444,11 @@ namespace Steamfitter.Api.Controllers
                 {
                     if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(task.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
                         throw new ForbiddenException();
+                }
+                else
+                {
+                    // a Task with neither a Scenario nor a Scenario Template grants nothing
+                    throw new ForbiddenException();
                 }
             }
             else if (locationType == "scenario")
