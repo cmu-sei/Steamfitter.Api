@@ -75,14 +75,6 @@ namespace Steamfitter.Api.ViewModels
         public bool Repeatable { get; set; }
     }
 
-    public class ScenarioTemplateExportRequest
-    {
-        /// <summary>
-        /// The Scenario Templates to export. Empty or missing exports every Scenario Template.
-        /// </summary>
-        public List<Guid> Ids { get; set; } = new();
-    }
-
     public class ScenarioTemplateImportForm
     {
         /// <summary>
