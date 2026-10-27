@@ -215,6 +215,7 @@ public class Startup
         services.AddScoped<ITaskService, TaskService>();
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<IScenarioTemplateService, ScenarioTemplateService>();
+        services.AddScoped<IScenarioTemplateArchiveService, ScenarioTemplateArchiveService>();
         services.AddScoped<IScenarioTemplateMembershipService, ScenarioTemplateMembershipService>();
         services.AddScoped<IScenarioTemplateRoleService, ScenarioTemplateRoleService>();
         services.AddScoped<IUserService, UserService>();

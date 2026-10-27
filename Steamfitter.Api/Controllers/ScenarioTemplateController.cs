@@ -21,11 +21,16 @@ namespace Steamfitter.Api.Controllers
     public class ScenarioTemplateController : BaseController
     {
         private readonly IScenarioTemplateService _scenarioTemplateService;
+        private readonly IScenarioTemplateArchiveService _scenarioTemplateArchiveService;
         private readonly ISteamfitterAuthorizationService _authorizationService;
 
-        public ScenarioTemplateController(IScenarioTemplateService scenarioTemplateService, ISteamfitterAuthorizationService authorizationService)
+        public ScenarioTemplateController(
+            IScenarioTemplateService scenarioTemplateService,
+            IScenarioTemplateArchiveService scenarioTemplateArchiveService,
+            ISteamfitterAuthorizationService authorizationService)
         {
             _scenarioTemplateService = scenarioTemplateService;
+            _scenarioTemplateArchiveService = scenarioTemplateArchiveService;
             _authorizationService = authorizationService;
         }
 
@@ -134,6 +139,70 @@ namespace Steamfitter.Api.Controllers
             AddPermissions(newScenarioTemplate);
 
             return CreatedAtAction(nameof(this.Get), new { id = newScenarioTemplate.Id }, newScenarioTemplate);
+        }
+
+        /// <summary>
+        /// Exports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Returns a json file containing the specified ScenarioTemplates, with their VM Credentials and Task trees.
+        /// All ScenarioTemplates are exported if no ids are specified.
+        /// <para />
+        /// Accessible to a User with the ViewScenarioTemplates system permission, or ViewScenarioTemplate permission on each specified ScenarioTemplate
+        /// </remarks>
+        /// <param name="ids">The ids of the ScenarioTemplates to export</param>
+        /// <param name="ct"></param>
+        [HttpGet("scenarioTemplates/actions/export")]
+        [ProducesResponseType(typeof(FileResult), (int)HttpStatusCode.OK, "application/json")]
+        [SwaggerOperation(OperationId = "exportScenarioTemplates")]
+        public async STT.Task<IActionResult> Export([FromQuery] Guid[] ids, CancellationToken ct)
+        {
+            ids ??= [];
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarioTemplates], ct))
+            {
+                if (ids.Length == 0)
+                    throw new ForbiddenException();
+
+                foreach (var id in ids.Distinct())
+                {
+                    if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+                        throw new ForbiddenException();
+                }
+            }
+
+            var (stream, fileName) = await _scenarioTemplateArchiveService.ExportAsync(ids, ct);
+
+            // If this is wrapped in an Ok, it throws an exception
+            return File(stream, "application/json", fileName);
+        }
+
+        /// <summary>
+        /// Imports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Creates ScenarioTemplates, with their VM Credentials and Task trees, from a json file produced by the export
+        /// (or a zip containing one). Each is a new copy with new ids. A ScenarioTemplate whose name is already in use
+        /// is renamed "name - user", noted in Warnings. ScenarioTemplates that cannot be imported are listed in Failures; the rest are created.
+        /// <para />
+        /// Accessible to a User with the CreateScenarioTemplates system permission
+        /// </remarks>
+        /// <param name="form">The file to import</param>
+        /// <param name="ct"></param>
+        [HttpPost("scenarioTemplates/actions/import")]
+        [ProducesResponseType(typeof(SAVM.ImportScenarioTemplatesResult), (int)HttpStatusCode.OK)]
+        [SwaggerOperation(OperationId = "importScenarioTemplates")]
+        public async STT.Task<IActionResult> Import([FromForm] SAVM.ScenarioTemplateImportForm form, CancellationToken ct)
+        {
+            if (!await _authorizationService.AuthorizeAsync([SystemPermission.CreateScenarioTemplates], ct))
+                throw new ForbiddenException();
+
+            var result = await _scenarioTemplateArchiveService.ImportAsync(form.File, ct);
+            foreach (var item in result.ScenarioTemplates)
+            {
+                AddPermissions(item);
+            }
+
+            return Ok(result);
         }
 
         /// <summary>
