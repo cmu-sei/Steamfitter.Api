@@ -129,6 +129,26 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.Equal(TestData.ScenarioTemplateRoles.Manager, Assert.Single(stored.Memberships, x => x.UserId == actor.Id).RoleId);
     }
 
+    /// <summary>A child task counts once, inside its parent's total: root 10 with child 5 scores 15, not 20.</summary>
+    [Fact]
+    public async Task Import_scores_a_template_with_child_tasks_once_per_task()
+    {
+        var export = Export("Scored");
+        export.Tasks[0].Score = 10;
+        export.Tasks[1].Score = 5;
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(await Import(actor, Json([export]), "Scored.json"), ExportJson);
+
+        var created = Assert.Single(result.ScenarioTemplates);
+        await using var db = NewContext();
+        var stored = await db.ScenarioTemplates.Include(x => x.Tasks).SingleAsync(x => x.Id == created.Id, Ct);
+        Assert.Equal(15, stored.Score);
+        Assert.False(stored.UpdateScores);
+        Assert.Equal(15, Assert.Single(stored.Tasks, x => x.Name == "Parent").TotalScore);
+        Assert.Equal(5, Assert.Single(stored.Tasks, x => x.Name == "Child").TotalScore);
+    }
+
     /// <summary>Importing the same file twice makes two copies, the second renamed as a copy is.</summary>
     [Fact]
     public async Task Import_renames_a_template_whose_name_is_in_use_and_notes_it()

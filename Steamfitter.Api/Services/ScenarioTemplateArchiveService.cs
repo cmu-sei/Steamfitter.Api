@@ -518,11 +518,14 @@ namespace Steamfitter.Api.Services
                 }
             }
 
-            // rebuild the Trigger Task tree through navigations, so EF inserts parents before children
+            // rebuild the Trigger Task tree. The navigations make EF insert parents before children;
+            // the id is set too, because CalculateScores below treats a task with no TriggerTaskId as a root,
+            // and EF only fills it in from the navigation once the entity is tracked.
             foreach (var task in template.Tasks.Where(t => t.TriggerTaskId.HasValue))
             {
                 var child = taskEntities[task.Id];
                 var parent = taskEntities[task.TriggerTaskId.Value];
+                child.TriggerTaskId = parent.Id;
                 child.TriggerTask = parent;
                 parent.Children.Add(child);
             }
