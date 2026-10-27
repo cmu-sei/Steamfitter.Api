@@ -52,6 +52,9 @@ namespace Steamfitter.Api.Infrastructure.Extensions
             else
                 policy.DisallowCredentials();
 
+            // lets a cross-origin UI read the file name of a downloaded export
+            policy.WithExposedHeaders("Content-Disposition");
+
             return policy.Build();
         }
     }
