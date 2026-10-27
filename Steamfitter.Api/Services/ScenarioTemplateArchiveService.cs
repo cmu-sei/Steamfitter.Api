@@ -38,8 +38,12 @@ namespace Steamfitter.Api.Services
     /// </summary>
     public class ScenarioTemplateArchiveService : IScenarioTemplateArchiveService
     {
-        // guard against zip bombs and oversized uploads; a scenario template json is a few hundred KB at most
-        private const long MaxJsonBytes = 50 * 1024 * 1024;
+        // guard against zip bombs and oversized uploads; a scenario template json is a few hundred KB at most.
+        // Counted on the bytes actually read, not on the size a zip entry declares.
+        private const long MaxJsonBytes = 10 * 1024 * 1024;
+
+        // what Windows refuses in a file name; Path.GetInvalidFileNameChars() on Linux is only '/' and '\0'
+        private static readonly char[] InvalidFileNameChars = "<>:\"/\\|?*".ToCharArray();
 
         private static readonly Regex GuidPattern = new(
             @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
@@ -83,14 +87,16 @@ namespace Steamfitter.Api.Services
                 throw new Infrastructure.Exceptions.EntityNotFoundException<ScenarioTemplate>(
                     $"ScenarioTemplate {string.Join(", ", missing)} was not found.");
 
-            var export = templates.Select(ToExport).ToList();
-            var stream = new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(export, JsonOptions));
+            // one requested template is written as an object, anything else as a list
+            var json = idList.Count == 1
+                ? JsonSerializer.SerializeToUtf8Bytes(ToExport(templates[0]), JsonOptions)
+                : JsonSerializer.SerializeToUtf8Bytes(templates.Select(ToExport).ToList(), JsonOptions);
 
-            var fileName = templates.Count == 1
+            var fileName = idList.Count == 1
                 ? SanitizeFileName(templates[0].Name)
                 : ScenarioTemplateExportConstants.DefaultFileName;
 
-            return (stream, $"{fileName}.json");
+            return (new MemoryStream(json), $"{fileName}.json");
         }
 
         private static ScenarioTemplateExport ToExport(ScenarioTemplateEntity template)
@@ -191,9 +197,8 @@ namespace Steamfitter.Api.Services
 
         private static string SanitizeFileName(string name)
         {
-            var invalid = Path.GetInvalidFileNameChars();
             var sanitized = new string((name ?? string.Empty)
-                .Select(c => invalid.Contains(c) || char.IsWhiteSpace(c) ? '-' : c)
+                .Select(c => InvalidFileNameChars.Contains(c) || char.IsControl(c) || char.IsWhiteSpace(c) ? '-' : c)
                 .ToArray())
                 .Trim('-', '.');
 
@@ -208,7 +213,7 @@ namespace Steamfitter.Api.Services
         {
             var result = new ImportScenarioTemplatesResult();
 
-            List<ScenarioTemplateExport> templates;
+            List<(ScenarioTemplateExport Template, string Error)> templates;
             try
             {
                 templates = await ReadFile(file, ct);
@@ -229,8 +234,18 @@ namespace Steamfitter.Api.Services
             var entities = new List<ScenarioTemplateEntity>();
             var namesInUse = (await _context.ScenarioTemplates.Select(st => st.Name).ToListAsync(ct)).ToHashSet();
 
-            foreach (var template in templates.Where(t => t != null))
+            foreach (var (template, error, index) in templates.Select((x, i) => (x.Template, x.Error, i)))
             {
+                if (error != null)
+                {
+                    result.Failures.Add(new ImportScenarioTemplateFailure
+                    {
+                        Name = $"Item {index + 1}",
+                        Reason = error
+                    });
+                    continue;
+                }
+
                 var failures = Validate(template).ToList();
                 if (failures.Any())
                 {
@@ -271,9 +286,10 @@ namespace Steamfitter.Api.Services
 
         /// <summary>
         /// Reads the Scenario Templates from an uploaded json file, or from the json file inside an uploaded zip.
-        /// The json is either a list of Scenario Templates or a single one.
+        /// The json is either a list of Scenario Templates or a single one. An item that cannot be read
+        /// is returned with the reason, so it fails on its own.
         /// </summary>
-        private static async STT.Task<List<ScenarioTemplateExport>> ReadFile(IFormFile file, CancellationToken ct)
+        private static async STT.Task<List<(ScenarioTemplateExport Template, string Error)>> ReadFile(IFormFile file, CancellationToken ct)
         {
             if (file == null || file.Length == 0)
                 throw new InvalidDataException("No file was uploaded");
@@ -283,9 +299,7 @@ namespace Steamfitter.Api.Services
                 throw new InvalidDataException($"{file.FileName} is too large");
 
             await using var upload = file.OpenReadStream();
-            var buffer = new MemoryStream();
-            await upload.CopyToAsync(buffer, ct);
-            buffer.Position = 0;
+            var buffer = await ReadCapped(upload, file.FileName, ct);
 
             if (IsZip(buffer))
             {
@@ -299,14 +313,26 @@ namespace Steamfitter.Api.Services
                 if (entry == null)
                     throw new InvalidDataException($"The zip does not contain {ScenarioTemplateExportConstants.ExportFileName}");
 
-                if (entry.Length > MaxJsonBytes)
-                    throw new InvalidDataException($"{entry.FullName} is too large");
-
                 await using var entryStream = entry.Open();
-                return await Deserialize(entryStream, ct);
+                return Deserialize(await ReadCapped(entryStream, entry.FullName, ct));
             }
 
-            return await Deserialize(buffer, ct);
+            return Deserialize(buffer);
+        }
+
+        private static async STT.Task<MemoryStream> ReadCapped(Stream stream, string name, CancellationToken ct)
+        {
+            var buffer = new MemoryStream();
+            var chunk = new byte[81920];
+            int read;
+            while ((read = await stream.ReadAsync(chunk, ct)) > 0)
+            {
+                if (buffer.Length + read > MaxJsonBytes)
+                    throw new InvalidDataException($"{name} is larger than {MaxJsonBytes / (1024 * 1024)} MB");
+                buffer.Write(chunk, 0, read);
+            }
+            buffer.Position = 0;
+            return buffer;
         }
 
         private static bool IsZip(MemoryStream stream)
@@ -315,15 +341,35 @@ namespace Steamfitter.Api.Services
             return stream.Length >= 4 && bytes[0] == 0x50 && bytes[1] == 0x4B && bytes[2] == 0x03 && bytes[3] == 0x04;
         }
 
-        private static async STT.Task<List<ScenarioTemplateExport>> Deserialize(Stream stream, CancellationToken ct)
+        private static List<(ScenarioTemplateExport Template, string Error)> Deserialize(MemoryStream stream)
         {
-            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+            // a UTF-8 byte order mark, as some editors write, is skipped
+            var bytes = stream.GetBuffer().AsMemory(0, (int)stream.Length);
+            if (bytes.Span.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }))
+                bytes = bytes[3..];
+
+            using var document = JsonDocument.Parse(bytes);
             return document.RootElement.ValueKind switch
             {
-                JsonValueKind.Array => document.RootElement.Deserialize<List<ScenarioTemplateExport>>(JsonOptions),
-                JsonValueKind.Object => new List<ScenarioTemplateExport> { document.RootElement.Deserialize<ScenarioTemplateExport>(JsonOptions) },
+                JsonValueKind.Array => document.RootElement.EnumerateArray().Select(DeserializeItem).ToList(),
+                JsonValueKind.Object => [DeserializeItem(document.RootElement)],
                 _ => throw new InvalidDataException("The file is not a Scenario Template export")
             };
+        }
+
+        private static (ScenarioTemplateExport Template, string Error) DeserializeItem(JsonElement item)
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+                return (null, $"Not a Scenario Template ({item.ValueKind})");
+
+            try
+            {
+                return (item.Deserialize<ScenarioTemplateExport>(JsonOptions), null);
+            }
+            catch (JsonException ex)
+            {
+                return (null, $"Not a valid Scenario Template: {ex.Message}");
+            }
         }
 
         private static IEnumerable<string> Validate(ScenarioTemplateExport template)
