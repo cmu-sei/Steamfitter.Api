@@ -9,7 +9,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -21,7 +20,7 @@ using SAVM = Steamfitter.Api.ViewModels;
 namespace Steamfitter.Api.Tests.Controllers;
 
 /// <summary>
-/// <c>ScenarioTemplateController</c>: <c>POST api/scenarioTemplates/actions/export</c> and <c>actions/import</c>.
+/// <c>ScenarioTemplateController</c>: <c>api/scenarioTemplates/actions/export</c> and <c>actions/import</c>.
 /// The export is a json file; an import makes new copies with new ids, from that json or a zip holding it.
 /// </summary>
 public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAppFactory factory)
@@ -41,7 +40,7 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         await Seed(template, parent, child, TestData.VmCredential(scenarioTemplateId: template.Id, username: "exported"));
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
-        var response = await Export(actor, template.Id);
+        var response = await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={template.Id}", Ct);
 
         await AssertStatus(HttpStatusCode.OK, response);
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
@@ -61,7 +60,7 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         await Seed(first, second);
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
-        var response = await Export(actor, first.Id, second.Id);
+        var response = await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={first.Id}&ids={second.Id}", Ct);
 
         Assert.Equal("scenario-templates.json", response.Content.Headers.ContentDisposition?.FileName);
         var export = await ReadAsync<List<SAVM.ScenarioTemplateExport>>(response, ExportJson);
@@ -76,24 +75,10 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         await Seed(template);
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
-        var response = await Export(actor, template.Id);
+        var response = await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={template.Id}", Ct);
 
         await AssertStatus(HttpStatusCode.OK, response);
         Assert.Equal("Day-1--Recon---A-B.json", response.Content.Headers.ContentDisposition?.FileName);
-    }
-
-    /// <summary>The ids travel in the body, so an export of more ids than a URL holds still works.</summary>
-    [Fact]
-    public async Task Export_takes_more_ids_than_a_url_could_hold()
-    {
-        var templates = Enumerable.Range(0, 120).Select(i => TestData.ScenarioTemplate($"Many {i:000}")).ToArray();
-        await Seed(templates);
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
-
-        // 120 guids are about 4,400 characters as query parameters, past what many proxies accept
-        var export = await ReadAsync<List<SAVM.ScenarioTemplateExport>>(await Export(actor, [.. templates.Select(x => x.Id)]), ExportJson);
-
-        Assert.Equal(120, export.Count);
     }
 
     [Fact]
@@ -102,8 +87,7 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         await Seed(TestData.ScenarioTemplate("Everything A"), TestData.ScenarioTemplate("Everything B"));
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
-        // no body at all, as a bare POST sends
-        var response = await Client(actor).PostAsync("api/scenarioTemplates/actions/export", null, Ct);
+        var response = await Client(actor).GetAsync("api/scenarioTemplates/actions/export", Ct);
 
         Assert.Equal("scenario-templates.json", response.Content.Headers.ContentDisposition?.FileName);
         var export = await ReadAsync<List<SAVM.ScenarioTemplateExport>>(response, ExportJson);
@@ -120,7 +104,7 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
             .SeedAsync();
 
         await AssertJsonError(HttpStatusCode.Forbidden,
-            await Client(actor).PostAsJsonAsync("api/scenarioTemplates/actions/export", new { ids = Array.Empty<Guid>() }, Ct));
+            await Client(actor).GetAsync("api/scenarioTemplates/actions/export", Ct));
     }
 
     [Fact]
@@ -129,7 +113,7 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
 
         await AssertJsonError(HttpStatusCode.NotFound,
-            await Export(actor, Guid.NewGuid()));
+            await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={Guid.NewGuid()}", Ct));
     }
 
     [Fact]
@@ -143,7 +127,7 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
             .SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden,
-            await Export(actor, template.Id));
+            await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={template.Id}", Ct));
     }
 
     [Fact]
@@ -347,9 +331,6 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
 
     private static byte[] Json(List<SAVM.ScenarioTemplateExport> templates) =>
         JsonSerializer.SerializeToUtf8Bytes(templates, ExportJson);
-
-    private Task<HttpResponseMessage> Export(TestActor actor, params Guid[] ids) =>
-        Client(actor).PostAsJsonAsync("api/scenarioTemplates/actions/export", new SAVM.ScenarioTemplateExportRequest { Ids = [.. ids] }, Ct);
 
     private Task<HttpResponseMessage> Import(TestActor actor, byte[] file, string fileName)
     {

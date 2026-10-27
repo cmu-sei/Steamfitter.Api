@@ -7,7 +7,6 @@ using System.Net;
 using System.Threading;
 using STT = System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
@@ -147,19 +146,18 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <remarks>
         /// Returns a json file containing the specified ScenarioTemplates, with their VM Credentials and Task trees.
-        /// All ScenarioTemplates are exported if no ids are specified. The ids travel in the body rather than the
-        /// query string, so an export of many templates is not limited by the length of a URL.
+        /// All ScenarioTemplates are exported if no ids are specified.
         /// <para />
         /// Accessible to a User with the ViewScenarioTemplates system permission, or ViewScenarioTemplate permission on each specified ScenarioTemplate
         /// </remarks>
-        /// <param name="request">The ids of the ScenarioTemplates to export</param>
+        /// <param name="ids">The ids of the ScenarioTemplates to export</param>
         /// <param name="ct"></param>
-        [HttpPost("scenarioTemplates/actions/export")]
+        [HttpGet("scenarioTemplates/actions/export")]
         [ProducesResponseType(typeof(FileResult), (int)HttpStatusCode.OK, "application/json")]
         [SwaggerOperation(OperationId = "exportScenarioTemplates")]
-        public async STT.Task<IActionResult> Export([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SAVM.ScenarioTemplateExportRequest request, CancellationToken ct)
+        public async STT.Task<IActionResult> Export([FromQuery] Guid[] ids, CancellationToken ct)
         {
-            var ids = request?.Ids?.ToArray() ?? [];
+            ids ??= [];
             if (!await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarioTemplates], ct))
             {
                 if (ids.Length == 0)
