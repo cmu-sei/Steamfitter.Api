@@ -194,6 +194,56 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         Assert.Equal(ScenarioStatus.active, (await db.Scenarios.SingleAsync(x => x.Id == actor.Id, Ct)).Status);
     }
 
+    /// <summary>The Task Builder is usable on ManageTasks alone: the caller manages their personal scenario.</summary>
+    [Fact]
+    public async Task GetMyScenario_makes_the_caller_manager_of_their_personal_scenario_so_they_can_build_tasks_in_it()
+    {
+        var actor = await Actor().WithName("Builder").WithSystemPermissions(SystemPermission.ManageTasks).SeedAsync();
+
+        var scenario = await ReadAsync<SAVM.Scenario>(await Client(actor).GetAsync("api/scenarios/me", Ct));
+        var response = await Client(actor).PostAsJsonAsync("api/tasks", new { name = "Built", scenarioId = scenario.Id, action = "send_email", apiUrl = "email", vmMask = "", actionParameters = new { } }, Ct);
+
+        Assert.Contains(nameof(ScenarioPermission.ExecuteScenario), scenario.ScenarioPermissions);
+        await AssertStatus(HttpStatusCode.Created, response);
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioRoles.Manager, (await db.ScenarioMemberships.SingleAsync(x => x.ScenarioId == actor.Id && x.UserId == actor.Id, Ct)).RoleId);
+    }
+
+    /// <summary>A personal scenario made before its owner was given a membership gets one the next time they open it.</summary>
+    [Fact]
+    public async Task GetMyScenario_gives_the_owner_of_an_older_personal_scenario_the_membership_it_lacks()
+    {
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageTasks).SeedAsync();
+        var personal = TestData.Scenario("Older User Scenario");
+        personal.Id = actor.Id;
+        personal.CreatedBy = actor.Id;
+        await Seed(personal);
+
+        var scenario = await ReadAsync<SAVM.Scenario>(await Client(actor).GetAsync("api/scenarios/me", Ct));
+
+        Assert.Equal("Older User Scenario", scenario.Name);
+        await using var db = NewContext();
+        Assert.Equal(TestData.ScenarioRoles.Manager, (await db.ScenarioMemberships.SingleAsync(x => x.ScenarioId == actor.Id && x.UserId == actor.Id, Ct)).RoleId);
+    }
+
+    /// <summary>
+    /// The Id of a User not yet seen cannot be refused as a new scenario's Id. A scenario created with it by
+    /// someone else is not handed to that User as their personal scenario when they come.
+    /// </summary>
+    [Fact]
+    public async Task GetMyScenario_refuses_a_scenario_another_caller_created_with_the_callers_id()
+    {
+        var newcomerId = Guid.NewGuid();
+        var squatter = await Actor().WithSystemPermissions(SystemPermission.CreateScenarios).SeedAsync();
+        await AssertStatus(HttpStatusCode.Created, await Client(squatter).PostAsJsonAsync("api/scenarios", new { id = newcomerId, name = "Squatted" }, Ct));
+        var newcomer = await Actor().WithId(newcomerId).WithSystemPermissions(SystemPermission.ManageTasks).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(newcomer).GetAsync("api/scenarios/me", Ct));
+
+        await using var db = NewContext();
+        Assert.False(await db.ScenarioMemberships.AnyAsync(x => x.ScenarioId == newcomerId && x.UserId == newcomerId, Ct));
+    }
+
     [Fact]
     public async Task GetMyScenario_is_forbidden_for_a_caller_holding_only_ExecuteScenarios()
     {
@@ -221,15 +271,14 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
     }
 
     [Fact]
-    public async Task Create_answers_an_existing_scenario_id_with_a_server_error()
+    public async Task Create_with_the_id_of_an_existing_scenario_is_forbidden()
     {
         var scenario = TestData.Scenario("Original");
         await Seed(scenario);
 
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
+        await AssertStatus(HttpStatusCode.Forbidden,
             await RootClient.PostAsJsonAsync("api/scenarios", new { id = scenario.Id, name = "Replacement" }, Ct));
 
-        Assert.Contains("saving the entity changes", error.Detail);
         await using var db = NewContext();
         Assert.Equal("Original", (await db.Scenarios.SingleAsync(Ct)).Name);
         Assert.False(await db.ScenarioMemberships.AnyAsync(x => x.ScenarioId == scenario.Id, Ct));

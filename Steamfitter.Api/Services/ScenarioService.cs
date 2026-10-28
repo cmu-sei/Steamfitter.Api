@@ -106,14 +106,22 @@ namespace Steamfitter.Api.Services
             return _mapper.Map<SAVM.Scenario>(item);
         }
 
+        /// <summary>
+        /// The caller's personal Task Builder Scenario, whose Id is their User Id, made on first use. A Scenario with
+        /// that Id is theirs only if they created it: one made by another caller before they first came is refused,
+        /// rather than handed to them with whatever View, Tasks and credentials it was given.
+        /// </summary>
         public async STT.Task<ViewModels.Scenario> GetMyScenarioAsync(CancellationToken ct)
         {
+            var id = _user.GetId();
             var item = await _context.Scenarios.Include(st => st.VmCredentials)
-                .SingleOrDefaultAsync(o => o.Id == _user.GetId(), ct);
+                .SingleOrDefaultAsync(o => o.Id == id, ct);
+            if (item != null && item.CreatedBy != id)
+                throw new ForbiddenException("The Id of your personal Task Builder Scenario is taken by a Scenario another User created.");
+
             if (item == null)
             {
                 var createdDate = DateTime.UtcNow;
-                var id = _user.GetId();
                 var name = _user.Claims.FirstOrDefault(c => c.Type == "name").Value;
                 item = new ScenarioEntity()
                 {
@@ -131,6 +139,19 @@ namespace Steamfitter.Api.Services
                 };
                 _context.Scenarios.Add(item);
                 await _context.SaveChangesAsync(ct);
+            }
+
+            // the owner manages it, as a creator manages any Scenario; one made before that is given the membership now
+            if (!await _context.ScenarioMemberships.AnyAsync(x => x.ScenarioId == id && x.UserId == id, ct))
+            {
+                _context.ScenarioMemberships.Add(new ScenarioMembershipEntity()
+                {
+                    UserId = id,
+                    ScenarioId = id,
+                    RoleId = ScenarioRoleDefaults.ScenarioCreatorRoleId
+                });
+                await _context.SaveChangesAsync(ct);
+                await _userClaimsService.RefreshCurrentClaimsAsync();
             }
 
             return _mapper.Map<SAVM.Scenario>(item);
@@ -376,16 +397,19 @@ namespace Steamfitter.Api.Services
         }
 
         /// <summary>
-        /// A caller may choose a new Scenario's Id, as Blueprint does. It must not be a User's Id, which is
-        /// the Id of that User's personal Task Builder Scenario, nor a Scenario Template's, which names the
-        /// same hub group as the template's events.
+        /// A caller may choose a new Scenario's Id, as Blueprint does. It must not be another Scenario's, nor a
+        /// User's Id, which is the Id of that User's personal Task Builder Scenario, nor a Scenario Template's,
+        /// which names the same hub group as the template's events. The Id of a User not yet seen cannot be
+        /// told from a fresh one; <see cref="GetMyScenarioAsync"/> refuses such a Scenario as anyone's own.
         /// </summary>
         private async STT.Task EnsureIdIsFreeAsync(Guid? id, CancellationToken ct)
         {
             if (id == null)
                 return;
 
-            if (await _context.Users.AnyAsync(x => x.Id == id, ct) || await _context.ScenarioTemplates.AnyAsync(x => x.Id == id, ct))
+            if (await _context.Scenarios.AnyAsync(x => x.Id == id, ct)
+                || await _context.Users.AnyAsync(x => x.Id == id, ct)
+                || await _context.ScenarioTemplates.AnyAsync(x => x.Id == id, ct))
                 throw new ForbiddenException($"The Id {id} cannot be used for a new Scenario.");
         }
 
