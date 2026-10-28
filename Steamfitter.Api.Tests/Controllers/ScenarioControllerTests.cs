@@ -830,6 +830,33 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         Assert.Equal((theirs.Id, (Guid?)null, TaskTrigger.Manual), (kept.ScenarioId.Value, kept.TriggerTaskId, kept.TriggerCondition));
     }
 
+    /// <summary>A delete that fails leaves the subtasks of other scenarios on their trigger, as they were.</summary>
+    [Fact]
+    public async Task Delete_that_fails_leaves_a_subtask_of_another_scenario_attached()
+    {
+        var scenario = TestData.Scenario("Undeletable");
+        var theirs = TestData.Scenario("Theirs");
+        var task = TestData.ScenarioTask(scenario.Id, "Kept task");
+        var foreign = TestData.ScenarioTask(theirs.Id, "Foreign child", triggerTaskId: task.Id);
+        foreign.TriggerCondition = TaskTrigger.Success;
+        await Seed(scenario, theirs, task, foreign);
+        await using (var db = NewContext())
+        {
+            // the scenario's own row refuses to go, after the detach has been written; DDL takes no parameters
+            var refuseDelete = $$"""
+                CREATE FUNCTION refuse_delete() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'refused'; END $$ LANGUAGE plpgsql;
+                CREATE TRIGGER refuse_delete BEFORE DELETE ON scenarios FOR EACH ROW WHEN (OLD.id = '{{scenario.Id}}') EXECUTE FUNCTION refuse_delete();
+                """;
+            await db.Database.ExecuteSqlRawAsync(refuseDelete, Ct);
+        }
+
+        await AssertStatus(HttpStatusCode.InternalServerError, await RootClient.DeleteAsync($"api/scenarios/{scenario.Id}", Ct));
+
+        await using var after = NewContext();
+        var kept = await after.Tasks.SingleAsync(x => x.Id == foreign.Id, Ct);
+        Assert.Equal(((Guid?)task.Id, TaskTrigger.Success), (kept.TriggerTaskId, kept.TriggerCondition));
+    }
+
     [Fact]
     public async Task Delete_removes_the_scenario_for_a_caller_holding_ManageScenarios()
     {

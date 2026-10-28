@@ -44,7 +44,7 @@ namespace Steamfitter.Api.Services
         STT.Task<Guid?> ExecuteForGradeAsync(GradedExecutionInfo gradedExecutionInfo, CancellationToken ct);
         STT.Task<SAVM.Task> UpdateAsync(Guid Id, SAVM.TaskEdit taskForm, CancellationToken ct);
         STT.Task<bool> DeleteAsync(Guid Id, CancellationToken ct);
-        STT.Task DetachChildrenInOtherScopesAsync(IReadOnlyCollection<Guid> taskIds, Guid? scenarioId, Guid? scenarioTemplateId, CancellationToken ct);
+        STT.Task DetachChildrenInOtherScopesAsync(Guid? scenarioId, Guid? scenarioTemplateId, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> CopyAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct);
         STT.Task<SAVM.Task> CreateFromResultAsync(Guid resultId, Guid newLocationId, string newLocationType, CancellationToken ct);
         STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct);
@@ -362,9 +362,12 @@ namespace Steamfitter.Api.Services
 
             var deletedTaskIds = new List<Guid> { id };
             deletedTaskIds.AddRange(await GetDescendantIdsInScopeAsync(id, taskToDelete.ScenarioId, taskToDelete.ScenarioTemplateId, ct));
-            await DetachChildrenInOtherScopesAsync(deletedTaskIds, taskToDelete.ScenarioId, taskToDelete.ScenarioTemplateId, ct);
+            // the children are detached and the task deleted together, or neither is
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            await DetachAsync(ChildrenInOtherScopes(deletedTaskIds, taskToDelete.ScenarioId, taskToDelete.ScenarioTemplateId), ct);
             _context.Tasks.Remove(taskToDelete);
             await _context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
 
             return true;
         }
@@ -578,17 +581,31 @@ namespace Steamfitter.Api.Services
         }
 
         /// <summary>
+        /// Detaches the Tasks in other Scenarios or Scenario Templates that the Tasks of this one trigger, before it is
+        /// deleted. The caller deletes it in the same transaction, so that a failed delete leaves them attached.
+        /// </summary>
+        public STT.Task DetachChildrenInOtherScopesAsync(Guid? scenarioId, Guid? scenarioTemplateId, CancellationToken ct)
+        {
+            var scopeTaskIds = _context.Tasks.InScope(scenarioId, scenarioTemplateId).Select(t => t.Id);
+            return DetachAsync(_context.Tasks
+                .Where(t => t.TriggerTaskId.HasValue && scopeTaskIds.Contains(t.TriggerTaskId.Value) && !scopeTaskIds.Contains(t.Id)), ct);
+        }
+
+        // the children of the given tasks that are in another Scenario or Scenario Template than theirs
+        private IQueryable<TaskEntity> ChildrenInOtherScopes(IReadOnlyCollection<Guid> parentIds, Guid? scenarioId, Guid? scenarioTemplateId)
+        {
+            var scopeTaskIds = _context.Tasks.InScope(scenarioId, scenarioTemplateId).Select(t => t.Id);
+            return _context.Tasks.Where(t => t.TriggerTaskId.HasValue && parentIds.Contains(t.TriggerTaskId.Value) && !scopeTaskIds.Contains(t.Id));
+        }
+
+        /// <summary>
         /// The trigger relationship cascades on delete. A child in another Scenario or Scenario Template
         /// must not be deleted with its trigger, so it is detached first. It is made manual, so that being
         /// a top-level Task does not start it with its Scenario.
         /// </summary>
-        public async STT.Task DetachChildrenInOtherScopesAsync(IReadOnlyCollection<Guid> taskIds, Guid? scenarioId, Guid? scenarioTemplateId, CancellationToken ct)
+        private async STT.Task DetachAsync(IQueryable<TaskEntity> children, CancellationToken ct)
         {
-            var children = await _context.Tasks
-                .Where(t => t.TriggerTaskId.HasValue && taskIds.Contains(t.TriggerTaskId.Value)
-                    && (t.ScenarioId != scenarioId || t.ScenarioTemplateId != scenarioTemplateId))
-                .ToListAsync(ct);
-            foreach (var child in children)
+            foreach (var child in await children.ToListAsync(ct))
             {
                 child.TriggerTaskId = null;
                 child.TriggerCondition = TaskTrigger.Manual;
@@ -613,8 +630,8 @@ namespace Steamfitter.Api.Services
 
         // the children of the given tasks that share their Scenario or Scenario Template
         private IQueryable<TaskEntity> ChildrenInScope(IReadOnlyCollection<Guid> parentIds, Guid? scenarioId, Guid? scenarioTemplateId) =>
-            _context.Tasks.Where(t => t.TriggerTaskId.HasValue && parentIds.Contains(t.TriggerTaskId.Value)
-                && t.ScenarioId == scenarioId && t.ScenarioTemplateId == scenarioTemplateId);
+            _context.Tasks.InScope(scenarioId, scenarioTemplateId)
+                .Where(t => t.TriggerTaskId.HasValue && parentIds.Contains(t.TriggerTaskId.Value));
 
         private async STT.Task<bool> PreventAddingToSelfAsync(Guid existingId, TaskEntity newLocationEntity, CancellationToken ct)
         {

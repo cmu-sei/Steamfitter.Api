@@ -330,10 +330,12 @@ namespace Steamfitter.Api.Services
             if (scenarioToDelete == null)
                 throw new EntityNotFoundException<SAVM.Scenario>();
 
-            var taskIds = await _context.Tasks.Where(t => t.ScenarioId == id).Select(t => t.Id).ToListAsync(ct);
-            await _taskService.DetachChildrenInOtherScopesAsync(taskIds, id, null, ct);
+            // the children in other scopes are detached and the scenario deleted together, or neither is
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            await _taskService.DetachChildrenInOtherScopesAsync(id, null, ct);
             _context.Scenarios.Remove(scenarioToDelete);
             await _context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
 
             return true;
         }

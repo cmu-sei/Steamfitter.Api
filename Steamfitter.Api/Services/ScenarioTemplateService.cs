@@ -184,10 +184,12 @@ namespace Steamfitter.Api.Services
             if (scenarioTemplateToDelete == null)
                 throw new EntityNotFoundException<SAVM.ScenarioTemplate>();
 
-            var taskIds = await _context.Tasks.Where(t => t.ScenarioTemplateId == id).Select(t => t.Id).ToListAsync(ct);
-            await _taskService.DetachChildrenInOtherScopesAsync(taskIds, null, id, ct);
+            // the children in other scopes are detached and the template deleted together, or neither is
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            await _taskService.DetachChildrenInOtherScopesAsync(null, id, ct);
             _context.ScenarioTemplates.Remove(scenarioTemplateToDelete);
             await _context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
 
             return true;
         }

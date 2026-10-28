@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Hubs;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Extensions;
 using System;
 using System.Collections.Generic;
@@ -757,7 +758,8 @@ namespace Steamfitter.Api.Services
         private IEnumerable<TaskEntity> GetSubtasksToExecute(TaskEntity executedTask, SteamfitterContext steamfitterContext, Data.TaskStatus executedTaskStatus)
         {
             // a subtask runs only in its trigger task's Scenario, never in another one it was linked from
-            var subtaskEntities = steamfitterContext.Tasks.Where(t => t.TriggerTaskId == executedTask.Id && t.ScenarioId == executedTask.ScenarioId);
+            var subtaskEntities = steamfitterContext.Tasks.InScope(executedTask.ScenarioId, executedTask.ScenarioTemplateId)
+                .Where(t => t.TriggerTaskId == executedTask.Id);
             if (subtaskEntities.Any())
             {
                 // filter the sutaskEntities based on the trigger task's status
