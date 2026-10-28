@@ -420,7 +420,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Result values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Result> UpdateResultAsync(System.Guid id, Result body);
+        System.Threading.Tasks.Task<Result> UpdateResultAsync(System.Guid id, ResultEdit body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -435,7 +435,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Result values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Result> UpdateResultAsync(System.Guid id, Result body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<Result> UpdateResultAsync(System.Guid id, ResultEdit body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Deletes an Result
@@ -475,7 +475,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Result with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Result> CreateResultAsync(Result body);
+        System.Threading.Tasks.Task<Result> CreateResultAsync(ResultCreate body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -489,7 +489,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Result with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Result> CreateResultAsync(Result body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<Result> CreateResultAsync(ResultCreate body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets all Scenarios in the system
@@ -527,7 +527,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Scenario with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Scenario> CreateScenarioAsync(ScenarioForm body);
+        System.Threading.Tasks.Task<Scenario> CreateScenarioAsync(ScenarioCreate body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -541,7 +541,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Scenario with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Scenario> CreateScenarioAsync(ScenarioForm body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<Scenario> CreateScenarioAsync(ScenarioCreate body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets all Scenarios with the specified ViewId
@@ -607,7 +607,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Scenario values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Scenario> UpdateScenarioAsync(System.Guid id, ScenarioForm body);
+        System.Threading.Tasks.Task<Scenario> UpdateScenarioAsync(System.Guid id, ScenarioEdit body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -622,7 +622,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Scenario values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Scenario> UpdateScenarioAsync(System.Guid id, ScenarioForm body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<Scenario> UpdateScenarioAsync(System.Guid id, ScenarioEdit body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Deletes a Scenario
@@ -859,26 +859,26 @@ namespace Steamfitter.Api.Client
         /// Updates a ScenarioMembership
         /// </summary>
         /// <remarks>
-        /// Updates a ScenarioMembership with the attributes specified
+        /// Updates the Role of a ScenarioMembership. The membership stays in its Scenario.
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="body">The updated ScenarioMembership values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ScenarioMembership> UpdateScenarioMembershipAsync(System.Guid id, ScenarioMembership body);
+        System.Threading.Tasks.Task<ScenarioMembership> UpdateScenarioMembershipAsync(System.Guid id, ScenarioMembershipEdit body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Updates a ScenarioMembership
         /// </summary>
         /// <remarks>
-        /// Updates a ScenarioMembership with the attributes specified
+        /// Updates the Role of a ScenarioMembership. The membership stays in its Scenario.
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="body">The updated ScenarioMembership values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ScenarioMembership> UpdateScenarioMembershipAsync(System.Guid id, ScenarioMembership body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<ScenarioMembership> UpdateScenarioMembershipAsync(System.Guid id, ScenarioMembershipEdit body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Delete a Scenario Membership.
@@ -913,6 +913,9 @@ namespace Steamfitter.Api.Client
         /// <summary>
         /// Create a new Scenario Membership.
         /// </summary>
+        /// <remarks>
+        /// The membership is created in the Scenario of the URL. A ScenarioId in the body is ignored.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ScenarioMembership> CreateScenarioMembershipAsync(System.Guid scenarioId, ScenarioMembership body);
@@ -921,6 +924,9 @@ namespace Steamfitter.Api.Client
         /// <summary>
         /// Create a new Scenario Membership.
         /// </summary>
+        /// <remarks>
+        /// The membership is created in the Scenario of the URL. A ScenarioId in the body is ignored.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ScenarioMembership> CreateScenarioMembershipAsync(System.Guid scenarioId, ScenarioMembership body, System.Threading.CancellationToken cancellationToken);
@@ -1135,6 +1141,66 @@ namespace Steamfitter.Api.Client
         System.Threading.Tasks.Task<ScenarioTemplate> CopyScenarioTemplateAsync(System.Guid id, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
+        /// Exports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Returns a json file containing the specified ScenarioTemplates, with their VM Credentials and Task trees.
+        /// <br/>All ScenarioTemplates are exported if no ids are specified.
+        /// <br/>&lt;para /&gt;
+        /// <br/>Accessible to a User with the ViewScenarioTemplates system permission, or ViewScenarioTemplate permission on each specified ScenarioTemplate
+        /// </remarks>
+        /// <param name="ids">The ids of the ScenarioTemplates to export</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<FileResponse> ExportScenarioTemplatesAsync(System.Collections.Generic.IEnumerable<System.Guid> ids);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Exports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Returns a json file containing the specified ScenarioTemplates, with their VM Credentials and Task trees.
+        /// <br/>All ScenarioTemplates are exported if no ids are specified.
+        /// <br/>&lt;para /&gt;
+        /// <br/>Accessible to a User with the ViewScenarioTemplates system permission, or ViewScenarioTemplate permission on each specified ScenarioTemplate
+        /// </remarks>
+        /// <param name="ids">The ids of the ScenarioTemplates to export</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<FileResponse> ExportScenarioTemplatesAsync(System.Collections.Generic.IEnumerable<System.Guid> ids, System.Threading.CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Imports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Creates ScenarioTemplates, with their VM Credentials and Task trees, from a json file produced by the export
+        /// <br/>(or a zip containing one). Each is a new copy with new ids. A ScenarioTemplate whose name is already in use
+        /// <br/>is renamed "name - user", noted in Warnings. ScenarioTemplates that cannot be imported are listed in Failures; the rest are created.
+        /// <br/>&lt;para /&gt;
+        /// <br/>Accessible to a User with the CreateScenarioTemplates system permission
+        /// </remarks>
+        /// <param name="file">A json file produced by the Scenario Template export, or a zip containing one</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportScenarioTemplatesResult> ImportScenarioTemplatesAsync(FileParameter file);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Imports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Creates ScenarioTemplates, with their VM Credentials and Task trees, from a json file produced by the export
+        /// <br/>(or a zip containing one). Each is a new copy with new ids. A ScenarioTemplate whose name is already in use
+        /// <br/>is renamed "name - user", noted in Warnings. ScenarioTemplates that cannot be imported are listed in Failures; the rest are created.
+        /// <br/>&lt;para /&gt;
+        /// <br/>Accessible to a User with the CreateScenarioTemplates system permission
+        /// </remarks>
+        /// <param name="file">A json file produced by the Scenario Template export, or a zip containing one</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportScenarioTemplatesResult> ImportScenarioTemplatesAsync(FileParameter file, System.Threading.CancellationToken cancellationToken);
+
+        /// <summary>
         /// Get a single ScenarioTemplateMembership.
         /// </summary>
         /// <param name="id">ID of a ScenarioTemplateMembership.</param>
@@ -1155,26 +1221,26 @@ namespace Steamfitter.Api.Client
         /// Updates a ScenarioTemplateMembership
         /// </summary>
         /// <remarks>
-        /// Updates a ScenarioTemplateMembership with the attributes specified
+        /// Updates the Role of a ScenarioTemplateMembership. The membership stays in its ScenarioTemplate.
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="body">The updated ScenarioTemplateMembership values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ScenarioTemplateMembership> UpdateScenarioTemplateMembershipAsync(System.Guid id, ScenarioTemplateMembership body);
+        System.Threading.Tasks.Task<ScenarioTemplateMembership> UpdateScenarioTemplateMembershipAsync(System.Guid id, ScenarioTemplateMembershipEdit body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Updates a ScenarioTemplateMembership
         /// </summary>
         /// <remarks>
-        /// Updates a ScenarioTemplateMembership with the attributes specified
+        /// Updates the Role of a ScenarioTemplateMembership. The membership stays in its ScenarioTemplate.
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="body">The updated ScenarioTemplateMembership values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<ScenarioTemplateMembership> UpdateScenarioTemplateMembershipAsync(System.Guid id, ScenarioTemplateMembership body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<ScenarioTemplateMembership> UpdateScenarioTemplateMembershipAsync(System.Guid id, ScenarioTemplateMembershipEdit body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Delete a ScenarioTemplate Membership.
@@ -1209,6 +1275,9 @@ namespace Steamfitter.Api.Client
         /// <summary>
         /// Create a new ScenarioTemplate Membership.
         /// </summary>
+        /// <remarks>
+        /// The membership is created in the ScenarioTemplate of the URL. A ScenarioTemplateId in the body is ignored.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ScenarioTemplateMembership> CreateScenarioTemplateMembershipAsync(System.Guid scenarioTemplateId, ScenarioTemplateMembership body);
@@ -1217,6 +1286,9 @@ namespace Steamfitter.Api.Client
         /// <summary>
         /// Create a new ScenarioTemplate Membership.
         /// </summary>
+        /// <remarks>
+        /// The membership is created in the ScenarioTemplate of the URL. A ScenarioTemplateId in the body is ignored.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ScenarioTemplateMembership> CreateScenarioTemplateMembershipAsync(System.Guid scenarioTemplateId, ScenarioTemplateMembership body, System.Threading.CancellationToken cancellationToken);
@@ -1458,7 +1530,8 @@ namespace Steamfitter.Api.Client
         /// Updates a Task
         /// </summary>
         /// <remarks>
-        /// Updates a Task with the attributes specified
+        /// Updates a Task with the attributes specified. The Task stays in its Scenario or Scenario Template
+        /// <br/>and keeps its trigger Task; use PUT tasks/{id}/move to move it.
         /// <br/>&lt;para /&gt;
         /// <br/>Accessible only to a SuperUser or a User on an Admin Team within the specified Task
         /// </remarks>
@@ -1466,14 +1539,15 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Task values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Task> UpdateTaskAsync(System.Guid id, TaskForm body);
+        System.Threading.Tasks.Task<Task> UpdateTaskAsync(System.Guid id, TaskEdit body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Updates a Task
         /// </summary>
         /// <remarks>
-        /// Updates a Task with the attributes specified
+        /// Updates a Task with the attributes specified. The Task stays in its Scenario or Scenario Template
+        /// <br/>and keeps its trigger Task; use PUT tasks/{id}/move to move it.
         /// <br/>&lt;para /&gt;
         /// <br/>Accessible only to a SuperUser or a User on an Admin Team within the specified Task
         /// </remarks>
@@ -1481,7 +1555,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Task values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Task> UpdateTaskAsync(System.Guid id, TaskForm body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<Task> UpdateTaskAsync(System.Guid id, TaskEdit body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Deletes a Task
@@ -1516,12 +1590,12 @@ namespace Steamfitter.Api.Client
         /// <remarks>
         /// Creates a new Task with the attributes specified
         /// <br/>&lt;para /&gt;
-        /// <br/>Accessible only to a SuperUser or an Administrator
+        /// <br/>The Task must belong to exactly one Scenario or Scenario Template, and a trigger Task must belong to the same one.
         /// </remarks>
         /// <param name="body">The data to create the Task with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Task> CreateTaskAsync(TaskForm body);
+        System.Threading.Tasks.Task<Task> CreateTaskAsync(TaskCreate body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -1530,12 +1604,12 @@ namespace Steamfitter.Api.Client
         /// <remarks>
         /// Creates a new Task with the attributes specified
         /// <br/>&lt;para /&gt;
-        /// <br/>Accessible only to a SuperUser or an Administrator
+        /// <br/>The Task must belong to exactly one Scenario or Scenario Template, and a trigger Task must belong to the same one.
         /// </remarks>
         /// <param name="body">The data to create the Task with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<Task> CreateTaskAsync(TaskForm body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<Task> CreateTaskAsync(TaskCreate body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Copies a Task
@@ -1606,7 +1680,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Task with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<Result>> CreateAndExecuteTaskAsync(TaskForm body);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<Result>> CreateAndExecuteTaskAsync(TaskCreate body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -1620,7 +1694,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Task with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<Result>> CreateAndExecuteTaskAsync(TaskForm body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<Result>> CreateAndExecuteTaskAsync(TaskCreate body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Executes a specific Task by id
@@ -1953,7 +2027,7 @@ namespace Steamfitter.Api.Client
         /// Updates a VmCredential
         /// </summary>
         /// <remarks>
-        /// Updates a VmCredential with the attributes specified
+        /// Updates a VmCredential with the attributes specified. The VmCredential stays in its Scenario or Scenario Template.
         /// <br/>&lt;para /&gt;
         /// <br/>Accessible only to a SuperUser or a User on an Admin Team within the specified VmCredential
         /// </remarks>
@@ -1961,14 +2035,14 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated VmCredential values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<VmCredential> UpdateVmCredentialAsync(System.Guid id, VmCredential body);
+        System.Threading.Tasks.Task<VmCredential> UpdateVmCredentialAsync(System.Guid id, VmCredentialEdit body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Updates a VmCredential
         /// </summary>
         /// <remarks>
-        /// Updates a VmCredential with the attributes specified
+        /// Updates a VmCredential with the attributes specified. The VmCredential stays in its Scenario or Scenario Template.
         /// <br/>&lt;para /&gt;
         /// <br/>Accessible only to a SuperUser or a User on an Admin Team within the specified VmCredential
         /// </remarks>
@@ -1976,7 +2050,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated VmCredential values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<VmCredential> UpdateVmCredentialAsync(System.Guid id, VmCredential body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<VmCredential> UpdateVmCredentialAsync(System.Guid id, VmCredentialEdit body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Deletes a VmCredential
@@ -2011,12 +2085,12 @@ namespace Steamfitter.Api.Client
         /// <remarks>
         /// Creates a new VmCredential with the attributes specified
         /// <br/>&lt;para /&gt;
-        /// <br/>Accessible only to a SuperUser or an Administrator
+        /// <br/>The VmCredential must belong to exactly one Scenario or Scenario Template.
         /// </remarks>
         /// <param name="body">The data to create the VmCredential with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<VmCredential> CreateVmCredentialAsync(VmCredential body);
+        System.Threading.Tasks.Task<VmCredential> CreateVmCredentialAsync(VmCredentialCreate body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -2025,12 +2099,12 @@ namespace Steamfitter.Api.Client
         /// <remarks>
         /// Creates a new VmCredential with the attributes specified
         /// <br/>&lt;para /&gt;
-        /// <br/>Accessible only to a SuperUser or an Administrator
+        /// <br/>The VmCredential must belong to exactly one Scenario or Scenario Template.
         /// </remarks>
         /// <param name="body">The data to create the VmCredential with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<VmCredential> CreateVmCredentialAsync(VmCredential body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<VmCredential> CreateVmCredentialAsync(VmCredentialCreate body, System.Threading.CancellationToken cancellationToken);
 
     }
 
@@ -2128,6 +2202,46 @@ namespace Steamfitter.Api.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportScenarioTemplateFailure
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid? Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        public string Reason { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportScenarioTemplatesResult
+    {
+
+        /// <summary>
+        /// The Scenario Templates that were created
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scenarioTemplates")]
+        public System.Collections.Generic.ICollection<ScenarioTemplate> ScenarioTemplates { get; set; }
+
+        /// <summary>
+        /// Scenario Templates in the file that were not imported, and why
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("failures")]
+        public System.Collections.Generic.ICollection<ImportScenarioTemplateFailure> Failures { get; set; }
+
+        /// <summary>
+        /// Notes on imported Scenario Templates: a template renamed because its name was in use,
+        /// <br/>or references to VMs that are specific to the environment the file was exported from
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("warnings")]
+        public System.Collections.Generic.ICollection<string> Warnings { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class NewLocation
     {
 
@@ -2136,6 +2250,24 @@ namespace Steamfitter.Api.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("locationType")]
         public string LocationType { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PowerState
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Unknown")]
+        Unknown = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"On")]
+        On = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Off")]
+        Off = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Suspended")]
+        Suspended = 3,
 
     }
 
@@ -2166,6 +2298,34 @@ namespace Steamfitter.Api.Client
             get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
             set { _additionalProperties = value; }
         }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProxmoxVmInfo
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("node")]
+        public string Node { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProxmoxVmType>))]
+        public ProxmoxVmType Type { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ProxmoxVmType
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"QEMU")]
+        QEMU = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"LXC")]
+        LXC = 1,
 
     }
 
@@ -2234,6 +2394,33 @@ namespace Steamfitter.Api.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("statusDate")]
         public System.DateTimeOffset StatusDate { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ResultCreate
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("expectedOutput")]
+        public string ExpectedOutput { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("actualOutput")]
+        public string ActualOutput { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("taskId")]
+        public System.Guid? TaskId { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ResultEdit
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("expectedOutput")]
+        public string ExpectedOutput { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("actualOutput")]
+        public string ActualOutput { get; set; }
 
     }
 
@@ -2350,11 +2537,8 @@ namespace Steamfitter.Api.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class ScenarioForm
+    public partial class ScenarioCreate
     {
-
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public System.Guid? Id { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; }
@@ -2368,27 +2552,67 @@ namespace Steamfitter.Api.Client
         [System.Text.Json.Serialization.JsonPropertyName("endDate")]
         public System.DateTimeOffset EndDate { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("status")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ScenarioStatus>))]
-        public ScenarioStatus Status { get; set; }
-
         [System.Text.Json.Serialization.JsonPropertyName("onDemand")]
         public bool OnDemand { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("scenarioTemplateId")]
-        public System.Guid? ScenarioTemplateId { get; set; }
-
+        /// <summary>
+        /// The Player View whose VMs the Scenario's Tasks run on. Setting or changing it needs ManageView on the
+        /// <br/>View in Player, or the ManageViews system permission there, unless the caller holds ManageScenarios.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("viewId")]
         public System.Guid? ViewId { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("view")]
         public string View { get; set; }
 
+        /// <summary>
+        /// A VmCredential of this Scenario. Ignored on create, when the Scenario has none yet.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultVmCredentialId")]
         public System.Guid? DefaultVmCredentialId { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("vmCredentials")]
-        public System.Collections.Generic.ICollection<VmCredential> VmCredentials { get; set; }
+        /// <summary>
+        /// The Id to create the Scenario with. A new one is made when it is not given.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid? Id { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ScenarioEdit
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string Description { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("startDate")]
+        public System.DateTimeOffset StartDate { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("endDate")]
+        public System.DateTimeOffset EndDate { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("onDemand")]
+        public bool OnDemand { get; set; }
+
+        /// <summary>
+        /// The Player View whose VMs the Scenario's Tasks run on. Setting or changing it needs ManageView on the
+        /// <br/>View in Player, or the ManageViews system permission there, unless the caller holds ManageScenarios.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("viewId")]
+        public System.Guid? ViewId { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("view")]
+        public string View { get; set; }
+
+        /// <summary>
+        /// A VmCredential of this Scenario. Ignored on create, when the Scenario has none yet.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("defaultVmCredentialId")]
+        public System.Guid? DefaultVmCredentialId { get; set; }
 
     }
 
@@ -2407,6 +2631,19 @@ namespace Steamfitter.Api.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("groupId")]
         public System.Guid? GroupId { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("roleId")]
+        public System.Guid RoleId { get; set; }
+
+    }
+
+    /// <summary>
+    /// The one field a Scenario Membership's edit request carries. The Scenario, User and Group are
+    /// <br/>not among them, so an edit cannot move a membership or hand it to someone else.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ScenarioMembershipEdit
+    {
 
         [System.Text.Json.Serialization.JsonPropertyName("roleId")]
         public System.Guid RoleId { get; set; }
@@ -2535,6 +2772,10 @@ namespace Steamfitter.Api.Client
 
     }
 
+    /// <summary>
+    /// The fields a Scenario Template's create and edit requests carry. Its VmCredentials are not among
+    /// <br/>them: they are written through the VmCredentials endpoints, which authorize their own parent.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ScenarioTemplateForm
     {
@@ -2548,11 +2789,11 @@ namespace Steamfitter.Api.Client
         [System.Text.Json.Serialization.JsonPropertyName("durationHours")]
         public int? DurationHours { get; set; }
 
+        /// <summary>
+        /// A VmCredential of this Scenario Template. Ignored on create, when the template has none yet.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaultVmCredentialId")]
         public System.Guid? DefaultVmCredentialId { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("vmCredentials")]
-        public System.Collections.Generic.ICollection<VmCredential> VmCredentials { get; set; }
 
     }
 
@@ -2571,6 +2812,19 @@ namespace Steamfitter.Api.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("groupId")]
         public System.Guid? GroupId { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("roleId")]
+        public System.Guid RoleId { get; set; }
+
+    }
+
+    /// <summary>
+    /// The one field a Scenario Template Membership's edit request carries. The Scenario Template, User
+    /// <br/>and Group are not among them, so an edit cannot move a membership or hand it to someone else.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ScenarioTemplateMembershipEdit
+    {
 
         [System.Text.Json.Serialization.JsonPropertyName("roleId")]
         public System.Guid RoleId { get; set; }
@@ -2842,30 +3096,39 @@ namespace Steamfitter.Api.Client
         Vm_hw_power_on = 8,
 
         [System.Runtime.Serialization.EnumMember(Value = @"guest_process_run_fast")]
-        Guest_process_run_fast = 11,
+        Guest_process_run_fast = 9,
 
         [System.Runtime.Serialization.EnumMember(Value = @"guest_file_upload_content")]
-        Guest_file_upload_content = 12,
+        Guest_file_upload_content = 10,
 
         [System.Runtime.Serialization.EnumMember(Value = @"send_email")]
-        Send_email = 13,
+        Send_email = 11,
 
         [System.Runtime.Serialization.EnumMember(Value = @"guest_file_upload_file")]
-        Guest_file_upload_file = 18,
+        Guest_file_upload_file = 12,
 
         [System.Runtime.Serialization.EnumMember(Value = @"linux_file_touch")]
-        Linux_file_touch = 19,
+        Linux_file_touch = 13,
 
         [System.Runtime.Serialization.EnumMember(Value = @"linux_rm")]
-        Linux_rm = 20,
+        Linux_rm = 14,
 
         [System.Runtime.Serialization.EnumMember(Value = @"core_remote")]
-        Core_remote = 21,
+        Core_remote = 15,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"vm_snapshot_create")]
+        Vm_snapshot_create = 16,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"vm_snapshot_revert")]
+        Vm_snapshot_revert = 17,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"vm_snapshot_delete")]
+        Vm_snapshot_delete = 18,
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class TaskForm
+    public partial class TaskCreate
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
@@ -2873,15 +3136,6 @@ namespace Steamfitter.Api.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string Description { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("scenarioTemplateId")]
-        public System.Guid? ScenarioTemplateId { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("scenarioId")]
-        public System.Guid? ScenarioId { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("userId")]
-        public System.Guid? UserId { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("action")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskAction>))]
@@ -2918,11 +3172,86 @@ namespace Steamfitter.Api.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskIterationTermination>))]
         public TaskIterationTermination IterationTermination { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("currentIteration")]
-        public int CurrentIteration { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("triggerCondition")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskTrigger>))]
+        public TaskTrigger TriggerCondition { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("score")]
+        public int Score { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("userExecutable")]
+        public bool UserExecutable { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("repeatable")]
+        public bool Repeatable { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("executable")]
+        public bool Executable { get; set; }
+
+        /// <summary>
+        /// The Scenario the Task belongs to. Exactly one of ScenarioId and ScenarioTemplateId is required.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scenarioId")]
+        public System.Guid? ScenarioId { get; set; }
+
+        /// <summary>
+        /// The Scenario Template the Task belongs to. Exactly one of ScenarioId and ScenarioTemplateId is required.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scenarioTemplateId")]
+        public System.Guid? ScenarioTemplateId { get; set; }
+
+        /// <summary>
+        /// A Task of the same Scenario or Scenario Template whose completion triggers this one.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("triggerTaskId")]
         public System.Guid? TriggerTaskId { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskEdit
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string Description { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskAction>))]
+        public TaskAction Action { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("vmMask")]
+        public string VmMask { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("vmList")]
+        public System.Collections.Generic.ICollection<System.Guid> VmList { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("apiUrl")]
+        public string ApiUrl { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("actionParameters")]
+        public System.Collections.Generic.IDictionary<string, string> ActionParameters { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("expectedOutput")]
+        public string ExpectedOutput { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("expirationSeconds")]
+        public int ExpirationSeconds { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("delaySeconds")]
+        public int DelaySeconds { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("intervalSeconds")]
+        public int IntervalSeconds { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("iterations")]
+        public int Iterations { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("iterationTermination")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskIterationTermination>))]
+        public TaskIterationTermination IterationTermination { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("triggerCondition")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskTrigger>))]
@@ -3086,10 +3415,13 @@ namespace Steamfitter.Api.Client
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public System.Guid? Id { get; set; }
+        public System.Guid Id { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("url")]
         public string Url { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("defaultUrl")]
+        public bool DefaultUrl { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; }
@@ -3097,23 +3429,34 @@ namespace Steamfitter.Api.Client
         [System.Text.Json.Serialization.JsonPropertyName("userId")]
         public System.Guid? UserId { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("allowedNetworks")]
-        public System.Collections.Generic.ICollection<string> AllowedNetworks { get; set; }
-
         [System.Text.Json.Serialization.JsonPropertyName("powerState")]
-        public string PowerState { get; set; }
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PowerState>))]
+        public PowerState PowerState { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("ipAddresses")]
         public System.Collections.Generic.ICollection<string> IpAddresses { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("teamIds")]
-        public System.Collections.Generic.ICollection<System.Guid?> TeamIds { get; set; }
+        public System.Collections.Generic.ICollection<System.Guid> TeamIds { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("hasPendingTasks")]
-        public bool? HasPendingTasks { get; set; }
+        public bool HasPendingTasks { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("consoleConnectionInfo")]
         public ConsoleConnectionInfo ConsoleConnectionInfo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<VmType>))]
+        public VmType Type { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("proxmoxVmInfo")]
+        public ProxmoxVmInfo ProxmoxVmInfo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("embeddable")]
+        public bool Embeddable { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("hasSnapshot")]
+        public bool HasSnapshot { get; set; }
 
     }
 
@@ -3153,6 +3496,128 @@ namespace Steamfitter.Api.Client
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class VmCredentialCreate
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("username")]
+        public string Username { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("password")]
+        public string Password { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string Description { get; set; }
+
+        /// <summary>
+        /// The Scenario Template the credential belongs to. Exactly one of ScenarioTemplateId and ScenarioId is required.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scenarioTemplateId")]
+        public System.Guid? ScenarioTemplateId { get; set; }
+
+        /// <summary>
+        /// The Scenario the credential belongs to. Exactly one of ScenarioTemplateId and ScenarioId is required.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scenarioId")]
+        public System.Guid? ScenarioId { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class VmCredentialEdit
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("username")]
+        public string Username { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("password")]
+        public string Password { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string Description { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum VmType
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Unknown")]
+        Unknown = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Vsphere")]
+        Vsphere = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Proxmox")]
+        Proxmox = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Azure")]
+        Azure = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FileParameter
+    {
+        public FileParameter(System.IO.Stream data)
+            : this (data, null, null)
+        {
+        }
+
+        public FileParameter(System.IO.Stream data, string fileName)
+            : this (data, fileName, null)
+        {
+        }
+
+        public FileParameter(System.IO.Stream data, string fileName, string contentType)
+        {
+            Data = data;
+            FileName = fileName;
+            ContentType = contentType;
+        }
+
+        public System.IO.Stream Data { get; private set; }
+
+        public string FileName { get; private set; }
+
+        public string ContentType { get; private set; }
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FileResponse : System.IDisposable
+    {
+        private System.IDisposable _client;
+        private System.IDisposable _response;
+
+        public int StatusCode { get; private set; }
+
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> Headers { get; private set; }
+
+        public System.IO.Stream Stream { get; private set; }
+
+        public bool IsPartial
+        {
+            get { return StatusCode == 206; }
+        }
+
+        public FileResponse(int statusCode, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.IO.Stream stream, System.IDisposable client, System.IDisposable response)
+        {
+            StatusCode = statusCode;
+            Headers = headers;
+            Stream = stream;
+            _client = client;
+            _response = response;
+        }
+
+        public void Dispose()
+        {
+            Stream.Dispose();
+            if (_response != null)
+                _response.Dispose();
+            if (_client != null)
+                _client.Dispose();
+        }
+    }
 
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -3192,11 +3657,11 @@ namespace Steamfitter.Api.Client
 
 }
 
-#pragma warning restore 108
-#pragma warning restore 114
-#pragma warning restore 472
-#pragma warning restore 612
-#pragma warning restore 649
+#pragma warning restore  108
+#pragma warning restore  114
+#pragma warning restore  472
+#pragma warning restore  612
+#pragma warning restore  649
 #pragma warning restore 1573
 #pragma warning restore 1591
 #pragma warning restore 8073
