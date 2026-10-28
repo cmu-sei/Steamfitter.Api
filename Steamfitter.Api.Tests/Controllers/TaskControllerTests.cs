@@ -446,18 +446,18 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
-    public async Task Create_of_a_task_with_neither_a_scenario_nor_a_template_is_forbidden_even_for_an_administrator()
+    public async Task Create_of_a_task_with_neither_a_scenario_nor_a_template_is_a_bad_request_even_for_an_administrator()
     {
         var name = $"Orphan {Guid.NewGuid()}";
 
-        await AssertStatus(HttpStatusCode.Forbidden, await RootClient.PostAsJsonAsync("api/tasks", TaskForm(name), Ct));
+        await AssertStatus(HttpStatusCode.BadRequest, await RootClient.PostAsJsonAsync("api/tasks", TaskForm(name), Ct));
 
         await using var db = NewContext();
         Assert.False(await db.Tasks.AnyAsync(x => x.Name == name, Ct));
     }
 
     [Fact]
-    public async Task Create_of_a_task_with_both_a_scenario_and_a_template_is_forbidden()
+    public async Task Create_of_a_task_with_both_a_scenario_and_a_template_is_a_bad_request()
     {
         var scenario = TestData.Scenario();
         var template = TestData.ScenarioTemplate();
@@ -467,7 +467,7 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
             .OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate])
             .SeedAsync();
 
-        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Both", scenarioId: scenario.Id, scenarioTemplateId: template.Id), Ct));
+        await AssertStatus(HttpStatusCode.BadRequest, await Client(actor).PostAsJsonAsync("api/tasks", TaskForm("Both", scenarioId: scenario.Id, scenarioTemplateId: template.Id), Ct));
 
         await using var db = NewContext();
         Assert.False(await db.Tasks.AnyAsync(x => x.ScenarioId == scenario.Id || x.ScenarioTemplateId == template.Id, Ct));
@@ -774,9 +774,13 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
-    public async Task CreateAndExecute_of_a_form_without_a_scenario_is_forbidden()
+    public async Task CreateAndExecute_of_a_form_without_a_scenario_is_refused()
     {
-        await AssertStatus(HttpStatusCode.Forbidden, await RootClient.PostAsJsonAsync("api/tasks/execute", TaskForm("No scenario"), Ct));
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+
+        await AssertStatus(HttpStatusCode.BadRequest, await RootClient.PostAsJsonAsync("api/tasks/execute", TaskForm("No parent"), Ct));
+        await AssertStatus(HttpStatusCode.Forbidden, await RootClient.PostAsJsonAsync("api/tasks/execute", TaskForm("Template", scenarioTemplateId: template.Id), Ct));
     }
 
     [Fact]

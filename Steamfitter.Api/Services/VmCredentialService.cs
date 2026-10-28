@@ -82,9 +82,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.VmCredential> CreateAsync(SAVM.VmCredentialCreate vmCredential, CancellationToken ct)
         {
-            if ((vmCredential.ScenarioTemplateId == null) == (vmCredential.ScenarioId == null))
-                throw new ForbiddenException("A VmCredential must belong to exactly one Scenario Template or Scenario.");
-
             var vmCredentialEntity = _mapper.Map<VmCredentialEntity>(vmCredential);
             vmCredentialEntity.DateCreated = DateTime.UtcNow;
             vmCredentialEntity.CreatedBy = _user.GetId();

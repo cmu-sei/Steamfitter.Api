@@ -269,7 +269,7 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
     }
 
     [Fact]
-    public async Task Create_naming_both_a_scenario_and_a_template_is_forbidden()
+    public async Task Create_naming_both_a_scenario_and_a_template_is_a_bad_request()
     {
         var mine = TestData.Scenario("Mine");
         var template = TestData.ScenarioTemplate("Theirs");
@@ -278,17 +278,17 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
 
         var response = await Client(actor).PostAsJsonAsync("api/vmCredentials", new { scenarioId = mine.Id, scenarioTemplateId = template.Id, username = "both" }, Ct);
 
-        await AssertStatus(HttpStatusCode.Forbidden, response);
+        await AssertStatus(HttpStatusCode.BadRequest, response);
         await using var db = NewContext();
         Assert.False(await db.VmCredentials.AnyAsync(x => x.ScenarioId == mine.Id || x.ScenarioTemplateId == template.Id, Ct));
     }
 
     [Fact]
-    public async Task Create_naming_neither_a_scenario_nor_a_template_is_forbidden()
+    public async Task Create_naming_neither_a_scenario_nor_a_template_is_a_bad_request()
     {
         var username = $"orphan-{Guid.NewGuid()}";
 
-        await AssertStatus(HttpStatusCode.Forbidden, await RootClient.PostAsJsonAsync("api/vmCredentials", new { username }, Ct));
+        await AssertStatus(HttpStatusCode.BadRequest, await RootClient.PostAsJsonAsync("api/vmCredentials", new { username }, Ct));
 
         await using var db = NewContext();
         Assert.False(await db.VmCredentials.AnyAsync(x => x.Username == username, Ct));

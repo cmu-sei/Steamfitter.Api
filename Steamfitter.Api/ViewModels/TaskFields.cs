@@ -4,6 +4,7 @@
 using Steamfitter.Api.Data;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace Steamfitter.Api.ViewModels
 {
@@ -35,7 +36,7 @@ namespace Steamfitter.Api.ViewModels
         public bool Executable { get; set; }
     }
 
-    public class TaskCreate : TaskFields
+    public class TaskCreate : TaskFields, IValidatableObject
     {
         /// <summary>The Scenario the Task belongs to. Exactly one of ScenarioId and ScenarioTemplateId is required.</summary>
         public Guid? ScenarioId { get; set; }
@@ -45,6 +46,12 @@ namespace Steamfitter.Api.ViewModels
 
         /// <summary>A Task of the same Scenario or Scenario Template whose completion triggers this one.</summary>
         public Guid? TriggerTaskId { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if ((ScenarioId == null) == (ScenarioTemplateId == null))
+                yield return new ValidationResult("A Task must belong to exactly one Scenario or Scenario Template.", [nameof(ScenarioId), nameof(ScenarioTemplateId)]);
+        }
     }
 
     public class TaskEdit : TaskFields

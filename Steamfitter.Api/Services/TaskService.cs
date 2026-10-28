@@ -161,8 +161,6 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<SAVM.Task> CreateAsync(SAVM.TaskCreate taskForm, CancellationToken ct)
         {
-            if ((taskForm.ScenarioId == null) == (taskForm.ScenarioTemplateId == null))
-                throw new ForbiddenException("A Task must belong to exactly one Scenario or Scenario Template.");
             await ScopeValidation.EnsureTaskIsInParentAsync(taskForm.TriggerTaskId, taskForm.ScenarioId, taskForm.ScenarioTemplateId, _context, ct);
 
             var vmListCount = taskForm.VmList != null ? taskForm.VmList.Count : 0;
