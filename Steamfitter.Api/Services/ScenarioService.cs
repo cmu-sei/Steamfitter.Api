@@ -258,13 +258,14 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<ViewModels.Scenario> CreateFromScenarioAsync(Guid oldScenarioId, CancellationToken ct)
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
             var oldScenarioEntity = _context.Scenarios.Find(oldScenarioId);
             if (oldScenarioEntity == null)
                 throw new EntityNotFoundException<SAVM.Scenario>($"Scenario {oldScenarioId} was not found.");
-            // the copy runs its Tasks on the original's View, so viewing the original is not enough
+            // the copy runs its Tasks on the original's View, so viewing the original is not enough. Player is
+            // asked before the transaction opens, so that no connection is held open while it answers.
             await EnsureCanBindViewAsync(oldScenarioEntity.ViewId, ct);
 
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
             var newScenarioEntity = _mapper.Map<ScenarioEntity>(oldScenarioEntity);
             newScenarioEntity.CreatedBy = _user.GetId();
             newScenarioEntity.Name = $"{oldScenarioEntity.Name} - {_user.Claims.FirstOrDefault(c => c.Type == "name").Value}";
