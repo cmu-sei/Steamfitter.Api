@@ -155,6 +155,26 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.Equal(TestData.ScenarioTemplateRoles.Manager, Assert.Single(stored.Memberships, x => x.UserId == actor.Id).RoleId);
     }
 
+    /// <summary>A file names no VM for a Task to run on, as a create request cannot: the markers are stored instead.</summary>
+    [Fact]
+    public async Task Import_stores_the_vm_markers_in_place_of_a_vm_the_file_names()
+    {
+        var export = Export("Pinned");
+        export.Tasks[0].Action = TaskAction.guest_process_run;
+        export.Tasks[0].ApiUrl = "vm";
+        export.Tasks[0].ActionParameters = new() { ["Moid"] = Guid.NewGuid().ToString(), ["VmName"] = "elsewhere", ["CommandText"] = "whoami" };
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(await Import(actor, Json([export]), "Pinned.json"), ExportJson);
+
+        var created = Assert.Single(result.ScenarioTemplates);
+        await using var db = NewContext();
+        var stored = await db.Tasks.SingleAsync(x => x.ScenarioTemplateId == created.Id && x.Name == "Parent", Ct);
+        Assert.Equal(
+            new Dictionary<string, string> { ["Moid"] = "{moid}", ["VmName"] = "{VmName}", ["CommandText"] = "whoami" },
+            JsonSerializer.Deserialize<Dictionary<string, string>>(stored.InputString));
+    }
+
     /// <summary>A child task counts once, inside its parent's total: root 10 with child 5 scores 15, not 20.</summary>
     [Fact]
     public async Task Import_scores_a_template_with_child_tasks_once_per_task()

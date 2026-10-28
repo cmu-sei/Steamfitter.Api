@@ -481,6 +481,8 @@ namespace Steamfitter.Api.Services
             var taskEntities = new Dictionary<Guid, TaskEntity>();
             foreach (var task in template.Tasks)
             {
+                // a file cannot choose the VM a Task runs on, any more than a create request can
+                TaskVmParameters.Reserve(task.ActionParameters);
                 var taskEntity = new TaskEntity
                 {
                     Id = Guid.NewGuid(),

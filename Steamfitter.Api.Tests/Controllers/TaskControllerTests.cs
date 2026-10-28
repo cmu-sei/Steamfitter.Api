@@ -481,15 +481,15 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
 
     /// <summary>A form with no action parameters is answered with a 500.</summary>
     [Fact]
-    public async Task Create_answers_a_form_without_action_parameters_with_a_server_error()
+    public async Task Create_stores_a_form_without_action_parameters_with_none()
     {
         var scenario = TestData.Scenario();
         await Seed(scenario);
 
         var response = await RootClient.PostAsJsonAsync("api/tasks", new { name = "No parameters", scenarioId = scenario.Id, action = "send_email", apiUrl = "email", vmMask = "" }, Ct);
 
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError, response);
-        Assert.Equal("Object reference not set to an instance of an object.", error.Detail);
+        var created = await ReadAsync<SAVM.Task>(response);
+        Assert.Empty(created.ActionParameters ?? []);
     }
 
     [Fact]

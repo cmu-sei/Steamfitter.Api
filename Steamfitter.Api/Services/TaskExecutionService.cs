@@ -443,8 +443,7 @@ namespace Steamfitter.Api.Services
             var xref = new Dictionary<int, ResultEntity>();
             foreach (var resultEntity in resultEntityList)
             {
-                resultEntity.InputString = resultEntity.InputString.Replace("{moid}", resultEntity.VmId.ToString());
-                resultEntity.InputString = resultEntity.InputString.Replace("{VmName}", resultEntity.VmName);
+                resultEntity.InputString = TaskVmParameters.BindToVm(resultEntity.InputString, resultEntity);
                 resultEntity.Status = TaskStatus.pending;
                 resultEntity.StatusDate = DateTime.UtcNow;
                 // if no expiration is set, us the maximum allowed by the TaskProcessMaxWaitSeconds setting
