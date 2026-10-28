@@ -52,6 +52,31 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.Equal("exported", Assert.Single(export.VmCredentials).Username);
     }
 
+    /// <summary>
+    /// A Task whose trigger is in another template, as data from before triggers were kept in one scope can be,
+    /// is written as the manual root it acts as, so the export imports.
+    /// </summary>
+    [Fact]
+    public async Task Export_writes_a_task_triggered_from_another_template_as_a_manual_root_that_imports()
+    {
+        var other = TestData.ScenarioTemplate("Other");
+        var foreignTrigger = TestData.TemplateTask(other.Id, "Foreign trigger");
+        var template = TestData.ScenarioTemplate("Linked");
+        var linked = TestData.TemplateTask(template.Id, "Linked", triggerTaskId: foreignTrigger.Id);
+        linked.TriggerCondition = TaskTrigger.Success;
+        await Seed(other, foreignTrigger, template, linked);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates, SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var response = await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={template.Id}", Ct);
+        var file = await response.Content.ReadAsByteArrayAsync(Ct);
+        var exported = Assert.Single(JsonSerializer.Deserialize<SAVM.ScenarioTemplateExport>(file, ExportJson).Tasks);
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(await Import(actor, file, "Linked.json"), ExportJson);
+
+        Assert.Equal((null, TaskTrigger.Manual), (exported.TriggerTaskId, exported.TriggerCondition));
+        Assert.Empty(result.Failures);
+        Assert.Single(result.ScenarioTemplates);
+    }
+
     [Fact]
     public async Task Export_of_several_templates_returns_a_list_in_scenario_templates_json()
     {

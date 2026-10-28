@@ -101,6 +101,7 @@ namespace Steamfitter.Api.Services
 
         private static ScenarioTemplateExport ToExport(ScenarioTemplateEntity template)
         {
+            var taskIds = template.Tasks.Select(t => t.Id).ToHashSet();
             return new ScenarioTemplateExport
             {
                 Id = template.Id,
@@ -119,13 +120,17 @@ namespace Steamfitter.Api.Services
                     })
                     .ToList(),
                 Tasks = OrderParentsFirst(template.Tasks)
-                    .Select(ToExport)
+                    .Select(t => ToExport(t, taskIds))
                     .ToList()
             };
         }
 
-        private static TaskExport ToExport(TaskEntity task)
+        // a trigger Task in another Scenario or Scenario Template is a link the runner does not follow and
+        // an import refuses, so the Task is written as the root it acts as: a manual one, as deleting that
+        // trigger would leave it, so that it does not start with the Scenario
+        private static TaskExport ToExport(TaskEntity task, IReadOnlySet<Guid> templateTaskIds)
         {
+            var triggerInTemplate = task.TriggerTaskId.HasValue && templateTaskIds.Contains(task.TriggerTaskId.Value);
             var export = new TaskExport
             {
                 Id = task.Id,
@@ -140,8 +145,8 @@ namespace Steamfitter.Api.Services
                 IntervalSeconds = task.IntervalSeconds,
                 Iterations = task.Iterations,
                 IterationTermination = task.IterationTermination,
-                TriggerTaskId = task.TriggerTaskId,
-                TriggerCondition = task.TriggerCondition,
+                TriggerTaskId = triggerInTemplate ? task.TriggerTaskId : null,
+                TriggerCondition = triggerInTemplate || !task.TriggerTaskId.HasValue ? task.TriggerCondition : TaskTrigger.Manual,
                 Score = task.Score,
                 UserExecutable = task.UserExecutable,
                 Repeatable = task.Repeatable
