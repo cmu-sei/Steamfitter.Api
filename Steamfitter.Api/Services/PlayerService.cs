@@ -4,7 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Player.Api.Client;
 using STT = System.Threading.Tasks;
 
@@ -20,11 +22,14 @@ namespace Steamfitter.Api.Services
     public class PlayerService : IPlayerService
     {
         private readonly IPlayerApiClient _playerApiClient;
+        private readonly ILogger<PlayerService> _logger;
 
         public PlayerService(
-            IPlayerApiClient playerApiClient)
+            IPlayerApiClient playerApiClient,
+            ILogger<PlayerService> logger)
         {
             _playerApiClient = playerApiClient;
+            _logger = logger;
         }
 
         public async STT.Task<IEnumerable<View>> GetViewsAsync(CancellationToken ct)
@@ -47,18 +52,27 @@ namespace Steamfitter.Api.Services
                 if (viewPermissions.Any(x => x.ViewId == viewId && x.PermissionValues.Contains(ManageViewPermission)))
                     return true;
             }
-            catch (ApiException) { }
+            catch (Exception ex) when (IsUnanswered(ex, ct))
+            {
+                _logger.LogWarning(ex, "Player did not answer the caller's permissions on View {ViewId}", viewId);
+            }
 
             try
             {
                 var systemPermissions = await _playerApiClient.GetMyPermissionsAsync(ct);
                 return systemPermissions.Contains(ManageViewsPermission);
             }
-            catch (ApiException)
+            catch (Exception ex) when (IsUnanswered(ex, ct))
             {
+                _logger.LogWarning(ex, "Player did not answer the caller's system permissions");
                 return false;
             }
         }
+
+        // Player refusing the call, or down, unreachable or timing out. The request being cancelled still cancels it.
+        private static bool IsUnanswered(Exception ex, CancellationToken ct) =>
+            ex is ApiException or HttpRequestException
+            || (ex is OperationCanceledException && !ct.IsCancellationRequested);
 
         private const string ManageViewsPermission = "ManageViews";
         private const string ManageViewPermission = "ManageView";

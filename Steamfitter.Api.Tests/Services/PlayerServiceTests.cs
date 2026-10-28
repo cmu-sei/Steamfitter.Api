@@ -4,7 +4,9 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging.Abstractions;
 using Player.Api.Client;
 using Steamfitter.Api.Services;
 using Crucible.Api.Testing;
@@ -52,6 +54,38 @@ public class PlayerServiceTests
         Assert.False(await Service().CanManageViewAsync(_viewId, TestContext.Current.CancellationToken));
     }
 
-    private PlayerService Service() =>
-        new(new PlayerApiClient(new HttpClient(_player) { BaseAddress = new Uri("http://player.test/") }));
+    /// <summary>A Player that cannot be reached grants nothing, as one that refuses does, rather than failing the request.</summary>
+    [Fact]
+    public async Task Player_unreachable_on_both_calls_grants_nothing()
+    {
+        _player.Throws("GET api/team-permissions/mine");
+        _player.Throws("GET api/permissions/mine");
+
+        Assert.False(await Service().CanManageViewAsync(_viewId, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Player_timing_out_grants_nothing()
+    {
+        Assert.False(await Service(new TimingOut()).CanManageViewAsync(_viewId, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_cancelled_request_is_cancelled_rather_than_refused()
+    {
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Service(new TimingOut()).CanManageViewAsync(_viewId, cancelled.Token));
+    }
+
+    private PlayerService Service(HttpMessageHandler handler = null) =>
+        new(new PlayerApiClient(new HttpClient(handler ?? _player) { BaseAddress = new Uri("http://player.test/") }), NullLogger<PlayerService>.Instance);
+
+    /// <summary>Fails every request as HttpClient's timeout does.</summary>
+    private sealed class TimingOut : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.");
+    }
 }

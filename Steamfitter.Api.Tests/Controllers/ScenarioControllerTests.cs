@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -910,6 +911,19 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
 
         await using var db = NewContext();
         Assert.False(await db.Scenarios.AnyAsync(x => x.ViewId == viewId, Ct));
+    }
+
+    /// <summary>Player being unreachable refuses the binding, as Player refusing it does, rather than failing with a 500.</summary>
+    [Fact]
+    public async Task Create_bound_to_a_view_while_player_is_unreachable_is_forbidden()
+    {
+        var viewId = Guid.NewGuid();
+        Factory.OutboundHttp.RespondByThrowing(
+            $"http://localhost:4300/api/team-permissions/mine?ViewId={viewId}&IncludeAllViewTeams=true",
+            new HttpRequestException("Connection refused"));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/scenarios", new { name = "Bound", viewId }, Ct));
     }
 
     [Fact]
