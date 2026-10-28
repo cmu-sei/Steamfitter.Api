@@ -24,6 +24,12 @@ namespace Steamfitter.Api.Services
         STT.Task<ClaimsPrincipal> AddUserClaims(ClaimsPrincipal principal, bool update);
         STT.Task<ClaimsPrincipal> GetClaimsPrincipal(Guid userId, bool setAsCurrent);
         STT.Task<ClaimsPrincipal> RefreshClaims(Guid userId);
+
+        /// <summary>
+        /// Rebuilds the current caller's permission claims from the database, for a request that has just made
+        /// them a member of something, so that the rest of the request and their next requests see it.
+        /// </summary>
+        STT.Task RefreshCurrentClaimsAsync();
         ClaimsPrincipal GetCurrentClaimsPrincipal();
         void SetCurrentClaimsPrincipal(ClaimsPrincipal principal);
     }
@@ -108,6 +114,27 @@ namespace Steamfitter.Api.Services
             _cache.Remove(userId);
             return await GetClaimsPrincipal(userId, false);
         }
+
+        public async STT.Task RefreshCurrentClaimsAsync()
+        {
+            if (_currentClaimsPrincipal?.Identity is not ClaimsIdentity identity)
+                return;
+
+            foreach (var claim in identity.Claims.Where(x => PermissionClaimTypes.Contains(x.Type)).ToList())
+            {
+                identity.TryRemoveClaim(claim);
+            }
+
+            _cache.Remove(_currentClaimsPrincipal.GetId());
+            await AddUserClaims(_currentClaimsPrincipal, false);
+        }
+
+        private static readonly string[] PermissionClaimTypes =
+        [
+            AuthorizationConstants.PermissionClaimType,
+            AuthorizationConstants.ScenarioPermissionClaimType,
+            AuthorizationConstants.ScenarioTemplatePermissionClaimType
+        ];
 
         public ClaimsPrincipal GetCurrentClaimsPrincipal()
         {

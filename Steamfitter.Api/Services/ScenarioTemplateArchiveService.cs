@@ -58,12 +58,14 @@ namespace Steamfitter.Api.Services
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
+        private readonly IUserClaimsService _userClaimsService;
 
-        public ScenarioTemplateArchiveService(SteamfitterContext context, IPrincipal user, IMapper mapper)
+        public ScenarioTemplateArchiveService(SteamfitterContext context, IPrincipal user, IMapper mapper, IUserClaimsService userClaimsService)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
+            _userClaimsService = userClaimsService;
         }
 
         #region Export
@@ -283,6 +285,7 @@ namespace Steamfitter.Api.Services
                 // needed (and none is opened, which keeps this safe under a retrying
                 // execution strategy).
                 await _context.SaveChangesAsync(ct);
+                await _userClaimsService.RefreshCurrentClaimsAsync();
             }
 
             result.ScenarioTemplates = _mapper.Map<List<ScenarioTemplate>>(entities);

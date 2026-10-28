@@ -46,6 +46,7 @@ namespace Steamfitter.Api.Services
         private readonly IXApiService _xApiService;
         private readonly IPlayerService _playerService;
         private readonly ISteamfitterAuthorizationService _authorizationService;
+        private readonly IUserClaimsService _userClaimsService;
 
         public ScenarioService(SteamfitterContext context,
                                 IPrincipal user,
@@ -53,9 +54,11 @@ namespace Steamfitter.Api.Services
                                 ITaskService taskService,
                                 IXApiService xApiService,
                                 IPlayerService playerService,
-                                ISteamfitterAuthorizationService authorizationService)
+                                ISteamfitterAuthorizationService authorizationService,
+                                IUserClaimsService userClaimsService)
         {
             _playerService = playerService;
+            _userClaimsService = userClaimsService;
             _authorizationService = authorizationService;
             _context = context;
             _user = user as ClaimsPrincipal;
@@ -155,6 +158,7 @@ namespace Steamfitter.Api.Services
             };
             await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
             await _context.SaveChangesAsync(ct);
+            await _userClaimsService.RefreshCurrentClaimsAsync();
             var scenario = await GetAsync(scenarioEntity.Id, ct);
 
             return scenario;
@@ -225,6 +229,7 @@ namespace Steamfitter.Api.Services
             }
 
             await transaction.CommitAsync(ct);
+            await _userClaimsService.RefreshCurrentClaimsAsync();
             var scenario = _mapper.Map<SAVM.Scenario>(scenarioEntity);
 
             return scenario;
@@ -269,6 +274,7 @@ namespace Steamfitter.Api.Services
             await _context.ScenarioMemberships.AddAsync(createOwnerMembership, ct);
             await _context.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
+            await _userClaimsService.RefreshCurrentClaimsAsync();
             var scenario = await GetAsync(newScenarioEntity.Id, ct);
 
             return scenario;

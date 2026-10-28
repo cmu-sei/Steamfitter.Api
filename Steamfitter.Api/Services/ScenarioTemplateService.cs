@@ -41,6 +41,7 @@ namespace Steamfitter.Api.Services
         private readonly IMapper _mapper;
         private readonly IHubContext<EngineHub> _engineHub;
         private readonly ISteamfitterAuthorizationService _authorizationService;
+        private readonly IUserClaimsService _userClaimsService;
 
         public ScenarioTemplateService(
             SteamfitterContext context,
@@ -48,9 +49,11 @@ namespace Steamfitter.Api.Services
             IPrincipal user,
             IMapper mapper,
             IHubContext<EngineHub> engineHub,
-            ISteamfitterAuthorizationService authorizationService)
+            ISteamfitterAuthorizationService authorizationService,
+            IUserClaimsService userClaimsService)
         {
             _authorizationService = authorizationService;
+            _userClaimsService = userClaimsService;
             _context = context;
             _taskService = taskService;
             _user = user as ClaimsPrincipal;
@@ -106,6 +109,7 @@ namespace Steamfitter.Api.Services
             };
             await _context.ScenarioTemplateMemberships.AddAsync(createOwnerMembership, ct);
             await _context.SaveChangesAsync(ct);
+            await _userClaimsService.RefreshCurrentClaimsAsync();
             var scenarioTemplate = await GetAsync(scenarioTemplateEntity.Id, ct);
 
             return scenarioTemplate;
@@ -138,7 +142,16 @@ namespace Steamfitter.Api.Services
                 await _taskService.CopyAsync(oldTaskEntityId, newScenarioTemplateEntity.Id, "scenarioTemplate", ct);
             }
 
+            // the copier manages the copy, as the creator of a template or a scenario does
+            await _context.ScenarioTemplateMemberships.AddAsync(new ScenarioTemplateMembershipEntity()
+            {
+                UserId = _user.GetId(),
+                ScenarioTemplateId = newScenarioTemplateEntity.Id,
+                RoleId = ScenarioTemplateRoleEntityDefaults.ScenarioTemplateCreatorRoleId
+            }, ct);
+            await _context.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
+            await _userClaimsService.RefreshCurrentClaimsAsync();
             var newScenarioTemplate = await GetAsync(newScenarioTemplateEntity.Id, ct);
 
             return newScenarioTemplate;

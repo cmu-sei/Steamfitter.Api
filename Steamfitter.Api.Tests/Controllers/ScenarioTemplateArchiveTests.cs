@@ -189,6 +189,7 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.NotEqual(export.VmCredentials[0].Id, credential.Id);
         Assert.Equal(credential.Id, stored.DefaultVmCredentialId);
         Assert.Equal(TestData.ScenarioTemplateRoles.Manager, Assert.Single(stored.Memberships, x => x.UserId == actor.Id).RoleId);
+        Assert.Contains(nameof(ScenarioTemplatePermission.EditScenarioTemplate), created.ScenarioTemplatePermissions);
     }
 
     /// <summary>A file names no VM for a Task to run on, as a create request cannot: the markers are stored instead.</summary>

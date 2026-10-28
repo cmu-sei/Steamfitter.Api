@@ -216,6 +216,8 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         Assert.Equal(("Created", ScenarioStatus.ready, actor.Id), (stored.Name, stored.Status, stored.CreatedBy));
         var membership = Assert.Single(stored.Memberships);
         Assert.Equal((actor.Id, TestData.ScenarioRoles.Manager), (membership.UserId.Value, membership.RoleId));
+        // the response reads the claims rebuilt after the membership was made, not those the request came with
+        Assert.Contains(nameof(ScenarioPermission.EditScenario), created.ScenarioPermissions);
     }
 
     [Fact]
@@ -422,9 +424,9 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         Assert.Equal((actor.Id, TestData.ScenarioRoles.Manager), (Assert.Single(stored.Memberships).UserId.Value, stored.Memberships.Single().RoleId));
     }
 
-    /// <summary>The caller's membership on the original is moved onto the copy.</summary>
+    /// <summary>The caller keeps their membership on the original and manages the copy, as its creator.</summary>
     [Fact]
-    public async Task Copy_moves_the_callers_membership_from_the_original_to_the_copy()
+    public async Task Copy_leaves_the_callers_membership_on_the_original_and_makes_them_manager_of_the_copy()
     {
         var scenario = TestData.Scenario("Original");
         await Seed(scenario);
@@ -436,8 +438,11 @@ public class ScenarioControllerTests(DatabaseFixture fixture, SteamfitterAppFact
         var copy = await ReadAsync<SAVM.Scenario>(await Client(actor).PostAsync($"api/scenarios/{scenario.Id}/copy", null, Ct));
 
         await using var db = NewContext();
-        var moved = await db.ScenarioMemberships.SingleAsync(x => x.Id == actor.ScenarioMemberships[0].Id, Ct);
-        Assert.Equal(copy.Id, moved.ScenarioId);
+        var rows = await db.ScenarioMemberships.Where(x => x.UserId == actor.Id).ToListAsync(Ct);
+        Assert.Equal(
+            [(scenario.Id, actor.ScenarioMemberships[0].RoleId), (copy.Id, TestData.ScenarioRoles.Manager)],
+            rows.Select(x => (x.ScenarioId, x.RoleId)).OrderBy(x => x.ScenarioId == copy.Id));
+        Assert.Contains(nameof(ScenarioPermission.EditScenario), copy.ScenarioPermissions);
     }
 
     [Fact]

@@ -20,8 +20,14 @@ namespace Steamfitter.Api.Infrastructure.Mappings
 
             CreateMap<ScenarioTemplate, ScenarioTemplateEntity>();
 
+            // a copy gets its own tasks, credentials and memberships, and none of the original's scenarios;
+            // mapping the original's collections would move whichever of their rows the context tracks onto the copy
             CreateMap<ScenarioTemplateEntity, ScenarioTemplateEntity>()
-                .ForMember(e => e.Id, opt => opt.Ignore());
+                .ForMember(e => e.Id, opt => opt.Ignore())
+                .ForMember(e => e.Tasks, opt => opt.Ignore())
+                .ForMember(e => e.Scenarios, opt => opt.Ignore())
+                .ForMember(e => e.VmCredentials, opt => opt.Ignore())
+                .ForMember(e => e.Memberships, opt => opt.Ignore());
 
             CreateMap<ScenarioTemplateForm, ScenarioTemplateEntity>();
         }

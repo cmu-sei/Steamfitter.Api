@@ -227,9 +227,9 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
         Assert.Equal("copied", Assert.Single(stored.VmCredentials).Username);
     }
 
-    /// <summary>The caller's membership on the original is moved onto the copy.</summary>
+    /// <summary>The caller keeps their membership on the original and manages the copy, as its creator.</summary>
     [Fact]
-    public async Task Copy_moves_the_callers_membership_from_the_original_to_the_copy()
+    public async Task Copy_leaves_the_callers_membership_on_the_original_and_makes_them_manager_of_the_copy()
     {
         var template = TestData.ScenarioTemplate("Original");
         await Seed(template);
@@ -242,7 +242,10 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
 
         await using var db = NewContext();
         var rows = await db.ScenarioTemplateMemberships.Where(x => x.UserId == actor.Id).ToListAsync(Ct);
-        Assert.Equal([(actor.ScenarioTemplateMemberships[0].Id, copy.Id)], rows.Select(x => (x.Id, x.ScenarioTemplateId)));
+        Assert.Equal(
+            [(template.Id, actor.ScenarioTemplateMemberships[0].RoleId), (copy.Id, TestData.ScenarioTemplateRoles.Manager)],
+            rows.Select(x => (x.ScenarioTemplateId, x.RoleId)).OrderBy(x => x.ScenarioTemplateId == copy.Id));
+        Assert.Contains(nameof(ScenarioTemplatePermission.EditScenarioTemplate), copy.ScenarioTemplatePermissions);
     }
 
     [Fact]
