@@ -232,7 +232,8 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteResult")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
+            // deleting a result is an edit of its scenario, as creating, updating or deleting its task is
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                 throw new ForbiddenException();
 
             await _ResultService.DeleteAsync(id, ct);

@@ -404,12 +404,12 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Delete_removes_the_result_for_a_member_holding_ManageScenario()
+    public async Task Delete_removes_the_result_for_a_member_holding_EditScenario()
     {
         var (scenario, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         await Seed(result);
-        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
         await AssertStatus(HttpStatusCode.NoContent, await Client(actor).DeleteAsync($"api/results/{result.Id}", Ct));
 
@@ -418,12 +418,12 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Delete_is_forbidden_for_a_member_holding_only_EditScenario()
+    public async Task Delete_is_forbidden_for_a_member_holding_only_ViewScenario()
     {
         var (scenario, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         await Seed(result);
-        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/results/{result.Id}", Ct));
         await using var db = NewContext();
@@ -480,12 +480,12 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Delete_removes_the_result_for_a_caller_holding_ManageScenarios()
+    public async Task Delete_removes_the_result_for_a_caller_holding_EditScenarios()
     {
         var (_, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         await Seed(result);
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarios).SeedAsync();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
         await AssertStatus(HttpStatusCode.NoContent, await Client(actor).DeleteAsync($"api/results/{result.Id}", Ct));
 
@@ -494,12 +494,12 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Delete_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    public async Task Delete_is_forbidden_for_a_caller_holding_only_ViewScenarios()
     {
         var (_, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         await Seed(result);
-        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/results/{result.Id}", Ct));
     }
