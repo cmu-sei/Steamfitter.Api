@@ -283,13 +283,37 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
     }
 
     [Fact]
-    public async Task Get_of_a_task_that_is_not_there_is_not_found_for_a_member_of_a_scenario()
+    public async Task Get_of_a_task_that_is_not_there_is_forbidden_to_a_member_of_a_scenario_as_one_of_another_is()
+    {
+        var scenario = TestData.Scenario();
+        var other = TestData.Scenario("Other");
+        var task = TestData.ScenarioTask(other.Id);
+        await Seed(scenario, other, task);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/tasks/{Guid.NewGuid()}", Ct));
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/tasks/{task.Id}", Ct));
+    }
+
+    /// <summary>
+    /// A member is answered for a Task that is not there as for one it may not reach. A caller whose system
+    /// permissions reach every Task learns it is not there.
+    /// </summary>
+    [Fact]
+    public async Task Writes_to_a_task_that_is_not_there_are_forbidden_to_a_member_and_not_found_by_the_system()
     {
         var scenario = TestData.Scenario();
         await Seed(scenario);
-        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario, ScenarioPermission.EditScenario, ScenarioPermission.ExecuteScenario]).SeedAsync();
+        var id = Guid.NewGuid();
 
-        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).GetAsync($"api/tasks/{Guid.NewGuid()}", Ct));
+        foreach (var (client, status) in new[] { (Client(actor), HttpStatusCode.Forbidden), (RootClient, HttpStatusCode.NotFound) })
+        {
+            await AssertStatus(status, await client.PutAsJsonAsync($"api/tasks/{id}", TaskForm("Absent"), Ct));
+            await AssertStatus(status, await client.DeleteAsync($"api/tasks/{id}", Ct));
+            await AssertStatus(status, await client.PostAsync($"api/tasks/{id}/execute", null, Ct));
+            await AssertStatus(status, await client.PostAsJsonAsync($"api/tasks/{id}/copy", new { id = scenario.Id, locationType = "scenario" }, Ct));
+        }
     }
 
     [Fact]

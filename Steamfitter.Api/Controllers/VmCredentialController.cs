@@ -82,13 +82,12 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getVmCredential")]
         public async STT.Task<IActionResult> Get(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeVmCredentialScopeAsync(id, ScopeAccess.View, ct))
+                throw new ForbiddenException();
+
             var vmCredential = await _vmCredentialService.GetAsync(id, ct);
             if (vmCredential == null)
                 throw new EntityNotFoundException<VmCredential>();
-
-            if (!(vmCredential.ScenarioTemplateId != null && await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(vmCredential.ScenarioTemplateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
-               && !(vmCredential.ScenarioId != null && await _authorizationService.AuthorizeAsync<SAVM.Scenario>(vmCredential.ScenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct)))
-                throw new ForbiddenException();
 
             return Ok(vmCredential);
         }
@@ -108,7 +107,8 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createVmCredential")]
         public async STT.Task<IActionResult> Create([FromBody] SAVM.VmCredentialCreate vmCredential, CancellationToken ct)
         {
-            await CheckParentEditAuthorization(vmCredential.ScenarioId, vmCredential.ScenarioTemplateId, ct);
+            if (!await _authorizationService.AuthorizeScopeAsync(vmCredential.ScenarioId, vmCredential.ScenarioTemplateId, ScopeAccess.Edit, ct))
+                throw new ForbiddenException();
 
             var createdVmCredential = await _vmCredentialService.CreateAsync(vmCredential, ct);
             return CreatedAtAction(nameof(this.Get), new { id = createdVmCredential.Id }, createdVmCredential);
@@ -130,11 +130,9 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "updateVmCredential")]
         public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.VmCredentialEdit vmCredential, CancellationToken ct)
         {
-            var storedVmCredential = await _vmCredentialService.GetAsync(id, ct);
-            if (storedVmCredential == null)
-                throw new EntityNotFoundException<VmCredential>();
-
-            await CheckParentEditAuthorization(storedVmCredential.ScenarioId, storedVmCredential.ScenarioTemplateId, ct);
+            // the stored credential's parent decides, not one the request names
+            if (!await _authorizationService.AuthorizeVmCredentialScopeAsync(id, ScopeAccess.Edit, ct))
+                throw new ForbiddenException();
 
             var updatedVmCredential = await _vmCredentialService.UpdateAsync(id, vmCredential, ct);
             return Ok(updatedVmCredential);
@@ -155,26 +153,11 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteVmCredential")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
-            var vmCredential = await _vmCredentialService.GetAsync(id, ct);
-            if (vmCredential == null)
-                throw new EntityNotFoundException<VmCredential>();
-
-            await CheckParentEditAuthorization(vmCredential.ScenarioId, vmCredential.ScenarioTemplateId, ct);
+            if (!await _authorizationService.AuthorizeVmCredentialScopeAsync(id, ScopeAccess.Edit, ct))
+                throw new ForbiddenException();
 
             await _vmCredentialService.DeleteAsync(id, ct);
             return NoContent();
-        }
-
-        // a credential belongs to exactly one Scenario or Scenario Template, and editing it needs edit permission there
-        private async STT.Task CheckParentEditAuthorization(Guid? scenarioId, Guid? scenarioTemplateId, CancellationToken ct)
-        {
-            if ((scenarioId == null) == (scenarioTemplateId == null))
-                throw new ForbiddenException("A VmCredential must belong to exactly one Scenario or Scenario Template.");
-
-            if (scenarioId != null
-                ? !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(scenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)
-                : !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(scenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
-                throw new ForbiddenException();
         }
 
     }

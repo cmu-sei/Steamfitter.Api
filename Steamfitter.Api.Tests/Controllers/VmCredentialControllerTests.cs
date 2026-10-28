@@ -146,6 +146,20 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         await AssertJsonError(HttpStatusCode.NotFound, await RootClient.GetAsync($"api/vmCredentials/{Guid.NewGuid()}", Ct));
     }
 
+    /// <summary>A member is answered for a credential that is not there as for one it may not reach, so ids cannot be probed.</summary>
+    [Fact]
+    public async Task Reads_and_writes_of_an_unknown_credential_are_forbidden_to_a_member()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario, ScenarioPermission.EditScenario]).SeedAsync();
+        var url = $"api/vmCredentials/{Guid.NewGuid()}";
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync(url, Ct));
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync(url, new { username = "after" }, Ct));
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync(url, Ct));
+    }
+
     [Fact]
     public async Task Create_persists_a_scenario_credential_for_a_member_holding_EditScenario()
     {

@@ -229,15 +229,17 @@ public class ScenarioTemplateMembershipControllerTests(DatabaseFixture fixture, 
         Assert.False(await db.ScenarioTemplateMemberships.AnyAsync(x => x.ScenarioTemplateId == other.Id, Ct));
     }
 
+    /// <summary>A membership that is not there is answered as one the caller may not reach, unless any would be.</summary>
     [Fact]
-    public async Task Update_of_a_membership_that_is_not_there_is_not_found()
+    public async Task Update_of_a_membership_that_is_not_there_is_forbidden_to_a_member_and_not_found_by_the_system()
     {
         var template = TestData.ScenarioTemplate();
         await Seed(template);
         var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ManageScenarioTemplate]).SeedAsync();
+        var url = $"api/scenarioTemplates/memberships/{Guid.NewGuid()}";
 
-        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).PutAsJsonAsync(
-            $"api/scenarioTemplates/memberships/{Guid.NewGuid()}", new { roleId = TestData.ScenarioTemplateRoles.Manager }, Ct));
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync(url, new { roleId = TestData.ScenarioTemplateRoles.Manager }, Ct));
+        await AssertStatus(HttpStatusCode.NotFound, await RootClient.PutAsJsonAsync(url, new { roleId = TestData.ScenarioTemplateRoles.Manager }, Ct));
     }
 
     [Theory]

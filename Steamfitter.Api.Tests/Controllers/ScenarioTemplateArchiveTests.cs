@@ -142,6 +142,17 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
     }
 
     [Fact]
+    public async Task Export_of_an_unknown_template_is_forbidden_to_a_member_of_a_template()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden,
+            await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={Guid.NewGuid()}", Ct));
+    }
+
+    [Fact]
     public async Task Export_is_forbidden_for_a_caller_holding_ViewScenarioTemplate_only_on_another_template()
     {
         var template = TestData.ScenarioTemplate();

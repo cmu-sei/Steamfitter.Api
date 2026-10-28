@@ -5,7 +5,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Steamfitter.Api.Data;
-using Steamfitter.Api.Infrastructure.Exceptions;
 using Steamfitter.Api.Tests.Support;
 using SAVM = Steamfitter.Api.ViewModels;
 
@@ -88,39 +87,35 @@ public class AuthorizationServiceTests(DatabaseFixture fixture) : DatabaseTestBa
     }
 
     [Fact]
-    public async Task A_task_that_is_not_there_is_not_found()
+    public async Task A_task_that_is_not_there_grants_nothing_as_one_the_caller_may_not_reach()
     {
         var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
 
-        await Assert.ThrowsAsync<EntityNotFoundException<SAVM.Task>>(() =>
-            service.AuthorizeAsync<SAVM.Task>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+        Assert.False(await service.AuthorizeAsync<SAVM.Task>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
     }
 
     [Fact]
-    public async Task A_scenario_that_is_not_there_is_not_found()
+    public async Task A_scenario_that_is_not_there_grants_nothing_as_one_the_caller_may_not_reach()
     {
         var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
 
-        await Assert.ThrowsAsync<EntityNotFoundException<SAVM.Scenario>>(() =>
-            service.AuthorizeAsync<SAVM.Scenario>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+        Assert.False(await service.AuthorizeAsync<SAVM.Scenario>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
     }
 
     [Fact]
-    public async Task A_result_that_is_not_there_is_not_found()
+    public async Task A_result_that_is_not_there_grants_nothing_as_one_the_caller_may_not_reach()
     {
         var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
 
-        await Assert.ThrowsAsync<EntityNotFoundException<SAVM.Result>>(() =>
-            service.AuthorizeAsync<SAVM.Result>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+        Assert.False(await service.AuthorizeAsync<SAVM.Result>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
     }
 
     [Fact]
-    public async Task A_template_that_is_not_there_is_not_found()
+    public async Task A_template_that_is_not_there_grants_nothing_as_one_the_caller_may_not_reach()
     {
         var service = Service(new ClaimsPrincipalBuilder().WithScenarioTemplate(Guid.NewGuid(), ScenarioTemplatePermission.ViewScenarioTemplate));
 
-        await Assert.ThrowsAsync<EntityNotFoundException<SAVM.ScenarioTemplate>>(() =>
-            service.AuthorizeAsync<SAVM.ScenarioTemplate>(Guid.NewGuid(), [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], Ct));
+        Assert.False(await service.AuthorizeAsync<SAVM.ScenarioTemplate>(Guid.NewGuid(), [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], Ct));
     }
 
     [Fact]

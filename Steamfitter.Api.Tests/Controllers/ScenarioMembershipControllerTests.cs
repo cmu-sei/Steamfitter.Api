@@ -367,25 +367,29 @@ public class ScenarioMembershipControllerTests(DatabaseFixture fixture, Steamfit
         Assert.Equal((observed.Id, TestData.ScenarioRoles.Observer), (stored.ScenarioId, stored.RoleId));
     }
 
+    /// <summary>A membership that is not there is answered as one the caller may not reach, unless any would be.</summary>
     [Fact]
-    public async Task Update_of_a_membership_that_is_not_there_is_not_found()
+    public async Task Update_of_a_membership_that_is_not_there_is_forbidden_to_a_member_and_not_found_by_the_system()
     {
         var scenario = TestData.Scenario();
         await Seed(scenario);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+        var url = $"api/scenarios/memberships/{Guid.NewGuid()}";
 
-        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).PutAsJsonAsync(
-            $"api/scenarios/memberships/{Guid.NewGuid()}", new { roleId = TestData.ScenarioRoles.Manager }, Ct));
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync(url, new { roleId = TestData.ScenarioRoles.Manager }, Ct));
+        await AssertStatus(HttpStatusCode.NotFound, await RootClient.PutAsJsonAsync(url, new { roleId = TestData.ScenarioRoles.Manager }, Ct));
     }
 
     [Fact]
-    public async Task Delete_of_a_membership_that_is_not_there_is_not_found()
+    public async Task Delete_of_a_membership_that_is_not_there_is_forbidden_to_a_member_and_not_found_by_the_system()
     {
         var scenario = TestData.Scenario();
         await Seed(scenario);
         var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+        var url = $"api/scenarios/memberships/{Guid.NewGuid()}";
 
-        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).DeleteAsync($"api/scenarios/memberships/{Guid.NewGuid()}", Ct));
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync(url, Ct));
+        await AssertStatus(HttpStatusCode.NotFound, await RootClient.DeleteAsync(url, Ct));
     }
 
     [Fact]

@@ -138,13 +138,8 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createTask")]
         public async STT.Task<IActionResult> Create([FromBody] SAVM.TaskCreate taskForm, CancellationToken ct)
         {
-            if ((taskForm.ScenarioId == null) == (taskForm.ScenarioTemplateId == null))
-                throw new ForbiddenException("A Task must belong to exactly one Scenario or Scenario Template.");
-
             // creating a task is an edit of its parent, as copying, moving or creating one from a result is
-            if (taskForm.ScenarioId != null
-                ? !await _authorizationService.AuthorizeAsync<SAVM.Scenario>(taskForm.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)
-                : !await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(taskForm.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
+            if (!await _authorizationService.AuthorizeScopeAsync(taskForm.ScenarioId, taskForm.ScenarioTemplateId, ScopeAccess.Edit, ct))
                 throw new ForbiddenException();
 
             var createdTask = await _taskService.CreateAsync(taskForm, ct);
@@ -168,25 +163,11 @@ namespace Steamfitter.Api.Controllers
         public async STT.Task<IActionResult> Copy([FromRoute] Guid id, [FromBody] NewLocation newLocation, CancellationToken ct)
         {
             await CheckTaskEditAuthorization(newLocation.Id, newLocation.LocationType, ct);
+            if (!await _authorizationService.AuthorizeTaskScopeAsync(id, ScopeAccess.View, ct))
+                throw new ForbiddenException();
 
-            var existingTask = await _taskService.GetAsync(id, ct);
-            if (existingTask == null)
+            if (await _taskService.GetAsync(id, ct) == null)
                 throw new EntityNotFoundException<SAVM.Task>();
-
-            if (existingTask.ScenarioId != null)
-            {
-                if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(existingTask.ScenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
-                    throw new ForbiddenException();
-            }
-            else if (existingTask.ScenarioTemplateId != null)
-            {
-                if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(existingTask.ScenarioTemplateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
-                    throw new ForbiddenException();
-            }
-            else
-            {
-                throw new ArgumentException("The task selected is not a valid task to copy.");
-            }
 
             var newTaskWithSubtasks = await _taskService.CopyAsync(id, newLocation.Id, newLocation.LocationType, ct);
             return Ok(newTaskWithSubtasks);
@@ -209,32 +190,11 @@ namespace Steamfitter.Api.Controllers
         public async STT.Task<IActionResult> CreateFromResult([FromRoute] Guid resultId, [FromBody] NewLocation newLocation, CancellationToken ct)
         {
             await CheckTaskEditAuthorization(newLocation.Id, newLocation.LocationType, ct);
+            if (!await _authorizationService.AuthorizeResultScopeAsync(resultId, ScopeAccess.View, ct))
+                throw new ForbiddenException();
 
-            var result = await _resultService.GetAsync(resultId, ct);
-            if (result == null)
+            if (await _resultService.GetAsync(resultId, ct) == null)
                 throw new EntityNotFoundException<Result>();
-
-            if (result.TaskId == null)
-                throw new EntityNotFoundException<SAVM.Task>();
-
-            var existingTask = await _taskService.GetAsync(result.TaskId.Value, ct);
-            if (existingTask == null)
-                throw new EntityNotFoundException<SAVM.Task>();
-
-            if (existingTask.ScenarioId != null)
-            {
-                if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(existingTask.ScenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
-                    throw new ForbiddenException();
-            }
-            else if (existingTask.ScenarioTemplateId != null)
-            {
-                if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(existingTask.ScenarioTemplateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
-                    throw new ForbiddenException();
-            }
-            else
-            {
-                throw new ArgumentException("The result selected is not associated to a valid task to copy.");
-            }
 
             var newTask = await _taskService.CreateFromResultAsync(resultId, newLocation.Id, newLocation.LocationType, ct);
             return Ok(newTask);
@@ -281,11 +241,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "executeTask")]
         public async STT.Task<IActionResult> Execute(Guid id, CancellationToken ct)
         {
-            var task = await _taskService.GetAsync(id, ct);
-            if (task == null)
-                throw new EntityNotFoundException<SAVM.Task>();
-            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(task.ScenarioId, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Task>(id, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
                 throw new ForbiddenException();
+            if (await _taskService.GetAsync(id, ct) == null)
+                throw new EntityNotFoundException<SAVM.Task>();
 
             var resultList = await _taskService.ExecuteAsync(id, ct);
             return Ok(resultList);
@@ -306,11 +265,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "executeTaskWithSubstitutions")]
         public async STT.Task<IActionResult> Execute([FromRoute] Guid id, [FromBody] Dictionary<string, string> taskSubstitutions, CancellationToken ct)
         {
-            var task = await _taskService.GetAsync(id, ct);
-            if (task == null)
-                throw new EntityNotFoundException<SAVM.Task>();
-            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(task.ScenarioId, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Task>(id, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
                 throw new ForbiddenException();
+            if (await _taskService.GetAsync(id, ct) == null)
+                throw new EntityNotFoundException<SAVM.Task>();
 
             var resultList = await _taskService.ExecuteWithSubstitutionsAsync(id, taskSubstitutions, ct);
             return Ok(resultList);
@@ -429,42 +387,19 @@ namespace Steamfitter.Api.Controllers
 
         private async STT.Task CheckTaskEditAuthorization(Guid id, string locationType, CancellationToken ct)
         {
-            if (locationType == "task")
+            var authorized = locationType switch
             {
-                var task = await _taskService.GetAsync(id, ct);
-                if (task == null)
-                    throw new EntityNotFoundException<SAVM.Task>();
+                // a Task with neither a Scenario nor a Scenario Template grants nothing
+                "task" => await _authorizationService.AuthorizeTaskScopeAsync(id, ScopeAccess.Edit, ct),
+                "scenario" => await _authorizationService.AuthorizeScopeAsync(id, null, ScopeAccess.Edit, ct),
+                "scenarioTemplate" => await _authorizationService.AuthorizeScopeAsync(null, id, ScopeAccess.Edit, ct),
+                _ => throw new ArgumentException("Invalid new location type.")
+            };
+            if (!authorized)
+                throw new ForbiddenException();
 
-                if (task.ScenarioId != null)
-                {
-                    if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(task.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
-                        throw new ForbiddenException();
-                }
-                else if (task.ScenarioTemplateId != null)
-                {
-                    if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(task.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
-                        throw new ForbiddenException();
-                }
-                else
-                {
-                    // a Task with neither a Scenario nor a Scenario Template grants nothing
-                    throw new ForbiddenException();
-                }
-            }
-            else if (locationType == "scenario")
-            {
-                if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
-                    throw new ForbiddenException();
-            }
-            else if (locationType == "scenarioTemplate")
-            {
-                if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(id, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
-                    throw new ForbiddenException();
-            }
-            else
-            {
-                throw new ArgumentException("Invalid new location type.");
-            }
+            if (locationType == "task" && await _taskService.GetAsync(id, ct) == null)
+                throw new EntityNotFoundException<SAVM.Task>();
         }
 
     }
