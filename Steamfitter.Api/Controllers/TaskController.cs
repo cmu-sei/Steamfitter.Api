@@ -215,11 +215,10 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createAndExecuteTask")]
         public async STT.Task<IActionResult> CreateAndExecute([FromBody] SAVM.TaskCreate taskForm, CancellationToken ct)
         {
-            // only a Scenario Task can be executed; the form names exactly one parent
-            if (taskForm.ScenarioId == null)
-                throw new ForbiddenException("A Task to execute must belong to a Scenario.");
-
-            await CheckTaskEditAuthorization(taskForm.ScenarioId.Value, "scenario", ct);
+            // only a Scenario Task can be executed: a form naming a Scenario Template names no Scenario,
+            // which grants no edit permission to create the Task in
+            if (!await _authorizationService.AuthorizeScopeAsync(taskForm.ScenarioId, null, ScopeAccess.Edit, ct))
+                throw new ForbiddenException();
             if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(taskForm.ScenarioId, [SystemPermission.ExecuteScenarios], [ScenarioPermission.ExecuteScenario], ct))
                 throw new ForbiddenException();
 

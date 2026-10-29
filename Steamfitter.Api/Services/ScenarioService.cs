@@ -422,7 +422,8 @@ namespace Steamfitter.Api.Services
         /// </summary>
         private async STT.Task EnsureCanBindViewAsync(Guid? viewId, CancellationToken ct)
         {
-            if (viewId == null || await _authorizationService.AuthorizeAsync([SystemPermission.ManageScenarios], ct))
+            var trustedWithAnyView = await _authorizationService.AuthorizeAsync([SystemPermission.ManageScenarios], ct);
+            if (viewId == null || trustedWithAnyView)
                 return;
 
             if (!await _playerService.CanManageViewAsync(viewId.Value, ct))

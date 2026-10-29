@@ -186,8 +186,7 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "createResult")]
         public async STT.Task<IActionResult> Create([FromBody] SAVM.ResultCreate result, CancellationToken ct)
         {
-            if (result.TaskId == null ||
-                !await _authorizationService.AuthorizeAsync<ViewModels.Task>(result.TaskId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Task>(result.TaskId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                 throw new ForbiddenException();
 
             var createdResult = await _ResultService.CreateAsync(result, ct);

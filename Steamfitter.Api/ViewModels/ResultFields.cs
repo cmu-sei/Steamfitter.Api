@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Steamfitter.Api.ViewModels
 {
@@ -19,6 +20,8 @@ namespace Steamfitter.Api.ViewModels
 
     public class ResultCreate : ResultFields
     {
+        /// <summary>The Task the Result belongs to.</summary>
+        [Required]
         public Guid? TaskId { get; set; }
     }
 

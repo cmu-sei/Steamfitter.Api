@@ -134,12 +134,17 @@ public class AuthorizationService(
 
     public async Task<bool> AuthorizeScopeAsync(Guid? scenarioId, Guid? scenarioTemplateId, ScopeAccess access, CancellationToken cancellationToken)
     {
-        if ((scenarioId == null) == (scenarioTemplateId == null))
-            return false;
+        // Both are asked, each about the id it was given, so that which check runs never depends on the
+        // request; the parent the request names then decides. An absent id asks only the system permission.
+        var onScenario = await AuthorizeAsync<Scenario>(scenarioId, [ScenarioSystemPermission(access)], [ScenarioPermissionFor(access)], cancellationToken);
+        var onScenarioTemplate = await AuthorizeAsync<ScenarioTemplate>(scenarioTemplateId, [ScenarioTemplateSystemPermission(access)], [ScenarioTemplatePermissionFor(access)], cancellationToken);
 
-        return scenarioId != null
-            ? await AuthorizeAsync<Scenario>(scenarioId, [ScenarioSystemPermission(access)], [ScenarioPermissionFor(access)], cancellationToken)
-            : await AuthorizeAsync<ScenarioTemplate>(scenarioTemplateId, [ScenarioTemplateSystemPermission(access)], [ScenarioTemplatePermissionFor(access)], cancellationToken);
+        return (scenarioId, scenarioTemplateId) switch
+        {
+            (not null, null) => onScenario,
+            (null, not null) => onScenarioTemplate,
+            _ => false
+        };
     }
 
     public Task<bool> AuthorizeTaskScopeAsync(Guid taskId, ScopeAccess access, CancellationToken cancellationToken) =>

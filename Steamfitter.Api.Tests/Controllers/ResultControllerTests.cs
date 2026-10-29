@@ -443,13 +443,12 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Create_of_a_result_without_a_task_is_forbidden_for_a_caller_holding_EditScenarios()
+    public async Task Create_of_a_result_without_a_task_is_a_bad_request_for_a_caller_holding_EditScenarios()
     {
         var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
-        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/results", new { actualOutput = "No task" }, Ct));
+        await AssertStatus(HttpStatusCode.BadRequest, await Client(actor).PostAsJsonAsync("api/results", new { actualOutput = "No task" }, Ct));
 
-        Assert.Equal(InsufficientPermissions, error.Title);
         await using var db = NewContext();
         Assert.False(await db.Results.AnyAsync(x => x.ActualOutput == "No task", Ct));
     }
