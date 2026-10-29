@@ -2407,8 +2407,12 @@ namespace Steamfitter.Api.Client
         [System.Text.Json.Serialization.JsonPropertyName("actualOutput")]
         public string ActualOutput { get; set; }
 
+        /// <summary>
+        /// The Task the Result belongs to.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("taskId")]
-        public System.Guid? TaskId { get; set; }
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid TaskId { get; set; }
 
     }
 
