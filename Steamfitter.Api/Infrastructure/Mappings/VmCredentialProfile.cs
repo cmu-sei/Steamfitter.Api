@@ -16,6 +16,8 @@ namespace Steamfitter.Api.Infrastructure.Mappings
             CreateMap<VmCredentialEntity, VmCredential>();
 
             CreateMap<VmCredential, VmCredentialEntity>();
+            CreateMap<VmCredentialCreate, VmCredentialEntity>(AutoMapper.MemberList.Source);
+            CreateMap<VmCredentialEdit, VmCredentialEntity>(AutoMapper.MemberList.Source);
 
             CreateMap<VmCredentialEntity, VmCredentialEntity>()
                 .ForMember(e => e.Id, opt => opt.Ignore());

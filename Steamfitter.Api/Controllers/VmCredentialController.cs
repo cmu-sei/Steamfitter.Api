@@ -14,7 +14,6 @@ using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using Swashbuckle.AspNetCore.Annotations;
 using Steamfitter.Api.ViewModels;
-using System.IO;
 
 namespace Steamfitter.Api.Controllers
 {
@@ -83,13 +82,12 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getVmCredential")]
         public async STT.Task<IActionResult> Get(Guid id, CancellationToken ct)
         {
+            if (!await _authorizationService.AuthorizeVmCredentialScopeAsync(id, ScopeAccess.View, ct))
+                throw new ForbiddenException();
+
             var vmCredential = await _vmCredentialService.GetAsync(id, ct);
             if (vmCredential == null)
                 throw new EntityNotFoundException<VmCredential>();
-
-            if (!(vmCredential.ScenarioTemplateId != null && await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(vmCredential.ScenarioTemplateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
-               && !(vmCredential.ScenarioId != null && await _authorizationService.AuthorizeAsync<SAVM.Scenario>(vmCredential.ScenarioId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct)))
-                throw new ForbiddenException();
 
             return Ok(vmCredential);
         }
@@ -100,17 +98,16 @@ namespace Steamfitter.Api.Controllers
         /// <remarks>
         /// Creates a new VmCredential with the attributes specified
         /// <para />
-        /// Accessible only to a SuperUser or an Administrator
+        /// The VmCredential must belong to exactly one Scenario or Scenario Template.
         /// </remarks>
         /// <param name="vmCredential">The data to create the VmCredential with</param>
         /// <param name="ct"></param>
         [HttpPost("VmCredentials")]
         [ProducesResponseType(typeof(SAVM.VmCredential), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createVmCredential")]
-        public async STT.Task<IActionResult> Create([FromBody] SAVM.VmCredential vmCredential, CancellationToken ct)
+        public async STT.Task<IActionResult> Create([FromBody] SAVM.VmCredentialCreate vmCredential, CancellationToken ct)
         {
-            if (!(vmCredential.ScenarioTemplateId != null && await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(vmCredential.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
-               && !(vmCredential.ScenarioId != null && await _authorizationService.AuthorizeAsync<SAVM.Scenario>(vmCredential.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)))
+            if (!await _authorizationService.AuthorizeScopeAsync(vmCredential.ScenarioId, vmCredential.ScenarioTemplateId, ScopeAccess.Edit, ct))
                 throw new ForbiddenException();
 
             var createdVmCredential = await _vmCredentialService.CreateAsync(vmCredential, ct);
@@ -121,7 +118,7 @@ namespace Steamfitter.Api.Controllers
         /// Updates a VmCredential
         /// </summary>
         /// <remarks>
-        /// Updates a VmCredential with the attributes specified
+        /// Updates a VmCredential with the attributes specified. The VmCredential stays in its Scenario or Scenario Template.
         /// <para />
         /// Accessible only to a SuperUser or a User on an Admin Team within the specified VmCredential
         /// </remarks>
@@ -131,17 +128,13 @@ namespace Steamfitter.Api.Controllers
         [HttpPut("VmCredentials/{id}")]
         [ProducesResponseType(typeof(SAVM.VmCredential), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "updateVmCredential")]
-        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.VmCredential vmCredential, CancellationToken ct)
+        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.VmCredentialEdit vmCredential, CancellationToken ct)
         {
-            if (!(vmCredential.ScenarioTemplateId != null && await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(vmCredential.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
-               && !(vmCredential.ScenarioId != null && await _authorizationService.AuthorizeAsync<SAVM.Scenario>(vmCredential.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)))
+            // the stored credential's parent decides, not one the request names
+            if (!await _authorizationService.AuthorizeVmCredentialScopeAsync(id, ScopeAccess.Edit, ct))
                 throw new ForbiddenException();
 
             var updatedVmCredential = await _vmCredentialService.UpdateAsync(id, vmCredential, ct);
-            if (vmCredential.ScenarioTemplateId != updatedVmCredential.ScenarioTemplateId ||
-                vmCredential.ScenarioId != updatedVmCredential.ScenarioId)
-                throw new InvalidDataException("You cannot change the ScenarioTemplateId or the ScenarioId with a VmCredential update operation.");
-
             return Ok(updatedVmCredential);
         }
 
@@ -160,12 +153,7 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteVmCredential")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
-            var vmCredential = await _vmCredentialService.GetAsync(id, ct);
-            if (vmCredential == null)
-                throw new EntityNotFoundException<VmCredential>();
-
-            if (!(vmCredential.ScenarioTemplateId != null && await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(vmCredential.ScenarioTemplateId, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
-               && !(vmCredential.ScenarioId != null && await _authorizationService.AuthorizeAsync<SAVM.Scenario>(vmCredential.ScenarioId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct)))
+            if (!await _authorizationService.AuthorizeVmCredentialScopeAsync(id, ScopeAccess.Edit, ct))
                 throw new ForbiddenException();
 
             await _vmCredentialService.DeleteAsync(id, ct);

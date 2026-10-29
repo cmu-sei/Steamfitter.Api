@@ -71,9 +71,8 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
         Assert.Equal(["EditScenarioTemplate", "ViewScenarioTemplate"], Assert.Single(templates).ScenarioTemplatePermissions.Order());
     }
 
-    /// <summary>A template the caller reaches only through a group membership is left out of the caller's list.</summary>
     [Fact]
-    public async Task GetAll_leaves_out_a_template_the_caller_is_a_member_of_through_a_group()
+    public async Task GetAll_lists_a_template_the_caller_may_view_through_a_group()
     {
         var group = TestData.Group();
         var template = TestData.ScenarioTemplate("Group's");
@@ -82,12 +81,23 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
 
         var templates = await ReadAsync<List<SAVM.ScenarioTemplate>>(await Client(actor).GetAsync("api/scenarioTemplates", Ct));
 
+        Assert.Equal([template.Id], templates.Select(x => x.Id));
+    }
+
+    [Fact]
+    public async Task GetAll_leaves_out_a_template_the_caller_belongs_to_without_ViewScenarioTemplate()
+    {
+        var template = TestData.ScenarioTemplate("Edited");
+        await Seed(template);
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        var templates = await ReadAsync<List<SAVM.ScenarioTemplate>>(await Client(actor).GetAsync("api/scenarioTemplates", Ct));
+
         Assert.Empty(templates);
     }
 
-    // Same case as GetAll_leaves_out_a_template_the_caller_is_a_member_of_through_a_group.
     [Fact]
-    public async Task GetAll_lists_a_template_the_caller_created_once_per_membership_on_it()
+    public async Task GetAll_lists_a_template_the_caller_may_view_once_whatever_its_memberships()
     {
         var colleague = TestData.User(name: "Colleague");
         await Seed(colleague);
@@ -100,7 +110,7 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
 
         var templates = await ReadAsync<List<SAVM.ScenarioTemplate>>(await Client(actor).GetAsync("api/scenarioTemplates", Ct));
 
-        Assert.Equal([template.Id, template.Id], templates.Select(x => x.Id));
+        Assert.Equal([template.Id], templates.Select(x => x.Id));
     }
 
     [Fact]
@@ -217,9 +227,9 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
         Assert.Equal("copied", Assert.Single(stored.VmCredentials).Username);
     }
 
-    /// <summary>The caller's membership on the original is moved onto the copy.</summary>
+    /// <summary>The caller keeps their membership on the original and manages the copy, as its creator.</summary>
     [Fact]
-    public async Task Copy_moves_the_callers_membership_from_the_original_to_the_copy()
+    public async Task Copy_leaves_the_callers_membership_on_the_original_and_makes_them_manager_of_the_copy()
     {
         var template = TestData.ScenarioTemplate("Original");
         await Seed(template);
@@ -232,7 +242,10 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
 
         await using var db = NewContext();
         var rows = await db.ScenarioTemplateMemberships.Where(x => x.UserId == actor.Id).ToListAsync(Ct);
-        Assert.Equal([(actor.ScenarioTemplateMemberships[0].Id, copy.Id)], rows.Select(x => (x.Id, x.ScenarioTemplateId)));
+        Assert.Equal(
+            [(template.Id, actor.ScenarioTemplateMemberships[0].RoleId), (copy.Id, TestData.ScenarioTemplateRoles.Manager)],
+            rows.Select(x => (x.ScenarioTemplateId, x.RoleId)).OrderBy(x => x.ScenarioTemplateId == copy.Id));
+        Assert.Contains(nameof(ScenarioTemplatePermission.EditScenarioTemplate), copy.ScenarioTemplatePermissions);
     }
 
     [Fact]
@@ -315,6 +328,54 @@ public class ScenarioTemplateControllerTests(DatabaseFixture fixture, Steamfitte
         var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
 
         await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/scenarioTemplates/{template.Id}", new { name = "After" }, Ct));
+    }
+
+    [Fact]
+    public async Task Update_leaves_a_credential_of_another_template_alone_when_the_body_nests_it()
+    {
+        var mine = TestData.ScenarioTemplate("Mine");
+        var theirs = TestData.ScenarioTemplate("Theirs");
+        var credential = TestData.VmCredential(scenarioTemplateId: theirs.Id, username: "theirs");
+        await Seed(mine, theirs, credential);
+        var actor = await Actor().OnScenarioTemplate(mine.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        var body = new { name = "Mine", vmCredentials = new[] { new { id = credential.Id, scenarioTemplateId = mine.Id, username = "taken", password = "taken" } } };
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/scenarioTemplates/{mine.Id}", body, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct);
+        Assert.Equal((theirs.Id, "theirs"), (stored.ScenarioTemplateId.Value, stored.Username));
+    }
+
+    [Fact]
+    public async Task Update_naming_a_credential_of_another_template_as_the_default_is_not_found()
+    {
+        var mine = TestData.ScenarioTemplate("Mine");
+        var theirs = TestData.ScenarioTemplate("Theirs");
+        var credential = TestData.VmCredential(scenarioTemplateId: theirs.Id);
+        await Seed(mine, theirs, credential);
+        var actor = await Actor().OnScenarioTemplate(mine.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.NotFound, await Client(actor).PutAsJsonAsync(
+            $"api/scenarioTemplates/{mine.Id}", new { name = "Mine", defaultVmCredentialId = credential.Id }, Ct));
+
+        await using var db = NewContext();
+        Assert.Null((await db.ScenarioTemplates.SingleAsync(x => x.Id == mine.Id, Ct)).DefaultVmCredentialId);
+    }
+
+    [Fact]
+    public async Task Update_sets_a_credential_of_the_template_as_its_default()
+    {
+        var template = TestData.ScenarioTemplate();
+        var credential = TestData.VmCredential(scenarioTemplateId: template.Id);
+        await Seed(template, credential);
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync(
+            $"api/scenarioTemplates/{template.Id}", new { name = "Template", defaultVmCredentialId = credential.Id }, Ct));
+
+        await using var db = NewContext();
+        Assert.Equal(credential.Id, (await db.ScenarioTemplates.SingleAsync(x => x.Id == template.Id, Ct)).DefaultVmCredentialId);
     }
 
     [Fact]

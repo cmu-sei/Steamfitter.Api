@@ -12,7 +12,6 @@ using Steamfitter.Api.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SAVM = Steamfitter.Api.ViewModels;
-using Steamfitter.Api.Infrastructure.Exceptions;
 
 namespace Steamfitter.Api.Infrastructure.Authorization;
 
@@ -34,10 +33,39 @@ public interface ISteamfitterAuthorizationService
         ScenarioTemplatePermission[] requiredScenarioTemplatePermissions,
         CancellationToken cancellationToken) where T : IAuthorizationType;
 
-    IEnumerable<Guid> GetAuthorizedScenarioIds();
+    /// <summary>The Scenarios on which the caller holds <paramref name="permission"/>; membership alone is not enough.</summary>
+    IReadOnlyList<Guid> GetAuthorizedScenarioIds(ScenarioPermission permission);
+
+    /// <summary>The Scenario Templates on which the caller holds <paramref name="permission"/>; membership alone is not enough.</summary>
+    IReadOnlyList<Guid> GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission permission);
+
+    /// <summary>
+    /// Whether the caller holds <paramref name="access"/> on the Scenario or the Scenario Template given, exactly
+    /// one of which must be. Naming neither or both grants nothing.
+    /// </summary>
+    Task<bool> AuthorizeScopeAsync(Guid? scenarioId, Guid? scenarioTemplateId, ScopeAccess access, CancellationToken cancellationToken);
+
+    /// <summary>Whether the caller holds <paramref name="access"/> on the Scenario or Scenario Template the Task belongs to.</summary>
+    Task<bool> AuthorizeTaskScopeAsync(Guid taskId, ScopeAccess access, CancellationToken cancellationToken);
+
+    /// <summary>Whether the caller holds <paramref name="access"/> on the Scenario or Scenario Template of the Result's Task.</summary>
+    Task<bool> AuthorizeResultScopeAsync(Guid resultId, ScopeAccess access, CancellationToken cancellationToken);
+
+    /// <summary>Whether the caller holds <paramref name="access"/> on the Scenario or Scenario Template the VM Credential belongs to.</summary>
+    Task<bool> AuthorizeVmCredentialScopeAsync(Guid vmCredentialId, ScopeAccess access, CancellationToken cancellationToken);
+
+    /// <summary>Whether any of the given Scenarios belongs to the Player View.</summary>
+    Task<bool> AnyScenarioOfViewAsync(Guid viewId, IReadOnlyCollection<Guid> scenarioIds, CancellationToken cancellationToken);
     IEnumerable<SystemPermission> GetSystemPermissions();
     IEnumerable<ScenarioPermissionClaim> GetScenarioPermissions(Guid? scenarioId = null);
     IEnumerable<ScenarioTemplatePermissionClaim> GetScenarioTemplatePermissions(Guid? scenarioTemplateId = null);
+}
+
+/// <summary>The access a request needs on the Scenario or Scenario Template a record belongs to.</summary>
+public enum ScopeAccess
+{
+    View,
+    Edit
 }
 
 public class AuthorizationService(
@@ -104,12 +132,79 @@ public class AuthorizationService(
         return succeeded;
     }
 
-    public IEnumerable<Guid> GetAuthorizedScenarioIds()
+    public async Task<bool> AuthorizeScopeAsync(Guid? scenarioId, Guid? scenarioTemplateId, ScopeAccess access, CancellationToken cancellationToken)
     {
-        return identityResolver.GetClaimsPrincipal().Claims
-            .Where(x => x.Type == AuthorizationConstants.ScenarioPermissionClaimType)
-            .Select(x => ScenarioPermissionClaim.FromString(x.Value).ScenarioId)
+        // Both are asked, each about the id it was given, so that which check runs never depends on the
+        // request; the parent the request names then decides. An absent id asks only the system permission.
+        var onScenario = await AuthorizeAsync<Scenario>(scenarioId, [ScenarioSystemPermission(access)], [ScenarioPermissionFor(access)], cancellationToken);
+        var onScenarioTemplate = await AuthorizeAsync<ScenarioTemplate>(scenarioTemplateId, [ScenarioTemplateSystemPermission(access)], [ScenarioTemplatePermissionFor(access)], cancellationToken);
+
+        return (scenarioId, scenarioTemplateId) switch
+        {
+            (not null, null) => onScenario,
+            (null, not null) => onScenarioTemplate,
+            _ => false
+        };
+    }
+
+    public Task<bool> AuthorizeTaskScopeAsync(Guid taskId, ScopeAccess access, CancellationToken cancellationToken) =>
+        AuthorizeScopeOfAsync(dbContext.Tasks
+            .Where(x => x.Id == taskId)
+            .Select(x => new ParentScope(x.ScenarioId, x.ScenarioTemplateId)), access, cancellationToken);
+
+    public Task<bool> AuthorizeResultScopeAsync(Guid resultId, ScopeAccess access, CancellationToken cancellationToken) =>
+        AuthorizeScopeOfAsync(dbContext.Results
+            .Where(x => x.Id == resultId)
+            .Select(x => new ParentScope(x.Task.ScenarioId, x.Task.ScenarioTemplateId)), access, cancellationToken);
+
+    public Task<bool> AuthorizeVmCredentialScopeAsync(Guid vmCredentialId, ScopeAccess access, CancellationToken cancellationToken) =>
+        AuthorizeScopeOfAsync(dbContext.VmCredentials
+            .Where(x => x.Id == vmCredentialId)
+            .Select(x => new ParentScope(x.ScenarioId, x.ScenarioTemplateId)), access, cancellationToken);
+
+    // A record that is not there answers as one the caller may not reach, so that a 403 does not tell that
+    // it is there. Only a caller whose system permissions reach every record of its kind learns it is not.
+    private async Task<bool> AuthorizeScopeOfAsync(IQueryable<ParentScope> lookup, ScopeAccess access, CancellationToken cancellationToken)
+    {
+        var scope = await lookup.FirstOrDefaultAsync(cancellationToken);
+        if (scope == null)
+            return await HasSystemPermission<IAuthorizationType>([ScenarioSystemPermission(access)])
+                && await HasSystemPermission<IAuthorizationType>([ScenarioTemplateSystemPermission(access)]);
+
+        return await AuthorizeScopeAsync(scope.ScenarioId, scope.ScenarioTemplateId, access, cancellationToken);
+    }
+
+    private static SystemPermission ScenarioSystemPermission(ScopeAccess access) =>
+        access == ScopeAccess.Edit ? SystemPermission.EditScenarios : SystemPermission.ViewScenarios;
+
+    private static ScenarioPermission ScenarioPermissionFor(ScopeAccess access) =>
+        access == ScopeAccess.Edit ? ScenarioPermission.EditScenario : ScenarioPermission.ViewScenario;
+
+    private static SystemPermission ScenarioTemplateSystemPermission(ScopeAccess access) =>
+        access == ScopeAccess.Edit ? SystemPermission.EditScenarioTemplates : SystemPermission.ViewScenarioTemplates;
+
+    private static ScenarioTemplatePermission ScenarioTemplatePermissionFor(ScopeAccess access) =>
+        access == ScopeAccess.Edit ? ScenarioTemplatePermission.EditScenarioTemplate : ScenarioTemplatePermission.ViewScenarioTemplate;
+
+    public IReadOnlyList<Guid> GetAuthorizedScenarioIds(ScenarioPermission permission)
+    {
+        return GetScenarioPermissions()
+            .Where(x => x.Permissions.Contains(permission))
+            .Select(x => x.ScenarioId)
             .ToList();
+    }
+
+    public IReadOnlyList<Guid> GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission permission)
+    {
+        return GetScenarioTemplatePermissions()
+            .Where(x => x.Permissions.Contains(permission))
+            .Select(x => x.ScenarioTemplateId)
+            .ToList();
+    }
+
+    public async Task<bool> AnyScenarioOfViewAsync(Guid viewId, IReadOnlyCollection<Guid> scenarioIds, CancellationToken cancellationToken)
+    {
+        return await dbContext.Scenarios.AnyAsync(x => x.ViewId == viewId && scenarioIds.Contains(x.Id), cancellationToken);
     }
 
     public IEnumerable<SystemPermission> GetSystemPermissions()
@@ -169,15 +264,17 @@ public class AuthorizationService(
         return permissionResult.Succeeded;
     }
 
+    // A record that is not there resolves to null, as one that is there but has no scenario (or no
+    // template) does, and either grants nothing: a missing record answers 403, the same as one the
+    // caller may not reach, so that the answer does not tell which ids exist.
     private async Task<Guid?> GetScenarioId<T>(Guid resourceId, CancellationToken cancellationToken)
     {
         return typeof(T) switch
         {
-            var t when t == typeof(Scenario) => resourceId,
+            var t when t == typeof(Scenario) => await GetScenarioIdFromScenario(resourceId, cancellationToken),
             var t when t == typeof(SAVM.Task) => await GetScenarioIdFromTask(resourceId, cancellationToken),
             var t when t == typeof(ScenarioMembership) => await GetScenarioIdFromScenarioMembership(resourceId, cancellationToken),
             var t when t == typeof(Result) => await GetScenarioIdFromResult(resourceId, cancellationToken),
-            var t when t == typeof(PlayerView) => await GetScenarioIdFromPlayerView(resourceId, cancellationToken),
             _ => throw new NotImplementedException($"Handler for type {typeof(T).Name} is not implemented.")
         };
     }
@@ -186,83 +283,73 @@ public class AuthorizationService(
     {
         return typeof(T) switch
         {
-            var t when t == typeof(ScenarioTemplate) => resourceId,
-            var t when t == typeof(Scenario) => await GetScenarioTemplateIdFromScenario(resourceId, cancellationToken),
-            var t when t == typeof(SAVM.Task) => await GetScenarioIdFromTaskTemplate(resourceId, cancellationToken),
-            var t when t == typeof(ScenarioMembership) => await GetScenarioTemplateIdFromScenarioTemplateMembership(resourceId, cancellationToken),
+            var t when t == typeof(ScenarioTemplate) => await GetScenarioTemplateIdFromScenarioTemplate(resourceId, cancellationToken),
+            var t when t == typeof(SAVM.Task) => await GetScenarioTemplateIdFromTask(resourceId, cancellationToken),
+            var t when t == typeof(ScenarioTemplateMembership) => await GetScenarioTemplateIdFromScenarioTemplateMembership(resourceId, cancellationToken),
             _ => throw new NotImplementedException($"Handler for type {typeof(T).Name} is not implemented.")
         };
     }
 
-    private async Task<Guid> GetScenarioIdFromTask(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioIdFromScenario(Guid id, CancellationToken cancellationToken)
     {
-        return (Guid)await dbContext.Tasks
+        return (await dbContext.Scenarios
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.Id))
+            .FirstOrDefaultAsync(cancellationToken))?.Id;
     }
 
-    private async Task<Guid> GetScenarioIdFromTaskTemplate(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioIdFromTask(Guid id, CancellationToken cancellationToken)
     {
-        return (Guid)await dbContext.Tasks
+        return (await dbContext.Tasks
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioTemplateId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.ScenarioId))
+            .FirstOrDefaultAsync(cancellationToken))?.Id;
     }
 
-    private async Task<Guid> GetScenarioIdFromScenarioMembership(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioIdFromScenarioMembership(Guid id, CancellationToken cancellationToken)
     {
-        return await dbContext.ScenarioMemberships
+        return (await dbContext.ScenarioMemberships
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.ScenarioId))
+            .FirstOrDefaultAsync(cancellationToken))?.Id;
     }
 
-    private async Task<Guid> GetScenarioIdFromResult(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioIdFromResult(Guid id, CancellationToken cancellationToken)
     {
-        var taskId = await dbContext.Results
+        return (await dbContext.Results
             .Where(x => x.Id == id)
-            .Select(x => x.TaskId)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (taskId == null)
-            throw new EntityNotFoundException<Result>();
-
-        return (Guid)await dbContext.Tasks
-            .Where(m => m.Id == taskId)
-            .Select(m => m.ScenarioId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.Task.ScenarioId))
+            .FirstOrDefaultAsync(cancellationToken))?.Id;
     }
 
-    private async Task<Guid> GetScenarioIdFromPlayerView(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioTemplateIdFromScenarioTemplate(Guid id, CancellationToken cancellationToken)
     {
-        return (Guid)await dbContext.Scenarios
-            .Where(x => x.ViewId == id)
-            .Select(x => x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-    }
-
-    private async Task<Guid> GetScenarioTemplateIdFromScenario(Guid id, CancellationToken cancellationToken)
-    {
-        return (Guid)await dbContext.Tasks
+        return (await dbContext.ScenarioTemplates
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.Id))
+            .FirstOrDefaultAsync(cancellationToken))?.Id;
     }
 
-    private async Task<Guid> GetScenarioTemplateIdFromScenarioTemplateMembership(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioTemplateIdFromTask(Guid id, CancellationToken cancellationToken)
     {
-        return await dbContext.ScenarioTemplateMemberships
+        return (await dbContext.Tasks
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioTemplateId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.ScenarioTemplateId))
+            .FirstOrDefaultAsync(cancellationToken))?.Id;
     }
 
-    private async Task<Guid> GetScenarioTemplateIdFromTask(Guid id, CancellationToken cancellationToken)
+    private async Task<Guid?> GetScenarioTemplateIdFromScenarioTemplateMembership(Guid id, CancellationToken cancellationToken)
     {
-        return (Guid)await dbContext.Tasks
+        return (await dbContext.ScenarioTemplateMemberships
             .Where(x => x.Id == id)
-            .Select(x => x.ScenarioTemplateId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Select(x => new ScopeRow(x.ScenarioTemplateId))
+            .FirstOrDefaultAsync(cancellationToken))?.Id;
     }
+
+    /// <summary>The scope a looked-up record belongs to; null when it belongs to none. No row means no record.</summary>
+    private sealed record ScopeRow(Guid? Id);
+
+    /// <summary>The Scenario or Scenario Template a looked-up record belongs to.</summary>
+    private sealed record ParentScope(Guid? ScenarioId, Guid? ScenarioTemplateId);
 
 }

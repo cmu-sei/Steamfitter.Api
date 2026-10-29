@@ -210,9 +210,8 @@ public class ScenarioTemplateMembershipControllerTests(DatabaseFixture fixture, 
         Assert.False(await db.ScenarioTemplateMemberships.AnyAsync(x => x.UserId == user.Id, Ct));
     }
 
-    /// <summary>A body naming another template than the route is answered with a 500.</summary>
     [Fact]
-    public async Task Create_answers_a_body_naming_another_template_with_a_server_error()
+    public async Task Create_puts_the_membership_in_the_template_of_the_url_whatever_the_body_names()
     {
         var template = TestData.ScenarioTemplate();
         var other = TestData.ScenarioTemplate("Other");
@@ -224,8 +223,23 @@ public class ScenarioTemplateMembershipControllerTests(DatabaseFixture fixture, 
             new { scenarioTemplateId = other.Id, userId = user.Id, roleId = TestData.ScenarioTemplateRoles.Member },
             Ct);
 
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError, response);
-        Assert.Equal("The ScenarioTemplateId of the membership must match the ScenarioTemplateId of the URL.", error.Detail);
+        await AssertStatus(HttpStatusCode.Created, response);
+        await using var db = NewContext();
+        Assert.True(await db.ScenarioTemplateMemberships.AnyAsync(x => x.ScenarioTemplateId == template.Id && x.UserId == user.Id, Ct));
+        Assert.False(await db.ScenarioTemplateMemberships.AnyAsync(x => x.ScenarioTemplateId == other.Id, Ct));
+    }
+
+    /// <summary>A membership that is not there is answered as one the caller may not reach, unless any would be.</summary>
+    [Fact]
+    public async Task Update_of_a_membership_that_is_not_there_is_forbidden_to_a_member_and_not_found_by_the_system()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ManageScenarioTemplate]).SeedAsync();
+        var url = $"api/scenarioTemplates/memberships/{Guid.NewGuid()}";
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).PutAsJsonAsync(url, new { roleId = TestData.ScenarioTemplateRoles.Manager }, Ct));
+        await AssertStatus(HttpStatusCode.NotFound, await RootClient.PutAsJsonAsync(url, new { roleId = TestData.ScenarioTemplateRoles.Manager }, Ct));
     }
 
     [Theory]

@@ -153,7 +153,7 @@ namespace Steamfitter.Api.Controllers
         [HttpPost("Scenarios")]
         [ProducesResponseType(typeof(SAVM.Scenario), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createScenario")]
-        public async STT.Task<IActionResult> Create([FromBody] SAVM.ScenarioForm scenarioForm, CancellationToken ct)
+        public async STT.Task<IActionResult> Create([FromBody] SAVM.ScenarioCreate scenarioForm, CancellationToken ct)
         {
             if (!await _authorizationService.AuthorizeAsync([SystemPermission.CreateScenarios], ct))
                 throw new ForbiddenException();
@@ -229,7 +229,7 @@ namespace Steamfitter.Api.Controllers
         [HttpPut("Scenarios/{id}")]
         [ProducesResponseType(typeof(SAVM.Scenario), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "updateScenario")]
-        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.ScenarioForm scenarioForm, CancellationToken ct)
+        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.ScenarioEdit scenarioForm, CancellationToken ct)
         {
             if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                 throw new ForbiddenException();

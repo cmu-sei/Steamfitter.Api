@@ -64,17 +64,6 @@ public class AuthorizationServiceTests(DatabaseFixture fixture) : DatabaseTestBa
     }
 
     [Fact]
-    public async Task A_scenario_permission_grants_for_the_view_the_scenario_belongs_to()
-    {
-        var viewId = Guid.NewGuid();
-        var scenario = TestData.Scenario(viewId: viewId);
-        await Seed(scenario);
-        var service = Service(new ClaimsPrincipalBuilder().WithScenario(scenario.Id, ScenarioPermission.ViewTasks));
-
-        Assert.True(await service.AuthorizeAsync<SAVM.PlayerView>(viewId, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewTasks], Ct));
-    }
-
-    [Fact]
     public async Task A_scenario_permission_on_a_memberships_scenario_grants_for_the_membership()
     {
         var scenario = TestData.Scenario();
@@ -89,25 +78,63 @@ public class AuthorizationServiceTests(DatabaseFixture fixture) : DatabaseTestBa
     [Fact]
     public async Task A_template_permission_grants_for_the_template()
     {
-        var templateId = Guid.NewGuid();
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var templateId = template.Id;
         var service = Service(new ClaimsPrincipalBuilder().WithScenarioTemplate(templateId, ScenarioTemplatePermission.ViewScenarioTemplate));
 
         Assert.True(await service.AuthorizeAsync<SAVM.ScenarioTemplate>(templateId, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], Ct));
     }
 
-    /// <summary>The template lookup for a scenario id throws.</summary>
     [Fact]
-    public async Task The_template_lookup_for_a_scenario_throws()
+    public async Task A_task_that_is_not_there_grants_nothing_as_one_the_caller_may_not_reach()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
+
+        Assert.False(await service.AuthorizeAsync<SAVM.Task>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+    }
+
+    [Fact]
+    public async Task A_scenario_that_is_not_there_grants_nothing_as_one_the_caller_may_not_reach()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
+
+        Assert.False(await service.AuthorizeAsync<SAVM.Scenario>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+    }
+
+    [Fact]
+    public async Task A_result_that_is_not_there_grants_nothing_as_one_the_caller_may_not_reach()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
+
+        Assert.False(await service.AuthorizeAsync<SAVM.Result>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+    }
+
+    [Fact]
+    public async Task A_template_that_is_not_there_grants_nothing_as_one_the_caller_may_not_reach()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithScenarioTemplate(Guid.NewGuid(), ScenarioTemplatePermission.ViewScenarioTemplate));
+
+        Assert.False(await service.AuthorizeAsync<SAVM.ScenarioTemplate>(Guid.NewGuid(), [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], Ct));
+    }
+
+    [Fact]
+    public async Task A_system_permission_grants_before_the_lookup_so_a_missing_record_is_left_to_the_service()
+    {
+        var service = Service(new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ViewScenarios));
+
+        Assert.True(await service.AuthorizeAsync<SAVM.Task>(Guid.NewGuid(), [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
+    }
+
+    [Fact]
+    public async Task A_template_task_grants_nothing_through_a_scenario_permission()
     {
         var template = TestData.ScenarioTemplate();
-        var scenario = TestData.Scenario(scenarioTemplateId: template.Id);
-        await Seed(template, scenario);
-        var service = Service(new ClaimsPrincipalBuilder().WithScenarioTemplate(template.Id, ScenarioTemplatePermission.ViewScenarioTemplate));
+        var task = TestData.TemplateTask(template.Id);
+        await Seed(template, task);
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(Guid.NewGuid(), ScenarioPermission.ViewScenario));
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.AuthorizeAsync<SAVM.Scenario>(scenario.Id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], Ct));
-
-        Assert.Equal("Nullable object must have a value.", error.Message);
+        Assert.False(await service.AuthorizeAsync<SAVM.Task>(task.Id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], Ct));
     }
 
     [Fact]
@@ -121,13 +148,25 @@ public class AuthorizationServiceTests(DatabaseFixture fixture) : DatabaseTestBa
     }
 
     [Fact]
-    public void GetAuthorizedScenarioIds_lists_every_scenario_the_caller_holds_a_claim_on()
+    public void GetAuthorizedScenarioIds_lists_only_the_scenarios_the_caller_holds_the_permission_on()
     {
-        var first = Guid.NewGuid();
-        var second = Guid.NewGuid();
-        var service = Service(new ClaimsPrincipalBuilder().WithScenario(first, ScenarioPermission.ViewScenario).WithScenario(second));
+        var viewed = Guid.NewGuid();
+        var memberOnly = Guid.NewGuid();
+        var service = Service(new ClaimsPrincipalBuilder().WithScenario(viewed, ScenarioPermission.ViewScenario).WithScenario(memberOnly));
 
-        Assert.Equal(new[] { first, second }.Order(), service.GetAuthorizedScenarioIds().Order());
+        Assert.Equal([viewed], service.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario));
+    }
+
+    [Fact]
+    public void GetAuthorizedScenarioTemplateIds_lists_only_the_templates_the_caller_holds_the_permission_on()
+    {
+        var viewed = Guid.NewGuid();
+        var editedOnly = Guid.NewGuid();
+        var service = Service(new ClaimsPrincipalBuilder()
+            .WithScenarioTemplate(viewed, ScenarioTemplatePermission.ViewScenarioTemplate)
+            .WithScenarioTemplate(editedOnly, ScenarioTemplatePermission.EditScenarioTemplate));
+
+        Assert.Equal([viewed], service.GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission.ViewScenarioTemplate));
     }
 
     [Fact]

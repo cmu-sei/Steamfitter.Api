@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Hubs;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Extensions;
 using System;
 using System.Collections.Generic;
@@ -256,7 +257,7 @@ namespace Steamfitter.Api.Services
                             else
                             {
                                 // Process the subtasks
-                                var subtaskEntityList = GetSubtasksToExecute(taskToExecute.Id, steamfitterContext, taskToExecute.Status);
+                                var subtaskEntityList = GetSubtasksToExecute(taskToExecute, steamfitterContext, taskToExecute.Status);
                                 foreach (var subtaskEntity in subtaskEntityList)
                                 {
                                     subtaskEntity.Status = TaskStatus.pending;
@@ -443,8 +444,7 @@ namespace Steamfitter.Api.Services
             var xref = new Dictionary<int, ResultEntity>();
             foreach (var resultEntity in resultEntityList)
             {
-                resultEntity.InputString = resultEntity.InputString.Replace("{moid}", resultEntity.VmId.ToString());
-                resultEntity.InputString = resultEntity.InputString.Replace("{VmName}", resultEntity.VmName);
+                resultEntity.InputString = TaskVmParameters.BindToVm(resultEntity.InputString, resultEntity);
                 resultEntity.Status = TaskStatus.pending;
                 resultEntity.StatusDate = DateTime.UtcNow;
                 // if no expiration is set, us the maximum allowed by the TaskProcessMaxWaitSeconds setting
@@ -755,9 +755,11 @@ namespace Steamfitter.Api.Services
             resultEntity.StatusDate = DateTime.UtcNow;
         }
 
-        private IEnumerable<TaskEntity> GetSubtasksToExecute(Guid executedTaskId, SteamfitterContext steamfitterContext, Data.TaskStatus executedTaskStatus)
+        private IEnumerable<TaskEntity> GetSubtasksToExecute(TaskEntity executedTask, SteamfitterContext steamfitterContext, Data.TaskStatus executedTaskStatus)
         {
-            var subtaskEntities = steamfitterContext.Tasks.Where(t => t.TriggerTaskId == executedTaskId);
+            // a subtask runs only in its trigger task's Scenario, never in another one it was linked from
+            var subtaskEntities = steamfitterContext.Tasks.InScope(executedTask.ScenarioId, executedTask.ScenarioTemplateId)
+                .Where(t => t.TriggerTaskId == executedTask.Id);
             if (subtaskEntities.Any())
             {
                 // filter the sutaskEntities based on the trigger task's status

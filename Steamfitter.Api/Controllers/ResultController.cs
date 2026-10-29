@@ -79,10 +79,14 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getViewResults")]
         public async STT.Task<IActionResult> GetByViewId(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync<ViewModels.PlayerView>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+            if (await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct))
+                return Ok(await _ResultService.GetByViewIdAsync(id, null, ct));
+
+            var scenarioIds = _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario);
+            if (!await _authorizationService.AnyScenarioOfViewAsync(id, scenarioIds, ct))
                 throw new ForbiddenException();
 
-            var list = await _ResultService.GetByViewIdAsync(id, ct);
+            var list = await _ResultService.GetByViewIdAsync(id, scenarioIds, ct);
             return Ok(list);
         }
 
@@ -134,7 +138,7 @@ namespace Steamfitter.Api.Controllers
         public async STT.Task<IActionResult> GetByVmId(Guid id, CancellationToken ct)
         {
             var hasSystemPermission = await _authorizationService.AuthorizeAsync([SystemPermission.ViewScenarios], ct);
-            var authorizedScenarioIds = _authorizationService.GetAuthorizedScenarioIds();
+            var authorizedScenarioIds = _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario);
 
             if (!hasSystemPermission && !authorizedScenarioIds.Any())
                 throw new ForbiddenException();
@@ -180,10 +184,9 @@ namespace Steamfitter.Api.Controllers
         [HttpPost("Results")]
         [ProducesResponseType(typeof(SAVM.Result), (int)HttpStatusCode.Created)]
         [SwaggerOperation(OperationId = "createResult")]
-        public async STT.Task<IActionResult> Create([FromBody] SAVM.Result result, CancellationToken ct)
+        public async STT.Task<IActionResult> Create([FromBody] SAVM.ResultCreate result, CancellationToken ct)
         {
-            if (result.TaskId == null ||
-                !await _authorizationService.AuthorizeAsync<ViewModels.Task>(result.TaskId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Task>(result.TaskId, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                 throw new ForbiddenException();
 
             var createdResult = await _ResultService.CreateAsync(result, ct);
@@ -204,7 +207,7 @@ namespace Steamfitter.Api.Controllers
         [HttpPut("Results/{id}")]
         [ProducesResponseType(typeof(SAVM.Result), (int)HttpStatusCode.OK)]
         [SwaggerOperation(OperationId = "updateResult")]
-        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.Result result, CancellationToken ct)
+        public async STT.Task<IActionResult> Update([FromRoute] Guid id, [FromBody] SAVM.ResultEdit result, CancellationToken ct)
         {
             if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                 throw new ForbiddenException();
@@ -228,7 +231,8 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "deleteResult")]
         public async STT.Task<IActionResult> Delete(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.ManageScenarios], [ScenarioPermission.ManageScenario], ct))
+            // deleting a result is an edit of its scenario, as creating, updating or deleting its task is
+            if (!await _authorizationService.AuthorizeAsync<ViewModels.Result>(id, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                 throw new ForbiddenException();
 
             await _ResultService.DeleteAsync(id, ct);

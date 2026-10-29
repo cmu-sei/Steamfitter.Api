@@ -35,14 +35,25 @@ public class PermissionHandlerTests
     }
 
     [Fact]
-    public async Task SystemPermissionHandler_succeeds_for_anyone_when_no_permission_is_required()
+    public async Task SystemPermissionHandler_fails_when_no_permission_is_required()
     {
         var context = await AuthorizationHarness.HandleAsync(
             new SystemPermissionHandler(),
             new SystemPermissionRequirement([]),
-            ClaimsPrincipalBuilder.Anonymous());
+            new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ManageTasks).Build());
 
-        Assert.True(context.HasSucceeded);
+        Assert.True(context.HasFailed);
+    }
+
+    [Fact]
+    public async Task SystemPermissionHandler_fails_for_a_null_permission_list()
+    {
+        var context = await AuthorizationHarness.HandleAsync(
+            new SystemPermissionHandler(),
+            new SystemPermissionRequirement(null),
+            new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.ManageTasks).Build());
+
+        Assert.True(context.HasFailed);
     }
 
     [Fact]
@@ -102,6 +113,32 @@ public class PermissionHandlerTests
             new ScenarioTemplatePermissionHandler(),
             new ScenarioTemplatePermissionRequirement([ScenarioTemplatePermission.EditScenarioTemplate], Guid.NewGuid()),
             new ClaimsPrincipalBuilder().WithSystemPermissions(SystemPermission.EditScenarioTemplates).Build());
+
+        Assert.True(context.HasFailed);
+    }
+
+    [Fact]
+    public async Task ScenarioPermissionHandler_fails_when_no_permission_is_required_even_with_a_claim_on_the_scenario()
+    {
+        var scenarioId = Guid.NewGuid();
+
+        var context = await AuthorizationHarness.HandleAsync(
+            new ScenarioPermissionHandler(),
+            new ScenarioPermissionRequirement([], scenarioId),
+            new ClaimsPrincipalBuilder().WithScenario(scenarioId, ScenarioPermission.ViewScenario).Build());
+
+        Assert.True(context.HasFailed);
+    }
+
+    [Fact]
+    public async Task ScenarioTemplatePermissionHandler_fails_when_no_permission_is_required_even_with_a_claim_on_the_template()
+    {
+        var templateId = Guid.NewGuid();
+
+        var context = await AuthorizationHarness.HandleAsync(
+            new ScenarioTemplatePermissionHandler(),
+            new ScenarioTemplatePermissionRequirement([], templateId),
+            new ClaimsPrincipalBuilder().WithScenarioTemplate(templateId, ScenarioTemplatePermission.ViewScenarioTemplate).Build());
 
         Assert.True(context.HasFailed);
     }

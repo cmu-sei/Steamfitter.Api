@@ -58,12 +58,14 @@ namespace Steamfitter.Api.Services
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
+        private readonly IUserClaimsService _userClaimsService;
 
-        public ScenarioTemplateArchiveService(SteamfitterContext context, IPrincipal user, IMapper mapper)
+        public ScenarioTemplateArchiveService(SteamfitterContext context, IPrincipal user, IMapper mapper, IUserClaimsService userClaimsService)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
             _mapper = mapper;
+            _userClaimsService = userClaimsService;
         }
 
         #region Export
@@ -101,6 +103,7 @@ namespace Steamfitter.Api.Services
 
         private static ScenarioTemplateExport ToExport(ScenarioTemplateEntity template)
         {
+            var taskIds = template.Tasks.Select(t => t.Id).ToHashSet();
             return new ScenarioTemplateExport
             {
                 Id = template.Id,
@@ -119,13 +122,17 @@ namespace Steamfitter.Api.Services
                     })
                     .ToList(),
                 Tasks = OrderParentsFirst(template.Tasks)
-                    .Select(ToExport)
+                    .Select(t => ToExport(t, taskIds))
                     .ToList()
             };
         }
 
-        private static TaskExport ToExport(TaskEntity task)
+        // a trigger Task in another Scenario or Scenario Template is a link the runner does not follow and
+        // an import refuses, so the Task is written as the root it acts as: a manual one, as deleting that
+        // trigger would leave it, so that it does not start with the Scenario
+        private static TaskExport ToExport(TaskEntity task, IReadOnlySet<Guid> templateTaskIds)
         {
+            var triggerInTemplate = task.TriggerTaskId.HasValue && templateTaskIds.Contains(task.TriggerTaskId.Value);
             var export = new TaskExport
             {
                 Id = task.Id,
@@ -140,8 +147,8 @@ namespace Steamfitter.Api.Services
                 IntervalSeconds = task.IntervalSeconds,
                 Iterations = task.Iterations,
                 IterationTermination = task.IterationTermination,
-                TriggerTaskId = task.TriggerTaskId,
-                TriggerCondition = task.TriggerCondition,
+                TriggerTaskId = triggerInTemplate ? task.TriggerTaskId : null,
+                TriggerCondition = triggerInTemplate || !task.TriggerTaskId.HasValue ? task.TriggerCondition : TaskTrigger.Manual,
                 Score = task.Score,
                 UserExecutable = task.UserExecutable,
                 Repeatable = task.Repeatable
@@ -278,6 +285,7 @@ namespace Steamfitter.Api.Services
                 // needed (and none is opened, which keeps this safe under a retrying
                 // execution strategy).
                 await _context.SaveChangesAsync(ct);
+                await _userClaimsService.RefreshCurrentClaimsAsync();
             }
 
             result.ScenarioTemplates = _mapper.Map<List<ScenarioTemplate>>(entities);
@@ -481,6 +489,8 @@ namespace Steamfitter.Api.Services
             var taskEntities = new Dictionary<Guid, TaskEntity>();
             foreach (var task in template.Tasks)
             {
+                // a file cannot choose the VM a Task runs on, any more than a create request can
+                TaskVmParameters.Reserve(task.ActionParameters);
                 var taskEntity = new TaskEntity
                 {
                     Id = Guid.NewGuid(),

@@ -22,10 +22,16 @@ namespace Steamfitter.Api.Infrastructure.Mappings
             CreateMap<ScenarioEntity, Scenario>();
             CreateMap<Scenario, ScenarioEntity>();
 
+            // a copy gets its own tasks, credentials and memberships; mapping the original's collections
+            // would move whichever of their rows the context tracks onto the copy
             CreateMap<ScenarioEntity, ScenarioEntity>()
-                .ForMember(e => e.Id, opt => opt.Ignore());
+                .ForMember(e => e.Id, opt => opt.Ignore())
+                .ForMember(e => e.Tasks, opt => opt.Ignore())
+                .ForMember(e => e.VmCredentials, opt => opt.Ignore())
+                .ForMember(e => e.Memberships, opt => opt.Ignore());
 
-            CreateMap<ScenarioForm, ScenarioEntity>();
+            CreateMap<ScenarioCreate, ScenarioEntity>(AutoMapper.MemberList.Source);
+            CreateMap<ScenarioEdit, ScenarioEntity>(AutoMapper.MemberList.Source);
         }
     }
 }

@@ -52,6 +52,31 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.Equal("exported", Assert.Single(export.VmCredentials).Username);
     }
 
+    /// <summary>
+    /// A Task whose trigger is in another template, as data from before triggers were kept in one scope can be,
+    /// is written as the manual root it acts as, so the export imports.
+    /// </summary>
+    [Fact]
+    public async Task Export_writes_a_task_triggered_from_another_template_as_a_manual_root_that_imports()
+    {
+        var other = TestData.ScenarioTemplate("Other");
+        var foreignTrigger = TestData.TemplateTask(other.Id, "Foreign trigger");
+        var template = TestData.ScenarioTemplate("Linked");
+        var linked = TestData.TemplateTask(template.Id, "Linked", triggerTaskId: foreignTrigger.Id);
+        linked.TriggerCondition = TaskTrigger.Success;
+        await Seed(other, foreignTrigger, template, linked);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates, SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var response = await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={template.Id}", Ct);
+        var file = await response.Content.ReadAsByteArrayAsync(Ct);
+        var exported = Assert.Single(JsonSerializer.Deserialize<SAVM.ScenarioTemplateExport>(file, ExportJson).Tasks);
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(await Import(actor, file, "Linked.json"), ExportJson);
+
+        Assert.Equal((null, TaskTrigger.Manual), (exported.TriggerTaskId, exported.TriggerCondition));
+        Assert.Empty(result.Failures);
+        Assert.Single(result.ScenarioTemplates);
+    }
+
     [Fact]
     public async Task Export_of_several_templates_returns_a_list_in_scenario_templates_json()
     {
@@ -117,6 +142,17 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
     }
 
     [Fact]
+    public async Task Export_of_an_unknown_template_is_forbidden_to_a_member_of_a_template()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template);
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden,
+            await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={Guid.NewGuid()}", Ct));
+    }
+
+    [Fact]
     public async Task Export_is_forbidden_for_a_caller_holding_ViewScenarioTemplate_only_on_another_template()
     {
         var template = TestData.ScenarioTemplate();
@@ -153,6 +189,27 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.NotEqual(export.VmCredentials[0].Id, credential.Id);
         Assert.Equal(credential.Id, stored.DefaultVmCredentialId);
         Assert.Equal(TestData.ScenarioTemplateRoles.Manager, Assert.Single(stored.Memberships, x => x.UserId == actor.Id).RoleId);
+        Assert.Contains(nameof(ScenarioTemplatePermission.EditScenarioTemplate), created.ScenarioTemplatePermissions);
+    }
+
+    /// <summary>A file names no VM for a Task to run on, as a create request cannot: the markers are stored instead.</summary>
+    [Fact]
+    public async Task Import_stores_the_vm_markers_in_place_of_a_vm_the_file_names()
+    {
+        var export = Export("Pinned");
+        export.Tasks[0].Action = TaskAction.guest_process_run;
+        export.Tasks[0].ApiUrl = "vm";
+        export.Tasks[0].ActionParameters = new() { ["Moid"] = Guid.NewGuid().ToString(), ["VmName"] = "elsewhere", ["CommandText"] = "whoami" };
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(await Import(actor, Json([export]), "Pinned.json"), ExportJson);
+
+        var created = Assert.Single(result.ScenarioTemplates);
+        await using var db = NewContext();
+        var stored = await db.Tasks.SingleAsync(x => x.ScenarioTemplateId == created.Id && x.Name == "Parent", Ct);
+        Assert.Equal(
+            new Dictionary<string, string> { ["Moid"] = "{moid}", ["VmName"] = "{VmName}", ["CommandText"] = "whoami" },
+            JsonSerializer.Deserialize<Dictionary<string, string>>(stored.InputString));
     }
 
     /// <summary>A child task counts once, inside its parent's total: root 10 with child 5 scores 15, not 20.</summary>

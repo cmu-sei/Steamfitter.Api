@@ -265,19 +265,23 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/vms/{Guid.NewGuid()}/results", Ct));
     }
 
-    /// <summary>A member holding only ViewTasks on a scenario reads that scenario's results on a VM.</summary>
     [Fact]
-    public async Task GetByVmId_returns_the_results_of_a_scenario_to_a_member_holding_only_ViewTasks_on_it()
+    public async Task GetByVmId_leaves_out_the_results_of_a_scenario_the_member_holds_only_ViewTasks_on()
     {
         var vmId = Guid.NewGuid();
         var (scenario, task) = await SeedScenarioTask();
-        var result = TestData.Result(task.Id, vmId);
-        await Seed(result);
-        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewTasks]).SeedAsync();
+        var (viewed, viewedTask) = await SeedScenarioTask();
+        var hidden = TestData.Result(task.Id, vmId);
+        var shown = TestData.Result(viewedTask.Id, vmId);
+        await Seed(hidden, shown);
+        var actor = await Actor()
+            .OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewTasks])
+            .OnScenario(viewed.Id, permissions: [ScenarioPermission.ViewScenario])
+            .SeedAsync();
 
         var results = await ReadAsync<List<SAVM.Result>>(await Client(actor).GetAsync($"api/vms/{vmId}/results", Ct));
 
-        Assert.Equal([result.Id], results.Select(x => x.Id));
+        Assert.Equal([shown.Id], results.Select(x => x.Id));
     }
 
     [Fact]
@@ -400,12 +404,12 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Delete_removes_the_result_for_a_member_holding_ManageScenario()
+    public async Task Delete_removes_the_result_for_a_member_holding_EditScenario()
     {
         var (scenario, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         await Seed(result);
-        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ManageScenario]).SeedAsync();
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
         await AssertStatus(HttpStatusCode.NoContent, await Client(actor).DeleteAsync($"api/results/{result.Id}", Ct));
 
@@ -414,12 +418,12 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Delete_is_forbidden_for_a_member_holding_only_EditScenario()
+    public async Task Delete_is_forbidden_for_a_member_holding_only_ViewScenario()
     {
         var (scenario, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         await Seed(result);
-        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/results/{result.Id}", Ct));
         await using var db = NewContext();
@@ -439,13 +443,12 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Create_of_a_result_without_a_task_is_forbidden_for_a_caller_holding_EditScenarios()
+    public async Task Create_of_a_result_without_a_task_is_a_bad_request_for_a_caller_holding_EditScenarios()
     {
         var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
-        var error = await AssertJsonError(HttpStatusCode.Forbidden, await Client(actor).PostAsJsonAsync("api/results", new { actualOutput = "No task" }, Ct));
+        await AssertStatus(HttpStatusCode.BadRequest, await Client(actor).PostAsJsonAsync("api/results", new { actualOutput = "No task" }, Ct));
 
-        Assert.Equal(InsufficientPermissions, error.Title);
         await using var db = NewContext();
         Assert.False(await db.Results.AnyAsync(x => x.ActualOutput == "No task", Ct));
     }
@@ -476,12 +479,12 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Delete_removes_the_result_for_a_caller_holding_ManageScenarios()
+    public async Task Delete_removes_the_result_for_a_caller_holding_EditScenarios()
     {
         var (_, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         await Seed(result);
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarios).SeedAsync();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
         await AssertStatus(HttpStatusCode.NoContent, await Client(actor).DeleteAsync($"api/results/{result.Id}", Ct));
 
@@ -490,19 +493,18 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Delete_is_forbidden_for_a_caller_holding_only_EditScenarios()
+    public async Task Delete_is_forbidden_for_a_caller_holding_only_ViewScenarios()
     {
         var (_, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         await Seed(result);
-        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
 
         await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).DeleteAsync($"api/results/{result.Id}", Ct));
     }
 
-    /// <summary>A result is moved onto a task of a scenario the caller may not edit when the body names that task.</summary>
     [Fact]
-    public async Task Update_moves_a_result_onto_a_task_of_another_scenario_the_body_names()
+    public async Task Update_keeps_the_result_on_its_task_whatever_the_body_names()
     {
         var (mine, myTask) = await SeedScenarioTask();
         var (_, theirTask) = await SeedScenarioTask();
@@ -510,39 +512,69 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
         await Seed(result);
         var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
-        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/results/{result.Id}", ResultForm(theirTask.Id, "Moved", result.Id), Ct));
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/results/{result.Id}", ResultForm(theirTask.Id, "Kept", result.Id), Ct));
 
         await using var db = NewContext();
-        Assert.Equal(theirTask.Id, (await db.Results.SingleAsync(x => x.Id == result.Id, Ct)).TaskId);
+        var stored = await db.Results.SingleAsync(x => x.Id == result.Id, Ct);
+        Assert.Equal((myTask.Id, "Kept"), (stored.TaskId.Value, stored.ActualOutput));
     }
 
-    /// <summary>An update body without the result's id is answered with a 500.</summary>
+    /// <summary>The task runner owns what runs and where, so the body cannot queue a result, pick its VM or set its input.</summary>
     [Fact]
-    public async Task Update_answers_a_body_without_the_results_id_with_a_server_error()
+    public async Task Update_leaves_the_status_vm_and_input_of_the_result_alone()
+    {
+        var (scenario, task) = await SeedScenarioTask();
+        var result = TestData.Result(task.Id);
+        await Seed(result);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/results/{result.Id}", ExecutableResultForm(task.Id, result.Id), Ct));
+
+        await using var db = NewContext();
+        var stored = await db.Results.SingleAsync(x => x.Id == result.Id, Ct);
+        Assert.Equal((TaskStatus.succeeded, (Guid?)null, "vm", "{}"), (stored.Status, stored.VmId, stored.VmName, stored.InputString));
+    }
+
+    [Fact]
+    public async Task Create_does_not_queue_the_result_or_take_a_vm_or_input_from_the_body()
+    {
+        var (scenario, task) = await SeedScenarioTask();
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        var created = await ReadAsync<SAVM.Result>(await Client(actor).PostAsJsonAsync("api/results", ExecutableResultForm(task.Id), Ct));
+
+        await using var db = NewContext();
+        var stored = await db.Results.SingleAsync(x => x.Id == created.Id, Ct);
+        Assert.Equal((TaskStatus.none, (Guid?)null, (string)null), (stored.Status, stored.VmId, stored.VmName));
+        Assert.DoesNotContain(ForeignVmId.ToString(), stored.InputString ?? "");
+    }
+
+    [Fact]
+    public async Task Update_saves_a_body_without_the_results_id()
     {
         var (_, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         await Seed(result);
 
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError, await RootClient.PutAsJsonAsync($"api/results/{result.Id}", ResultForm(task.Id, "No id"), Ct));
+        await AssertStatus(HttpStatusCode.OK, await RootClient.PutAsJsonAsync($"api/results/{result.Id}", ResultForm(task.Id, "No id"), Ct));
 
-        Assert.StartsWith("The property 'ResultEntity.Id' is part of a key", error.Detail);
+        await using var db = NewContext();
+        Assert.Equal("No id", (await db.Results.SingleAsync(x => x.Id == result.Id, Ct)).ActualOutput);
     }
 
-    /// <summary>A member of one scenario of a view reads the results of every scenario of the view.</summary>
     [Fact]
-    public async Task GetByViewId_returns_the_results_of_every_scenario_of_the_view_to_a_member_of_one()
+    public async Task GetByViewId_returns_only_the_results_of_the_scenarios_of_the_view_the_member_may_view()
     {
         var viewId = Guid.NewGuid();
         var (mine, myTask) = await SeedScenarioTask(viewId);
         var (_, theirTask) = await SeedScenarioTask(viewId);
-        var theirs = TestData.Result(theirTask.Id);
-        await Seed(TestData.Result(myTask.Id), theirs);
+        var my = TestData.Result(myTask.Id);
+        await Seed(my, TestData.Result(theirTask.Id));
         var actor = await Actor().OnScenario(mine.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
 
         var results = await ReadAsync<List<SAVM.Result>>(await Client(actor).GetAsync($"api/views/{viewId}/results", Ct));
 
-        Assert.Contains(theirs.Id, results.Select(x => x.Id));
+        Assert.Equal([my.Id], results.Select(x => x.Id));
     }
 
     /// <summary>Creating a result broadcasts nothing to the result's scenario.</summary>
@@ -557,19 +589,18 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
     }
 
     [Fact]
-    public async Task Create_answers_an_existing_result_id_with_a_server_error()
+    public async Task Create_ignores_an_existing_result_id_in_the_body()
     {
         var (_, task) = await SeedScenarioTask();
         var result = TestData.Result(task.Id);
         result.ActualOutput = "Original";
         await Seed(result);
 
-        var error = await AssertJsonError(HttpStatusCode.InternalServerError,
-            await RootClient.PostAsJsonAsync("api/results", ResultForm(task.Id, "Replacement", result.Id), Ct));
+        var created = await ReadAsync<SAVM.Result>(await RootClient.PostAsJsonAsync("api/results", ResultForm(task.Id, "Replacement", result.Id), Ct));
 
-        Assert.Contains("saving the entity changes", error.Detail);
+        Assert.NotEqual(result.Id, created.Id);
         await using var db = NewContext();
-        Assert.Equal("Original", (await db.Results.SingleAsync(Ct)).ActualOutput);
+        Assert.Equal("Original", (await db.Results.SingleAsync(x => x.Id == result.Id, Ct)).ActualOutput);
     }
 
     private async Task<(Data.Models.ScenarioEntity Scenario, Data.Models.TaskEntity Task)> SeedScenarioTask(Guid? viewId = null)
@@ -580,6 +611,22 @@ public class ResultControllerTests(DatabaseFixture fixture, SteamfitterAppFactor
 
         return (scenario, task);
     }
+
+    private static readonly Guid ForeignVmId = Guid.NewGuid();
+
+    private static object ExecutableResultForm(Guid taskId, Guid? id = null) => new
+    {
+        id = id ?? Guid.Empty,
+        taskId,
+        vmId = ForeignVmId,
+        vmName = "foreign",
+        action = "send_email",
+        apiUrl = "email",
+        actionParameters = new Dictionary<string, string> { ["Moid"] = ForeignVmId.ToString() },
+        status = nameof(TaskStatus.queued),
+        expectedOutput = "",
+        actualOutput = "planted"
+    };
 
     private static object ResultForm(Guid taskId, string actualOutput, Guid? id = null) => new
     {

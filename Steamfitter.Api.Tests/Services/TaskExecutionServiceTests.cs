@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
@@ -111,6 +112,27 @@ public class TaskExecutionServiceTests(DatabaseFixture fixture) : ServiceTestBas
         Assert.Empty(RootHost.Executors.CallsContaining("marker-inactive"));
     }
 
+    [Fact]
+    public async Task A_subtask_in_another_scenario_is_not_run_when_its_trigger_finishes()
+    {
+        var parent = await SeedActiveTask(TaskAction.send_email, "email", """{"Subject":"marker-parent"}""");
+        var sibling = TestData.ScenarioTask(parent.ScenarioId.Value, "Same scenario child", triggerTaskId: parent.Id);
+        sibling.InputString = """{"Subject":"marker-same-scenario"}""";
+        sibling.UserId = parent.UserId;
+        var other = TestData.Scenario("Other", status: ScenarioStatus.active);
+        var foreign = TestData.ScenarioTask(other.Id, "Other scenario child", triggerTaskId: parent.Id);
+        foreign.InputString = """{"Subject":"marker-other-scenario"}""";
+        foreign.UserId = parent.UserId;
+        await Seed(sibling, other, foreign);
+
+        await Run(RootHost, parent);
+        await WaitForFinishedResult(sibling.Id);
+
+        await using var db = NewContext();
+        Assert.False(await db.Results.AnyAsync(x => x.TaskId == foreign.Id, Ct));
+        Assert.Empty(RootHost.Executors.CallsContaining("marker-other-scenario"));
+    }
+
     /// <summary>
     /// A row left on the removed StackStorm API (the az_* actions, which TaskAction no longer names) fails
     /// with a message saying so, rather than leaving its result pending.
@@ -211,6 +233,65 @@ public class TaskExecutionServiceTests(DatabaseFixture fixture) : ServiceTestBas
         Assert.Equal(nameof(IVmOperationsService.GuestCommand), call.Operation);
         Assert.Contains(target.ToString(), call.Parameters);
         Assert.Equal("Bearer vm-api-token", Assert.Single(host.OutboundHttp.Sent, x => x.Path == $"api/views/{viewId}/vms/all").Authorization);
+    }
+
+    /// <summary>
+    /// The VM a result runs on is the one it was bound to from the View. A Moid or VmName the Task stored, as an
+    /// imported Task or one made from an old result can, is overwritten, a repeated key included.
+    /// </summary>
+    [Theory]
+    [InlineData("""{"Moid":"{other}","VmName":"other-vm","marker":"marker-pinned"}""")]
+    [InlineData("""{"Moid":"{other}","marker":"marker-pinned","Moid":"{other}"}""")]
+    public async Task A_vm_task_runs_on_the_vm_it_was_bound_to_whatever_vm_it_stored(string inputString)
+    {
+        var (host, viewId, target, other) = VmHost();
+        var task = await SeedActiveTask(TaskAction.guest_process_run, "vm", inputString.Replace("{other}", other.ToString()), viewId: viewId, vmMask: "target");
+
+        await Run(host, task);
+        var result = await WaitForFinishedResult(task.Id);
+
+        Assert.Equal((TaskStatus.succeeded, target), (result.Status, result.VmId));
+        var parameters = Assert.Single(host.Executors.CallsContaining("marker-pinned")).Parameters;
+        Assert.Equal(target.ToString(), JsonSerializer.Deserialize<Dictionary<string, string>>(parameters)["Moid"]);
+        Assert.DoesNotContain(other.ToString(), parameters);
+        Assert.DoesNotContain("other-vm", parameters);
+    }
+
+    /// <summary>A Task with no VM Mask is bound to no VM, so a VM it stored is cleared rather than run on.</summary>
+    [Fact]
+    public async Task A_vm_task_with_no_vm_mask_runs_with_no_vm_whatever_vm_it_stored()
+    {
+        var other = Guid.NewGuid();
+        var task = await SeedActiveTask(TaskAction.guest_process_run, "vm", $$"""{"Moid":"{{other}}","marker":"marker-unbound"}""");
+
+        await Run(RootHost, task);
+        await WaitForFinishedResult(task.Id);
+
+        var parameters = Assert.Single(RootHost.Executors.CallsContaining("marker-unbound")).Parameters;
+        Assert.Equal("", JsonSerializer.Deserialize<Dictionary<string, string>>(parameters)["Moid"]);
+    }
+
+    /// <summary>A host whose View lists a VM named target-vm and another named other-vm.</summary>
+    private (ApiTestHost Host, Guid ViewId, Guid Target, Guid Other) VmHost()
+    {
+        var user = new ClaimsPrincipalBuilder().WithSystemPermissions(Enum.GetValues<SystemPermission>()).Build();
+        var host = HostFor(user, options =>
+        {
+            options.ResourceOwnerAuthorization.Authority = "http://localhost:5000";
+            options.ResourceOwnerAuthorization.UserName = "steamfitter";
+            options.ResourceOwnerAuthorization.Password = "secret";
+        });
+        var viewId = Guid.NewGuid();
+        var target = Guid.NewGuid();
+        var other = Guid.NewGuid();
+        host.OutboundHttp
+            .AnswersJson("GET .well-known/openid-configuration", """{"issuer":"http://localhost:5000","token_endpoint":"http://localhost:5000/connect/token","jwks_uri":"http://localhost:5000/jwks"}""")
+            .AnswersJson("GET jwks", """{"keys":[]}""")
+            .AnswersJson("POST connect/token", """{"access_token":"vm-api-token","token_type":"Bearer","expires_in":3600}""")
+            .AnswersJson($"GET api/views/{viewId}/vms/all", $$"""[{"id":"{{target}}","name":"target-vm"},{"id":"{{other}}","name":"other-vm"}]""")
+            .RefusesUnmatched();
+
+        return (host, viewId, target, other);
     }
 
     private async Task<TaskEntity> SeedActiveTask(TaskAction action, string apiUrl, string inputString, ScenarioStatus status = ScenarioStatus.active, string expectedOutput = "", Guid? viewId = null, string vmMask = "")

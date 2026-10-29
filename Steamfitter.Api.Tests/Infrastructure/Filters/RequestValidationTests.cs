@@ -79,8 +79,9 @@ public class RequestValidationTests(DatabaseFixture fixture, SteamfitterAppFacto
         Assert.Equal(9999, (int)(await db.Tasks.SingleAsync(Ct)).TriggerCondition);
     }
 
+    /// <summary>A result's action and status belong to the task runner, so a create body cannot set them, in range or not.</summary>
     [Fact]
-    public async Task Out_of_range_result_action_and_status_are_stored_and_returned()
+    public async Task Create_of_a_result_ignores_an_out_of_range_action_and_status()
     {
         var scenario = TestData.Scenario();
         var task = TestData.ScenarioTask(scenario.Id);
@@ -90,15 +91,15 @@ public class RequestValidationTests(DatabaseFixture fixture, SteamfitterAppFacto
             new { taskId = task.Id, action = 9999, status = 9999, actionParameters = new { }, apiUrl = "email" }, Ct);
 
         await AssertStatus(HttpStatusCode.Created, response);
-        var created = await ReadAsync<SAVM.Result>(response);
-        Assert.Equal((9999, 9999), ((int)created.Action, (int)created.Status));
         await using var db = NewContext();
         var stored = await db.Results.SingleAsync(Ct);
-        Assert.Equal((9999, 9999), ((int)stored.Action, (int)stored.Status));
+        Assert.Equal(Steamfitter.Api.Data.TaskStatus.none, stored.Status);
+        Assert.NotEqual(9999, (int)stored.Action);
     }
 
+    /// <summary>A scenario's status changes only through start and end, so an edit body cannot set it, in range or not.</summary>
     [Fact]
-    public async Task Update_stores_and_returns_an_out_of_range_scenario_status()
+    public async Task Update_ignores_an_out_of_range_scenario_status()
     {
         var scenario = TestData.Scenario();
         await Seed(scenario);
@@ -107,9 +108,8 @@ public class RequestValidationTests(DatabaseFixture fixture, SteamfitterAppFacto
             new { id = scenario.Id, name = scenario.Name, status = 9999 }, Ct);
 
         await AssertStatus(HttpStatusCode.OK, response);
-        Assert.Equal(9999, (int)(await ReadAsync<SAVM.Scenario>(response)).Status);
         await using var db = NewContext();
-        Assert.Equal(9999, (int)(await db.Scenarios.SingleAsync(Ct)).Status);
+        Assert.Equal(scenario.Status, (await db.Scenarios.SingleAsync(Ct)).Status);
     }
 
     [Fact]

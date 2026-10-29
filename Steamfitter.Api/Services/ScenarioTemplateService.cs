@@ -15,6 +15,7 @@ using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Hubs;
 using Steamfitter.Api.Infrastructure.Extensions;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Infrastructure.Exceptions;
 using SAVM = Steamfitter.Api.ViewModels;
 using Steamfitter.Api.ViewModels;
@@ -39,14 +40,20 @@ namespace Steamfitter.Api.Services
         private readonly ClaimsPrincipal _user;
         private readonly IMapper _mapper;
         private readonly IHubContext<EngineHub> _engineHub;
+        private readonly ISteamfitterAuthorizationService _authorizationService;
+        private readonly IUserClaimsService _userClaimsService;
 
         public ScenarioTemplateService(
             SteamfitterContext context,
             ITaskService taskService,
             IPrincipal user,
             IMapper mapper,
-            IHubContext<EngineHub> engineHub)
+            IHubContext<EngineHub> engineHub,
+            ISteamfitterAuthorizationService authorizationService,
+            IUserClaimsService userClaimsService)
         {
+            _authorizationService = authorizationService;
+            _userClaimsService = userClaimsService;
             _context = context;
             _taskService = taskService;
             _user = user as ClaimsPrincipal;
@@ -64,12 +71,11 @@ namespace Steamfitter.Api.Services
 
         public async STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetMineAsync(CancellationToken ct)
         {
-            var userId = _user.GetId();
-            var items = await _context.ScenarioTemplateMemberships
-                .Where(m => m.ScenarioTemplate.CreatedBy == userId || m.UserId == userId)
-                .Include(m => m.ScenarioTemplate)
-                .ThenInclude(m => m.VmCredentials)
-                .Select(m => m.ScenarioTemplate)
+            // the Scenario Templates the caller may view; membership alone is not enough
+            var scenarioTemplateIds = _authorizationService.GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermission.ViewScenarioTemplate);
+            var items = await _context.ScenarioTemplates
+                .Where(st => scenarioTemplateIds.Contains(st.Id))
+                .Include(st => st.VmCredentials)
                 .ToListAsync(ct);
 
             return _mapper.Map<IEnumerable<SAVM.ScenarioTemplate>>(items);
@@ -89,6 +95,8 @@ namespace Steamfitter.Api.Services
         public async STT.Task<ViewModels.ScenarioTemplate> CreateAsync(ViewModels.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct)
         {
             var scenarioTemplateEntity = _mapper.Map<ScenarioTemplateEntity>(scenarioTemplateForm);
+            // a new template has no credentials for a default to name
+            scenarioTemplateEntity.DefaultVmCredentialId = null;
             scenarioTemplateEntity.DateCreated = DateTime.UtcNow;
             scenarioTemplateEntity.CreatedBy = _user.GetId();
 
@@ -101,6 +109,7 @@ namespace Steamfitter.Api.Services
             };
             await _context.ScenarioTemplateMemberships.AddAsync(createOwnerMembership, ct);
             await _context.SaveChangesAsync(ct);
+            await _userClaimsService.RefreshCurrentClaimsAsync();
             var scenarioTemplate = await GetAsync(scenarioTemplateEntity.Id, ct);
 
             return scenarioTemplate;
@@ -133,7 +142,16 @@ namespace Steamfitter.Api.Services
                 await _taskService.CopyAsync(oldTaskEntityId, newScenarioTemplateEntity.Id, "scenarioTemplate", ct);
             }
 
+            // the copier manages the copy, as the creator of a template or a scenario does
+            await _context.ScenarioTemplateMemberships.AddAsync(new ScenarioTemplateMembershipEntity()
+            {
+                UserId = _user.GetId(),
+                ScenarioTemplateId = newScenarioTemplateEntity.Id,
+                RoleId = ScenarioTemplateRoleEntityDefaults.ScenarioTemplateCreatorRoleId
+            }, ct);
+            await _context.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
+            await _userClaimsService.RefreshCurrentClaimsAsync();
             var newScenarioTemplate = await GetAsync(newScenarioTemplateEntity.Id, ct);
 
             return newScenarioTemplate;
@@ -146,6 +164,7 @@ namespace Steamfitter.Api.Services
             if (scenarioTemplateToUpdate == null)
                 throw new EntityNotFoundException<SAVM.ScenarioTemplate>();
 
+            await ScopeValidation.EnsureVmCredentialIsInParentAsync(scenarioTemplateForm.DefaultVmCredentialId, null, id, _context, ct);
             _mapper.Map(scenarioTemplateForm, scenarioTemplateToUpdate);
             scenarioTemplateToUpdate.DateModified = DateTime.UtcNow;
             scenarioTemplateToUpdate.ModifiedBy = _user.GetId();
@@ -165,8 +184,12 @@ namespace Steamfitter.Api.Services
             if (scenarioTemplateToDelete == null)
                 throw new EntityNotFoundException<SAVM.ScenarioTemplate>();
 
+            // the children in other scopes are detached and the template deleted together, or neither is
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            await _taskService.DetachChildrenInOtherScopesAsync(null, id, ct);
             _context.ScenarioTemplates.Remove(scenarioTemplateToDelete);
             await _context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
 
             return true;
         }

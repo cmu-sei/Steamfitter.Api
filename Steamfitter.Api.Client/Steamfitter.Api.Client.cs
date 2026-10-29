@@ -38,9 +38,9 @@ namespace Steamfitter.Api.Client
         private static System.Lazy<System.Text.Json.JsonSerializerOptions> _settings = new System.Lazy<System.Text.Json.JsonSerializerOptions>(CreateSerializerSettings, true);
         private System.Text.Json.JsonSerializerOptions _instanceSettings;
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+    #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public SteamfitterApiClient(System.Net.Http.HttpClient httpClient)
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+    #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             _httpClient = httpClient;
             Initialize();
@@ -96,7 +96,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/groups/{id}"
                     urlBuilder_.Append("api/groups/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -192,7 +192,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/groups/{id}"
                     urlBuilder_.Append("api/groups/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -285,7 +285,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/groups/{id}"
                     urlBuilder_.Append("api/groups/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -369,7 +369,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/groups"
                     urlBuilder_.Append("api/groups");
 
@@ -461,7 +461,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/groups"
                     urlBuilder_.Append("api/groups");
 
@@ -552,7 +552,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/groups/memberships/{id}"
                     urlBuilder_.Append("api/groups/memberships/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -643,7 +643,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/groups/memberships/{id}"
                     urlBuilder_.Append("api/groups/memberships/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -730,7 +730,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/groups/{groupId}/memberships"
                     urlBuilder_.Append("api/groups/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(groupId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -827,7 +827,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/groups/{groupId}/memberships"
                     urlBuilder_.Append("api/groups/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(groupId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -923,7 +923,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/health/live"
                     urlBuilder_.Append("api/health/live");
 
@@ -1017,7 +1017,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/health/ready"
                     urlBuilder_.Append("api/health/ready");
 
@@ -1111,7 +1111,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/views"
                     urlBuilder_.Append("api/views");
 
@@ -1205,7 +1205,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/vms"
                     urlBuilder_.Append("api/vms");
                     urlBuilder_.Append('?');
@@ -1308,7 +1308,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/results"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1407,7 +1407,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/{id}/results"
                     urlBuilder_.Append("api/tasks/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1506,7 +1506,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/views/{id}/results"
                     urlBuilder_.Append("api/views/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1605,7 +1605,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/users/{id}/results"
                     urlBuilder_.Append("api/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1701,7 +1701,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/me/results"
                     urlBuilder_.Append("api/me/results");
 
@@ -1798,7 +1798,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/vms/{id}/results"
                     urlBuilder_.Append("api/vms/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1903,7 +1903,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/results/{id}"
                     urlBuilder_.Append("api/results/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -1976,7 +1976,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Result values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<Result> UpdateResultAsync(System.Guid id, Result body)
+        public virtual System.Threading.Tasks.Task<Result> UpdateResultAsync(System.Guid id, ResultEdit body)
         {
             return UpdateResultAsync(id, body, System.Threading.CancellationToken.None);
         }
@@ -1994,7 +1994,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Result values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Result> UpdateResultAsync(System.Guid id, Result body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<Result> UpdateResultAsync(System.Guid id, ResultEdit body, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -2013,7 +2013,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/results/{id}"
                     urlBuilder_.Append("api/results/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -2116,7 +2116,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/results/{id}"
                     urlBuilder_.Append("api/results/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -2183,7 +2183,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Result with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<Result> CreateResultAsync(Result body)
+        public virtual System.Threading.Tasks.Task<Result> CreateResultAsync(ResultCreate body)
         {
             return CreateResultAsync(body, System.Threading.CancellationToken.None);
         }
@@ -2200,7 +2200,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Result with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Result> CreateResultAsync(Result body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<Result> CreateResultAsync(ResultCreate body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2216,7 +2216,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/results"
                     urlBuilder_.Append("api/results");
 
@@ -2314,7 +2314,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios"
                     urlBuilder_.Append("api/scenarios");
 
@@ -2385,7 +2385,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Scenario with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<Scenario> CreateScenarioAsync(ScenarioForm body)
+        public virtual System.Threading.Tasks.Task<Scenario> CreateScenarioAsync(ScenarioCreate body)
         {
             return CreateScenarioAsync(body, System.Threading.CancellationToken.None);
         }
@@ -2402,7 +2402,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Scenario with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Scenario> CreateScenarioAsync(ScenarioForm body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<Scenario> CreateScenarioAsync(ScenarioCreate body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2418,7 +2418,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios"
                     urlBuilder_.Append("api/scenarios");
 
@@ -2519,7 +2519,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/view/{viewId}"
                     urlBuilder_.Append("api/scenarios/view/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(viewId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -2623,7 +2623,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -2696,7 +2696,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Scenario values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<Scenario> UpdateScenarioAsync(System.Guid id, ScenarioForm body)
+        public virtual System.Threading.Tasks.Task<Scenario> UpdateScenarioAsync(System.Guid id, ScenarioEdit body)
         {
             return UpdateScenarioAsync(id, body, System.Threading.CancellationToken.None);
         }
@@ -2714,7 +2714,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Scenario values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Scenario> UpdateScenarioAsync(System.Guid id, ScenarioForm body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<Scenario> UpdateScenarioAsync(System.Guid id, ScenarioEdit body, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -2733,7 +2733,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -2836,7 +2836,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -2930,7 +2930,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/me"
                     urlBuilder_.Append("api/scenarios/me");
 
@@ -3037,7 +3037,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{id}/scenarios"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -3143,7 +3143,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/copy"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -3249,7 +3249,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/start"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -3355,7 +3355,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/pause"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -3461,7 +3461,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/continue"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -3567,7 +3567,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/end"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -3662,7 +3662,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/memberships/{id}"
                     urlBuilder_.Append("api/scenarios/memberships/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -3727,13 +3727,13 @@ namespace Steamfitter.Api.Client
         /// Updates a ScenarioMembership
         /// </summary>
         /// <remarks>
-        /// Updates a ScenarioMembership with the attributes specified
+        /// Updates the Role of a ScenarioMembership. The membership stays in its Scenario.
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="body">The updated ScenarioMembership values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<ScenarioMembership> UpdateScenarioMembershipAsync(System.Guid id, ScenarioMembership body)
+        public virtual System.Threading.Tasks.Task<ScenarioMembership> UpdateScenarioMembershipAsync(System.Guid id, ScenarioMembershipEdit body)
         {
             return UpdateScenarioMembershipAsync(id, body, System.Threading.CancellationToken.None);
         }
@@ -3743,13 +3743,13 @@ namespace Steamfitter.Api.Client
         /// Updates a ScenarioMembership
         /// </summary>
         /// <remarks>
-        /// Updates a ScenarioMembership with the attributes specified
+        /// Updates the Role of a ScenarioMembership. The membership stays in its Scenario.
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="body">The updated ScenarioMembership values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ScenarioMembership> UpdateScenarioMembershipAsync(System.Guid id, ScenarioMembership body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<ScenarioMembership> UpdateScenarioMembershipAsync(System.Guid id, ScenarioMembershipEdit body, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -3768,7 +3768,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/memberships/{id}"
                     urlBuilder_.Append("api/scenarios/memberships/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -3859,7 +3859,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/memberships/{id}"
                     urlBuilder_.Append("api/scenarios/memberships/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -3946,7 +3946,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/memberships"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -4011,6 +4011,9 @@ namespace Steamfitter.Api.Client
         /// <summary>
         /// Create a new Scenario Membership.
         /// </summary>
+        /// <remarks>
+        /// The membership is created in the Scenario of the URL. A ScenarioId in the body is ignored.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<ScenarioMembership> CreateScenarioMembershipAsync(System.Guid scenarioId, ScenarioMembership body)
@@ -4022,6 +4025,9 @@ namespace Steamfitter.Api.Client
         /// <summary>
         /// Create a new Scenario Membership.
         /// </summary>
+        /// <remarks>
+        /// The membership is created in the Scenario of the URL. A ScenarioId in the body is ignored.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ScenarioMembership> CreateScenarioMembershipAsync(System.Guid scenarioId, ScenarioMembership body, System.Threading.CancellationToken cancellationToken)
@@ -4043,7 +4049,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{scenarioId}/memberships"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(scenarioId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -4136,7 +4142,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/me/permissions"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -4231,7 +4237,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenario-roles/{id}"
                     urlBuilder_.Append("api/scenario-roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -4320,7 +4326,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenario-roles"
                     urlBuilder_.Append("api/scenario-roles");
 
@@ -4418,7 +4424,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates"
                     urlBuilder_.Append("api/scenariotemplates");
 
@@ -4522,7 +4528,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates"
                     urlBuilder_.Append("api/scenariotemplates");
 
@@ -4625,7 +4631,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{id}"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -4735,7 +4741,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{id}"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -4838,7 +4844,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{id}"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -4938,7 +4944,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{id}/copy"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -4970,6 +4976,231 @@ namespace Steamfitter.Api.Client
                         if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<ScenarioTemplate>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new ApiException<ProblemDetails>("Problem response", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Exports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Returns a json file containing the specified ScenarioTemplates, with their VM Credentials and Task trees.
+        /// <br/>All ScenarioTemplates are exported if no ids are specified.
+        /// <br/>&lt;para /&gt;
+        /// <br/>Accessible to a User with the ViewScenarioTemplates system permission, or ViewScenarioTemplate permission on each specified ScenarioTemplate
+        /// </remarks>
+        /// <param name="ids">The ids of the ScenarioTemplates to export</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual System.Threading.Tasks.Task<FileResponse> ExportScenarioTemplatesAsync(System.Collections.Generic.IEnumerable<System.Guid> ids)
+        {
+            return ExportScenarioTemplatesAsync(ids, System.Threading.CancellationToken.None);
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Exports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Returns a json file containing the specified ScenarioTemplates, with their VM Credentials and Task trees.
+        /// <br/>All ScenarioTemplates are exported if no ids are specified.
+        /// <br/>&lt;para /&gt;
+        /// <br/>Accessible to a User with the ViewScenarioTemplates system permission, or ViewScenarioTemplate permission on each specified ScenarioTemplate
+        /// </remarks>
+        /// <param name="ids">The ids of the ScenarioTemplates to export</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<FileResponse> ExportScenarioTemplatesAsync(System.Collections.Generic.IEnumerable<System.Guid> ids, System.Threading.CancellationToken cancellationToken)
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/scenariotemplates/actions/export"
+                    urlBuilder_.Append("api/scenariotemplates/actions/export");
+                    urlBuilder_.Append('?');
+                    if (ids != null)
+                    {
+                            foreach (var item_ in ids) { urlBuilder_.Append(System.Uri.EscapeDataString("ids")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200 || status_ == 206)
+                        {
+                            var responseStream_ = response_.Content == null ? System.IO.Stream.Null : await ReadAsStreamAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            var fileResponse_ = new FileResponse(status_, headers_, responseStream_, null, response_);
+                            disposeClient_ = false; disposeResponse_ = false; // response and client are disposed by FileResponse
+                            return fileResponse_;
+                        }
+                        else
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new ApiException<ProblemDetails>("Problem response", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Imports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Creates ScenarioTemplates, with their VM Credentials and Task trees, from a json file produced by the export
+        /// <br/>(or a zip containing one). Each is a new copy with new ids. A ScenarioTemplate whose name is already in use
+        /// <br/>is renamed "name - user", noted in Warnings. ScenarioTemplates that cannot be imported are listed in Failures; the rest are created.
+        /// <br/>&lt;para /&gt;
+        /// <br/>Accessible to a User with the CreateScenarioTemplates system permission
+        /// </remarks>
+        /// <param name="file">A json file produced by the Scenario Template export, or a zip containing one</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual System.Threading.Tasks.Task<ImportScenarioTemplatesResult> ImportScenarioTemplatesAsync(FileParameter file)
+        {
+            return ImportScenarioTemplatesAsync(file, System.Threading.CancellationToken.None);
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Imports ScenarioTemplates
+        /// </summary>
+        /// <remarks>
+        /// Creates ScenarioTemplates, with their VM Credentials and Task trees, from a json file produced by the export
+        /// <br/>(or a zip containing one). Each is a new copy with new ids. A ScenarioTemplate whose name is already in use
+        /// <br/>is renamed "name - user", noted in Warnings. ScenarioTemplates that cannot be imported are listed in Failures; the rest are created.
+        /// <br/>&lt;para /&gt;
+        /// <br/>Accessible to a User with the CreateScenarioTemplates system permission
+        /// </remarks>
+        /// <param name="file">A json file produced by the Scenario Template export, or a zip containing one</param>
+        /// <returns>OK</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportScenarioTemplatesResult> ImportScenarioTemplatesAsync(FileParameter file, System.Threading.CancellationToken cancellationToken)
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "File", file.FileName ?? "File");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                
+                    // Operation Path: "api/scenariotemplates/actions/import"
+                    urlBuilder_.Append("api/scenariotemplates/actions/import");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportScenarioTemplatesResult>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -5033,7 +5264,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/memberships/{id}"
                     urlBuilder_.Append("api/scenariotemplates/memberships/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -5098,13 +5329,13 @@ namespace Steamfitter.Api.Client
         /// Updates a ScenarioTemplateMembership
         /// </summary>
         /// <remarks>
-        /// Updates a ScenarioTemplateMembership with the attributes specified
+        /// Updates the Role of a ScenarioTemplateMembership. The membership stays in its ScenarioTemplate.
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="body">The updated ScenarioTemplateMembership values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<ScenarioTemplateMembership> UpdateScenarioTemplateMembershipAsync(System.Guid id, ScenarioTemplateMembership body)
+        public virtual System.Threading.Tasks.Task<ScenarioTemplateMembership> UpdateScenarioTemplateMembershipAsync(System.Guid id, ScenarioTemplateMembershipEdit body)
         {
             return UpdateScenarioTemplateMembershipAsync(id, body, System.Threading.CancellationToken.None);
         }
@@ -5114,13 +5345,13 @@ namespace Steamfitter.Api.Client
         /// Updates a ScenarioTemplateMembership
         /// </summary>
         /// <remarks>
-        /// Updates a ScenarioTemplateMembership with the attributes specified
+        /// Updates the Role of a ScenarioTemplateMembership. The membership stays in its ScenarioTemplate.
         /// </remarks>
         /// <param name="id">The Id of the Exericse to update</param>
         /// <param name="body">The updated ScenarioTemplateMembership values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<ScenarioTemplateMembership> UpdateScenarioTemplateMembershipAsync(System.Guid id, ScenarioTemplateMembership body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<ScenarioTemplateMembership> UpdateScenarioTemplateMembershipAsync(System.Guid id, ScenarioTemplateMembershipEdit body, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -5139,7 +5370,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/memberships/{id}"
                     urlBuilder_.Append("api/scenariotemplates/memberships/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -5230,7 +5461,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/memberships/{id}"
                     urlBuilder_.Append("api/scenariotemplates/memberships/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -5317,7 +5548,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{id}/memberships"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -5382,6 +5613,9 @@ namespace Steamfitter.Api.Client
         /// <summary>
         /// Create a new ScenarioTemplate Membership.
         /// </summary>
+        /// <remarks>
+        /// The membership is created in the ScenarioTemplate of the URL. A ScenarioTemplateId in the body is ignored.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<ScenarioTemplateMembership> CreateScenarioTemplateMembershipAsync(System.Guid scenarioTemplateId, ScenarioTemplateMembership body)
@@ -5393,6 +5627,9 @@ namespace Steamfitter.Api.Client
         /// <summary>
         /// Create a new ScenarioTemplate Membership.
         /// </summary>
+        /// <remarks>
+        /// The membership is created in the ScenarioTemplate of the URL. A ScenarioTemplateId in the body is ignored.
+        /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<ScenarioTemplateMembership> CreateScenarioTemplateMembershipAsync(System.Guid scenarioTemplateId, ScenarioTemplateMembership body, System.Threading.CancellationToken cancellationToken)
@@ -5414,7 +5651,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{scenarioTemplateId}/memberships"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(scenarioTemplateId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -5507,7 +5744,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{id}/me/permissions"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -5602,7 +5839,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplate-roles/{id}"
                     urlBuilder_.Append("api/scenariotemplate-roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -5691,7 +5928,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplate-roles"
                     urlBuilder_.Append("api/scenariotemplate-roles");
 
@@ -5779,7 +6016,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/me/systempermissions"
                     urlBuilder_.Append("api/me/systempermissions");
 
@@ -5872,7 +6109,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/system-roles/{id}"
                     urlBuilder_.Append("api/system-roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -5970,7 +6207,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/system-roles/{id}"
                     urlBuilder_.Append("api/system-roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -6063,7 +6300,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/system-roles/{id}"
                     urlBuilder_.Append("api/system-roles/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -6147,7 +6384,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/system-roles"
                     urlBuilder_.Append("api/system-roles");
 
@@ -6239,7 +6476,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/system-roles"
                     urlBuilder_.Append("api/system-roles");
 
@@ -6336,7 +6573,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{id}/tasks"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -6435,7 +6672,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/tasks"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -6534,7 +6771,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/views/{id}/tasks"
                     urlBuilder_.Append("api/views/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -6639,7 +6876,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/{id}"
                     urlBuilder_.Append("api/tasks/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -6704,7 +6941,8 @@ namespace Steamfitter.Api.Client
         /// Updates a Task
         /// </summary>
         /// <remarks>
-        /// Updates a Task with the attributes specified
+        /// Updates a Task with the attributes specified. The Task stays in its Scenario or Scenario Template
+        /// <br/>and keeps its trigger Task; use PUT tasks/{id}/move to move it.
         /// <br/>&lt;para /&gt;
         /// <br/>Accessible only to a SuperUser or a User on an Admin Team within the specified Task
         /// </remarks>
@@ -6712,7 +6950,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Task values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<Task> UpdateTaskAsync(System.Guid id, TaskForm body)
+        public virtual System.Threading.Tasks.Task<Task> UpdateTaskAsync(System.Guid id, TaskEdit body)
         {
             return UpdateTaskAsync(id, body, System.Threading.CancellationToken.None);
         }
@@ -6722,7 +6960,8 @@ namespace Steamfitter.Api.Client
         /// Updates a Task
         /// </summary>
         /// <remarks>
-        /// Updates a Task with the attributes specified
+        /// Updates a Task with the attributes specified. The Task stays in its Scenario or Scenario Template
+        /// <br/>and keeps its trigger Task; use PUT tasks/{id}/move to move it.
         /// <br/>&lt;para /&gt;
         /// <br/>Accessible only to a SuperUser or a User on an Admin Team within the specified Task
         /// </remarks>
@@ -6730,7 +6969,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated Task values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Task> UpdateTaskAsync(System.Guid id, TaskForm body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<Task> UpdateTaskAsync(System.Guid id, TaskEdit body, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -6749,7 +6988,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/{id}"
                     urlBuilder_.Append("api/tasks/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -6852,7 +7091,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/{id}"
                     urlBuilder_.Append("api/tasks/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -6914,12 +7153,12 @@ namespace Steamfitter.Api.Client
         /// <remarks>
         /// Creates a new Task with the attributes specified
         /// <br/>&lt;para /&gt;
-        /// <br/>Accessible only to a SuperUser or an Administrator
+        /// <br/>The Task must belong to exactly one Scenario or Scenario Template, and a trigger Task must belong to the same one.
         /// </remarks>
         /// <param name="body">The data to create the Task with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<Task> CreateTaskAsync(TaskForm body)
+        public virtual System.Threading.Tasks.Task<Task> CreateTaskAsync(TaskCreate body)
         {
             return CreateTaskAsync(body, System.Threading.CancellationToken.None);
         }
@@ -6931,12 +7170,12 @@ namespace Steamfitter.Api.Client
         /// <remarks>
         /// Creates a new Task with the attributes specified
         /// <br/>&lt;para /&gt;
-        /// <br/>Accessible only to a SuperUser or an Administrator
+        /// <br/>The Task must belong to exactly one Scenario or Scenario Template, and a trigger Task must belong to the same one.
         /// </remarks>
         /// <param name="body">The data to create the Task with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Task> CreateTaskAsync(TaskForm body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<Task> CreateTaskAsync(TaskCreate body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -6952,7 +7191,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks"
                     urlBuilder_.Append("api/tasks");
 
@@ -7061,7 +7300,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/{id}/copy"
                     urlBuilder_.Append("api/tasks/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -7172,7 +7411,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/copyfromresult/{resultId}"
                     urlBuilder_.Append("api/tasks/copyfromresult/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(resultId, System.Globalization.CultureInfo.InvariantCulture)));
@@ -7244,7 +7483,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Task with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<Result>> CreateAndExecuteTaskAsync(TaskForm body)
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<Result>> CreateAndExecuteTaskAsync(TaskCreate body)
         {
             return CreateAndExecuteTaskAsync(body, System.Threading.CancellationToken.None);
         }
@@ -7261,7 +7500,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The data to create the Task with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<Result>> CreateAndExecuteTaskAsync(TaskForm body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<Result>> CreateAndExecuteTaskAsync(TaskCreate body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -7277,7 +7516,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/execute"
                     urlBuilder_.Append("api/tasks/execute");
 
@@ -7377,7 +7616,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/{id}/execute"
                     urlBuilder_.Append("api/tasks/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -7484,7 +7723,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/{id}/execute/substitutions"
                     urlBuilder_.Append("api/tasks/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -7592,7 +7831,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/execute/graded"
                     urlBuilder_.Append("api/tasks/execute/graded");
 
@@ -7701,7 +7940,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/{id}/move"
                     urlBuilder_.Append("api/tasks/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -7797,7 +8036,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/tasks/commands"
                     urlBuilder_.Append("api/tasks/commands");
 
@@ -7895,7 +8134,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/users"
                     urlBuilder_.Append("api/users");
 
@@ -7999,7 +8238,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/users"
                     urlBuilder_.Append("api/users");
 
@@ -8102,7 +8341,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/users/{id}"
                     urlBuilder_.Append("api/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -8208,7 +8447,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/users/{id}"
                     urlBuilder_.Append("api/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -8311,7 +8550,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/users/{id}"
                     urlBuilder_.Append("api/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -8404,7 +8643,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenariotemplates/{id}/vmcredentials"
                     urlBuilder_.Append("api/scenariotemplates/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -8503,7 +8742,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/scenarios/{id}/vmcredentials"
                     urlBuilder_.Append("api/scenarios/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -8608,7 +8847,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/vmcredentials/{id}"
                     urlBuilder_.Append("api/vmcredentials/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -8673,7 +8912,7 @@ namespace Steamfitter.Api.Client
         /// Updates a VmCredential
         /// </summary>
         /// <remarks>
-        /// Updates a VmCredential with the attributes specified
+        /// Updates a VmCredential with the attributes specified. The VmCredential stays in its Scenario or Scenario Template.
         /// <br/>&lt;para /&gt;
         /// <br/>Accessible only to a SuperUser or a User on an Admin Team within the specified VmCredential
         /// </remarks>
@@ -8681,7 +8920,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated VmCredential values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<VmCredential> UpdateVmCredentialAsync(System.Guid id, VmCredential body)
+        public virtual System.Threading.Tasks.Task<VmCredential> UpdateVmCredentialAsync(System.Guid id, VmCredentialEdit body)
         {
             return UpdateVmCredentialAsync(id, body, System.Threading.CancellationToken.None);
         }
@@ -8691,7 +8930,7 @@ namespace Steamfitter.Api.Client
         /// Updates a VmCredential
         /// </summary>
         /// <remarks>
-        /// Updates a VmCredential with the attributes specified
+        /// Updates a VmCredential with the attributes specified. The VmCredential stays in its Scenario or Scenario Template.
         /// <br/>&lt;para /&gt;
         /// <br/>Accessible only to a SuperUser or a User on an Admin Team within the specified VmCredential
         /// </remarks>
@@ -8699,7 +8938,7 @@ namespace Steamfitter.Api.Client
         /// <param name="body">The updated VmCredential values</param>
         /// <returns>OK</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<VmCredential> UpdateVmCredentialAsync(System.Guid id, VmCredential body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<VmCredential> UpdateVmCredentialAsync(System.Guid id, VmCredentialEdit body, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -8718,7 +8957,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/vmcredentials/{id}"
                     urlBuilder_.Append("api/vmcredentials/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -8821,7 +9060,7 @@ namespace Steamfitter.Api.Client
                     request_.Method = new System.Net.Http.HttpMethod("DELETE");
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/vmcredentials/{id}"
                     urlBuilder_.Append("api/vmcredentials/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
@@ -8883,12 +9122,12 @@ namespace Steamfitter.Api.Client
         /// <remarks>
         /// Creates a new VmCredential with the attributes specified
         /// <br/>&lt;para /&gt;
-        /// <br/>Accessible only to a SuperUser or an Administrator
+        /// <br/>The VmCredential must belong to exactly one Scenario or Scenario Template.
         /// </remarks>
         /// <param name="body">The data to create the VmCredential with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<VmCredential> CreateVmCredentialAsync(VmCredential body)
+        public virtual System.Threading.Tasks.Task<VmCredential> CreateVmCredentialAsync(VmCredentialCreate body)
         {
             return CreateVmCredentialAsync(body, System.Threading.CancellationToken.None);
         }
@@ -8900,12 +9139,12 @@ namespace Steamfitter.Api.Client
         /// <remarks>
         /// Creates a new VmCredential with the attributes specified
         /// <br/>&lt;para /&gt;
-        /// <br/>Accessible only to a SuperUser or an Administrator
+        /// <br/>The VmCredential must belong to exactly one Scenario or Scenario Template.
         /// </remarks>
         /// <param name="body">The data to create the VmCredential with</param>
         /// <returns>Created</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<VmCredential> CreateVmCredentialAsync(VmCredential body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<VmCredential> CreateVmCredentialAsync(VmCredentialCreate body, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -8921,7 +9160,7 @@ namespace Steamfitter.Api.Client
                     request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
-
+                
                     // Operation Path: "api/vmcredentials"
                     urlBuilder_.Append("api/vmcredentials");
 
@@ -8997,21 +9236,21 @@ namespace Steamfitter.Api.Client
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static System.Threading.Tasks.Task<string> ReadAsStringAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
         {
-#if NET5_0_OR_GREATER
+    #if NET5_0_OR_GREATER
             return content.ReadAsStringAsync(cancellationToken);
-#else
+    #else
             return content.ReadAsStringAsync();
-#endif
+    #endif
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private static System.Threading.Tasks.Task<System.IO.Stream> ReadAsStreamAsync(System.Net.Http.HttpContent content, System.Threading.CancellationToken cancellationToken)
         {
-#if NET5_0_OR_GREATER
+    #if NET5_0_OR_GREATER
             return content.ReadAsStreamAsync(cancellationToken);
-#else
+    #else
             return content.ReadAsStreamAsync();
-#endif
+    #endif
         }
 
         public bool ReadResponseAsString { get; set; }
@@ -9070,7 +9309,7 @@ namespace Steamfitter.Api.Client
                     var field = System.Reflection.IntrospectionExtensions.GetTypeInfo(value.GetType()).GetDeclaredField(name);
                     if (field != null)
                     {
-                        var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute(field, typeof(System.Runtime.Serialization.EnumMemberAttribute))
+                        var attribute = System.Reflection.CustomAttributeExtensions.GetCustomAttribute(field, typeof(System.Runtime.Serialization.EnumMemberAttribute)) 
                             as System.Runtime.Serialization.EnumMemberAttribute;
                         if (attribute != null)
                         {
@@ -9082,13 +9321,13 @@ namespace Steamfitter.Api.Client
                     return converted == null ? string.Empty : converted;
                 }
             }
-            else if (value is bool)
+            else if (value is bool) 
             {
                 return System.Convert.ToString((bool)value, cultureInfo).ToLowerInvariant();
             }
             else if (value is byte[])
             {
-                return System.Convert.ToBase64String((byte[])value);
+                return System.Convert.ToBase64String((byte[]) value);
             }
             else if (value is string[])
             {
@@ -9112,11 +9351,11 @@ namespace Steamfitter.Api.Client
 
 }
 
-#pragma warning restore 108
-#pragma warning restore 114
-#pragma warning restore 472
-#pragma warning restore 612
-#pragma warning restore 649
+#pragma warning restore  108
+#pragma warning restore  114
+#pragma warning restore  472
+#pragma warning restore  612
+#pragma warning restore  649
 #pragma warning restore 1573
 #pragma warning restore 1591
 #pragma warning restore 8073

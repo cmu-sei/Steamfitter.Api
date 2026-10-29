@@ -105,6 +105,31 @@ public class UserClaimsServiceTests(DatabaseFixture fixture) : DatabaseTestBase(
         Assert.Equal(["ViewRoles"], Permissions(principal));
     }
 
+    /// <summary>
+    /// A request that makes its caller a member of something rebuilds their claims, so that the rest of the
+    /// request sees the membership, and so does the next request rather than the cached claims.
+    /// </summary>
+    [Fact]
+    public async Task Refreshing_the_current_claims_gives_this_request_and_the_cache_a_new_membership()
+    {
+        var user = TestData.User();
+        var scenario = TestData.Scenario();
+        await Seed(user, scenario);
+        var options = new ClaimsTransformationOptions { EnableCaching = true, CacheExpirationSeconds = 60 };
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        await using var context = NewContext();
+        var service = new UserClaimsService(context, cache, options);
+        var principal = await service.AddUserClaims(Principal(user.Id), false);
+        service.SetCurrentClaimsPrincipal(principal);
+        await Seed(TestData.ScenarioMembership(scenario.Id, userId: user.Id, roleId: TestData.ScenarioRoles.Observer));
+
+        await service.RefreshCurrentClaimsAsync();
+        var next = await AddClaims(Principal(user.Id), options, cache: cache);
+
+        Assert.Equal(scenario.Id, ScenarioPermissionClaim.FromString(Assert.Single(principal.Claims, x => x.Type == AuthorizationConstants.ScenarioPermissionClaimType).Value).ScenarioId);
+        Assert.Equal(scenario.Id, ScenarioPermissionClaim.FromString(Assert.Single(next.Claims, x => x.Type == AuthorizationConstants.ScenarioPermissionClaimType).Value).ScenarioId);
+    }
+
     private async Task<ClaimsPrincipal> AddClaims(ClaimsPrincipal principal, ClaimsTransformationOptions options, bool update = false, IMemoryCache cache = null)
     {
         await using var context = NewContext();

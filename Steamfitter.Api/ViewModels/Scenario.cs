@@ -40,20 +40,38 @@ namespace Steamfitter.Api.ViewModels
     }
 
 
-    public class ScenarioForm
+    /// <summary>
+    /// The fields a Scenario's create and edit requests share. The status, the Scenario Template and the
+    /// VmCredentials are not among them: the status changes through start and end, the template is set
+    /// only when a Scenario is created from one, and credentials go through the VmCredentials endpoints.
+    /// </summary>
+    public abstract class ScenarioFields
     {
-        public Guid? Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public ScenarioStatus Status { get; set; }
         public bool OnDemand { get; set; }
-        public Guid? ScenarioTemplateId { get; set; }
+
+        /// <summary>
+        /// The Player View whose VMs the Scenario's Tasks run on. Setting or changing it needs ManageView on the
+        /// View in Player, or the ManageViews system permission there, unless the caller holds ManageScenarios.
+        /// </summary>
         public Guid? ViewId { get; set; }
         public string View { get; set; }
+
+        /// <summary>A VmCredential of this Scenario. Ignored on create, when the Scenario has none yet.</summary>
         public Guid? DefaultVmCredentialId { get; set; }
-        public List<VmCredential> VmCredentials { get; set; }
+    }
+
+    public class ScenarioCreate : ScenarioFields
+    {
+        /// <summary>The Id to create the Scenario with. A new one is made when it is not given.</summary>
+        public Guid? Id { get; set; }
+    }
+
+    public class ScenarioEdit : ScenarioFields
+    {
     }
 
     public class ScenarioCloneOptions
