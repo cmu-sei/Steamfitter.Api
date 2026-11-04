@@ -2,8 +2,8 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Threading.Tasks;
-using AutoMapper;
 using MediatR;
 using Crucible.Common.EntityEvents.Events;
 using Microsoft.AspNetCore.SignalR;
@@ -15,19 +15,16 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
     public class GroupMembershipCreatedSignalRHandler : INotificationHandler<EntityCreated<GroupMembershipEntity>>
     {
         private readonly IHubContext<EngineHub> _engineHub;
-        private readonly IMapper _mapper;
 
         public GroupMembershipCreatedSignalRHandler(
-            IHubContext<EngineHub> engineHub,
-            IMapper mapper)
+            IHubContext<EngineHub> engineHub)
         {
             _engineHub = engineHub;
-            _mapper = mapper;
         }
 
         public async Task Handle(EntityCreated<GroupMembershipEntity> notification, CancellationToken cancellationToken)
         {
-            var groupMembership = _mapper.Map<ViewModels.GroupMembership>(notification.Entity);
+            var groupMembership = notification.Entity.ToGroupMembership();
             await _engineHub.Clients
                 .Groups(EngineHub.GROUP_GROUP)
                 .SendAsync(EngineMethods.GroupMembershipCreated, groupMembership);
@@ -55,19 +52,16 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
     public class GroupMembershipUpdatedSignalRHandler : INotificationHandler<EntityUpdated<GroupMembershipEntity>>
     {
         private readonly IHubContext<EngineHub> _engineHub;
-        private readonly IMapper _mapper;
 
         public GroupMembershipUpdatedSignalRHandler(
-            IHubContext<EngineHub> engineHub,
-            IMapper mapper)
+            IHubContext<EngineHub> engineHub)
         {
             _engineHub = engineHub;
-            _mapper = mapper;
         }
 
         public async Task Handle(EntityUpdated<GroupMembershipEntity> notification, CancellationToken cancellationToken)
         {
-            var groupMembership = _mapper.Map<ViewModels.GroupMembership>(notification.Entity);
+            var groupMembership = notification.Entity.ToGroupMembership();
             await _engineHub.Clients
                 .Groups(EngineHub.GROUP_GROUP)
                 .SendAsync(EngineMethods.GroupMembershipUpdated, groupMembership);

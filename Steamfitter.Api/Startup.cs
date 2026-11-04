@@ -5,7 +5,6 @@ using System;
 using System.Linq;
 using System.Security.Principal;
 using System.Text.Json.Serialization;
-using AutoMapper.Internal;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -29,7 +28,6 @@ using Steamfitter.Api.Infrastructure.Filters;
 using Steamfitter.Api.Infrastructure.HealthChecks;
 using Steamfitter.Api.Infrastructure.Identity;
 using Steamfitter.Api.Infrastructure.JsonConverters;
-using Steamfitter.Api.Infrastructure.Mapping;
 using Steamfitter.Api.Infrastructure.Options;
 using Steamfitter.Api.Services;
 using Steamfitter.Api.ViewModels;
@@ -237,13 +235,6 @@ public class Startup
         services.AddHttpClient();
 
         ApplyPolicies(services);
-
-        services.AddAutoMapper(cfg =>
-        {
-            cfg.Internal().ForAllPropertyMaps(
-                pm => pm.SourceType != null && Nullable.GetUnderlyingType(pm.SourceType) == pm.DestinationType,
-                (pm, c) => c.MapFrom<object, object, object, object>(new IgnoreNullSourceValues(), pm.SourceMember.Name));
-        }, typeof(Startup));
 
         services.Configure<VmTaskProcessingOptions>(Configuration.GetSection("VmTaskProcessing"));
         services.Configure<HttpTaskOptions>(Configuration.GetSection("HttpTaskProcessing"));

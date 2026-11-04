@@ -1,8 +1,7 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
-
-using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
+using Steamfitter.Api.Infrastructure.Mappings;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -28,7 +27,6 @@ namespace Steamfitter.Api.Services
         private readonly ILogger<TaskMaintenanceService> _logger;
         private readonly IOptionsMonitor<Infrastructure.Options.VmTaskProcessingOptions> _vmTaskProcessingOptions;
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly IMapper _mapper;
         private readonly IHubContext<EngineHub> _engineHub;
         private readonly TaskMaintenanceServiceHealthCheck _taskMaintenanceServiceHealthCheck;
 
@@ -36,14 +34,12 @@ namespace Steamfitter.Api.Services
             ILogger<TaskMaintenanceService> logger,
             IOptionsMonitor<Infrastructure.Options.VmTaskProcessingOptions> vmTaskProcessingOptions,
             IServiceScopeFactory scopeFactory,
-            IMapper mapper,
             IHubContext<EngineHub> engineHub,
             TaskMaintenanceServiceHealthCheck taskMaintenanceServiceHealthCheck)
         {
             _logger = logger;
             _vmTaskProcessingOptions = vmTaskProcessingOptions;
             _scopeFactory = scopeFactory;
-            _mapper = mapper;
             _engineHub = engineHub;
             _taskMaintenanceServiceHealthCheck = taskMaintenanceServiceHealthCheck;
             _taskMaintenanceServiceHealthCheck.HealthAllowance = _vmTaskProcessingOptions.CurrentValue.HealthCheckTimeoutSeconds > 0 ? _vmTaskProcessingOptions.CurrentValue.HealthCheckTimeoutSeconds : 90;
@@ -142,10 +138,10 @@ namespace Steamfitter.Api.Services
         {
             await _engineHub.Clients.Group(EngineHub.SCENARIO_GROUP)
                 .SendAsync(EngineMethods.ResultsUpdated,
-                _mapper.Map<ViewModels.Result>(resultEntity));
+                resultEntity.ToResult());
             await _engineHub.Clients.Group(resultEntity.Task.ScenarioId.ToString())
                 .SendAsync(EngineMethods.ResultsUpdated,
-                _mapper.Map<ViewModels.Result>(resultEntity));
+                resultEntity.ToResult());
         }
 
     }

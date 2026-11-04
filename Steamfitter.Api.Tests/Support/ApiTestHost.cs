@@ -66,7 +66,6 @@ public sealed class ApiTestHost : IDisposable
         // Scoped, from the session: the services under test open scopes of their own and dispose what
         // they resolve, as they do in production.
         services.AddScoped(_ => session.CreateContext());
-        services.AddSingleton(TestMapper.Mapper);
 
         services.AddSingleton<IHttpContextAccessor>(
             new HttpContextAccessor { HttpContext = new DefaultHttpContext { User = user } });

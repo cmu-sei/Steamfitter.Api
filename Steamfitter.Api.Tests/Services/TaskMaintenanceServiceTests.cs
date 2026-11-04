@@ -93,7 +93,7 @@ public class TaskMaintenanceServiceTests(DatabaseFixture fixture) : ServiceTestB
         var health = host.Resolve<TaskMaintenanceServiceHealthCheck>();
         health.LastRun = DateTime.MinValue;
         var service = new TaskMaintenanceService(logger, host.Resolve<IOptionsMonitor<VmTaskProcessingOptions>>(),
-            host.Resolve<IServiceScopeFactory>(), TestMapper.Mapper, host.Resolve<IHubContext<EngineHub>>(), health);
+            host.Resolve<IServiceScopeFactory>(), host.Resolve<IHubContext<EngineHub>>(), health);
 
         await service.StartAsync(Ct);
         try
@@ -130,7 +130,6 @@ public class TaskMaintenanceServiceTests(DatabaseFixture fixture) : ServiceTestB
             logger,
             host.Resolve<IOptionsMonitor<VmTaskProcessingOptions>>(),
             host.Resolve<IServiceScopeFactory>(),
-            TestMapper.Mapper,
             host.Resolve<IHubContext<EngineHub>>(),
             host.Resolve<TaskMaintenanceServiceHealthCheck>());
 

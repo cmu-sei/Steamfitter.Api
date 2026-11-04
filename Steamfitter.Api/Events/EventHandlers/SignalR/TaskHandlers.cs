@@ -2,10 +2,10 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Collections.Generic;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using MediatR;
 using Crucible.Common.EntityEvents.Events;
 using Microsoft.AspNetCore.SignalR;
@@ -19,19 +19,16 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
     public class TaskCreatedSignalRHandler : INotificationHandler<EntityCreated<TaskEntity>>
     {
         private readonly IHubContext<EngineHub> _engineHub;
-        private readonly IMapper _mapper;
 
         public TaskCreatedSignalRHandler(
-            IHubContext<EngineHub> engineHub,
-            IMapper mapper)
+            IHubContext<EngineHub> engineHub)
         {
             _engineHub = engineHub;
-            _mapper = mapper;
         }
 
         public async Task Handle(EntityCreated<TaskEntity> notification, CancellationToken cancellationToken)
         {
-            var task = _mapper.Map<ViewModels.Task>(notification.Entity);
+            var task = notification.Entity.ToTask();
 
             if (notification.Entity.ScenarioTemplateId.HasValue)
             {
@@ -40,8 +37,7 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
             }
             else if (notification.Entity.ScenarioId.HasValue)
             {
-                var taskSummary = _mapper.Map<ViewModels.Task>(
-                    _mapper.Map<ViewModels.TaskSummary>(notification.Entity));
+                var taskSummary = notification.Entity.ToTaskSummary().ToTask();
 
                 await _engineHub.Clients
                     .Group(EngineHub.SCENARIO_GROUP)
@@ -88,19 +84,16 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
     public class TaskUpdatedSignalRHandler : INotificationHandler<EntityUpdated<TaskEntity>>
     {
         private readonly IHubContext<EngineHub> _engineHub;
-        private readonly IMapper _mapper;
 
         public TaskUpdatedSignalRHandler(
-            IHubContext<EngineHub> engineHub,
-            IMapper mapper)
+            IHubContext<EngineHub> engineHub)
         {
             _engineHub = engineHub;
-            _mapper = mapper;
         }
 
         public async Task Handle(EntityUpdated<TaskEntity> notification, CancellationToken cancellationToken)
         {
-            var task = _mapper.Map<ViewModels.Task>(notification.Entity);
+            var task = notification.Entity.ToTask();
 
             if (notification.Entity.ScenarioTemplateId.HasValue)
             {
@@ -108,8 +101,7 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
             }
             else if (notification.Entity.ScenarioId.HasValue)
             {
-                var taskSummary = _mapper.Map<ViewModels.Task>(
-                    _mapper.Map<ViewModels.TaskSummary>(notification.Entity));
+                var taskSummary = notification.Entity.ToTaskSummary().ToTask();
 
                 await _engineHub.Clients
                     .Groups(EngineHub.SCENARIO_GROUP)

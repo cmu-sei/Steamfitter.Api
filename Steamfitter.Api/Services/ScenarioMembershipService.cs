@@ -2,12 +2,12 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Infrastructure.Exceptions;
@@ -31,13 +31,11 @@ namespace Steamfitter.Api.Services
     {
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
-        private readonly IMapper _mapper;
 
-        public ScenarioMembershipService(SteamfitterContext context, IPrincipal user, IMapper mapper)
+        public ScenarioMembershipService(SteamfitterContext context, IPrincipal user)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
-            _mapper = mapper;
         }
 
         public async STT.Task<ViewModels.ScenarioMembership> GetAsync(Guid id, CancellationToken ct)
@@ -48,7 +46,7 @@ namespace Steamfitter.Api.Services
             if (item == null)
                 throw new EntityNotFoundException<ScenarioMembership>();
 
-            return _mapper.Map<SAVM.ScenarioMembership>(item);
+            return item.ToScenarioMembership();
         }
 
         public async STT.Task<IEnumerable<ViewModels.ScenarioMembership>> GetByScenarioAsync(Guid scenarioId, CancellationToken ct)
@@ -57,12 +55,12 @@ namespace Steamfitter.Api.Services
                 .Where(m => m.ScenarioId == scenarioId)
                 .ToListAsync(ct);
 
-            return _mapper.Map<IEnumerable<SAVM.ScenarioMembership>>(items);
+            return items.Select(x => x.ToScenarioMembership()).ToList();
         }
 
         public async STT.Task<ViewModels.ScenarioMembership> CreateAsync(ViewModels.ScenarioMembership scenarioMembership, CancellationToken ct)
         {
-            var scenarioMembershipEntity = _mapper.Map<ScenarioMembershipEntity>(scenarioMembership);
+            var scenarioMembershipEntity = scenarioMembership.ToEntity();
             var userExists = await _context.Users.AnyAsync(u => u.Id == scenarioMembership.UserId, ct);
             if (!userExists)
                 throw new ArgumentException("The requested user is not a Steamfitter user.");
@@ -83,7 +81,7 @@ namespace Steamfitter.Api.Services
             scenarioMembershipToUpdate.RoleId = scenarioMembership.RoleId;
             await _context.SaveChangesAsync(ct);
 
-            return _mapper.Map<SAVM.ScenarioMembership>(scenarioMembershipToUpdate);
+            return scenarioMembershipToUpdate.ToScenarioMembership();
         }
         public async STT.Task DeleteAsync(Guid id, CancellationToken ct)
         {

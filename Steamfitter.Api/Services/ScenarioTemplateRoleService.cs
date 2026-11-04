@@ -2,12 +2,13 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
+using System.Linq;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Infrastructure.Exceptions;
@@ -26,13 +27,11 @@ namespace Steamfitter.Api.Services
     {
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
-        private readonly IMapper _mapper;
 
-        public ScenarioTemplateRoleService(SteamfitterContext context, IPrincipal user, IMapper mapper)
+        public ScenarioTemplateRoleService(SteamfitterContext context, IPrincipal user)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
-            _mapper = mapper;
         }
 
         public async STT.Task<IEnumerable<ViewModels.ScenarioTemplateRole>> GetAsync(CancellationToken ct)
@@ -40,7 +39,7 @@ namespace Steamfitter.Api.Services
             var items = await _context.ScenarioTemplateRoles
                 .ToListAsync(ct);
 
-            return _mapper.Map<IEnumerable<SAVM.ScenarioTemplateRole>>(items);
+            return items.Select(x => x.ToScenarioTemplateRole()).ToList();
         }
 
         public async STT.Task<ViewModels.ScenarioTemplateRole> GetAsync(Guid id, CancellationToken ct)
@@ -51,7 +50,7 @@ namespace Steamfitter.Api.Services
             if (item == null)
                 throw new EntityNotFoundException<ScenarioTemplateRole>();
 
-            return _mapper.Map<SAVM.ScenarioTemplateRole>(item);
+            return item.ToScenarioTemplateRole();
         }
 
     }

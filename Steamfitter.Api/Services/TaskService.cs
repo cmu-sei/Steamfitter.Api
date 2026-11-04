@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -9,7 +10,6 @@ using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -54,7 +54,6 @@ namespace Steamfitter.Api.Services
     {
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
-        private readonly IMapper _mapper;
         private readonly VmTaskProcessingOptions _options;
         private readonly IResultService _resultService;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -68,7 +67,6 @@ namespace Steamfitter.Api.Services
         public TaskService(
             SteamfitterContext context,
             IPrincipal user,
-            IMapper mapper,
             IOptions<VmTaskProcessingOptions> options,
             IResultService resultService,
             ILogger<TaskService> logger,
@@ -81,7 +79,6 @@ namespace Steamfitter.Api.Services
         {
             _context = context;
             _user = user as ClaimsPrincipal;
-            _mapper = mapper;
             _options = options.Value;
             _resultService = resultService;
             _httpClientFactory = httpClientFactory;
@@ -97,7 +94,7 @@ namespace Steamfitter.Api.Services
         {
             var items = await _context.Tasks.ToListAsync(ct);
 
-            return _mapper.Map<IEnumerable<SAVM.Task>>(items);
+            return items.Select(x => x.ToTask()).ToList();
         }
 
         public async STT.Task<SAVM.Task> GetAsync(Guid id, CancellationToken ct)
@@ -107,14 +104,14 @@ namespace Steamfitter.Api.Services
             if (item == null)
                 throw new EntityNotFoundException<SAVM.Task>();
 
-            return _mapper.Map<SAVM.Task>(item);
+            return item.ToTask();
         }
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByScenarioTemplateIdAsync(Guid scenarioTemplateId, CancellationToken ct)
         {
             var Tasks = _context.Tasks.Where(x => x.ScenarioTemplateId == scenarioTemplateId);
 
-            return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
+            return Tasks.Select(x => x.ToTask()).ToList();
         }
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct)
@@ -123,7 +120,7 @@ namespace Steamfitter.Api.Services
                 .Where(x => x.ScenarioId == scenarioId)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<SAVM.Task>>(tasks);
+            return tasks.Select(x => x.ToTask()).ToList();
         }
 
         /// <summary>The user-executable Tasks of the View's Scenarios, of only the given Scenarios when they are given.</summary>
@@ -133,7 +130,7 @@ namespace Steamfitter.Api.Services
             if (scenarioIds != null)
                 tasks = tasks.Where(x => scenarioIds.Contains(x.ScenarioId.Value));
 
-            return _mapper.Map<IEnumerable<SAVM.Task>>(await tasks.ToListAsync(ct));
+            return (await tasks.ToListAsync(ct)).Select(x => x.ToTask()).ToList();
         }
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByUserIdAsync(Guid userId, CancellationToken ct)
@@ -141,7 +138,7 @@ namespace Steamfitter.Api.Services
             // the user's personal scenario used in Task Builder is the user ID.
             var Tasks = _context.Tasks.Where(dt => dt.UserId == userId && dt.ScenarioTemplateId == null && (dt.ScenarioId == null || dt.ScenarioId == userId));
 
-            return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
+            return Tasks.Select(x => x.ToTask()).ToList();
         }
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetByVmIdAsync(Guid vmId, CancellationToken ct)
@@ -149,14 +146,14 @@ namespace Steamfitter.Api.Services
             var vmIdList = _context.Results.Where(r => r.VmId == vmId).Select(r => r.Id.ToString()).ToList();
             var Tasks = _context.Tasks.Where(dt => vmIdList.Contains(dt.Id.ToString()));
 
-            return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
+            return Tasks.Select(x => x.ToTask()).ToList();
         }
 
         public async STT.Task<IEnumerable<SAVM.Task>> GetSubtasksAsync(Guid triggerTaskId, CancellationToken ct)
         {
             var Tasks = _context.Tasks.Where(x => x.TriggerTaskId == triggerTaskId);
 
-            return _mapper.Map<IEnumerable<SAVM.Task>>(Tasks);
+            return Tasks.Select(x => x.ToTask()).ToList();
         }
 
         public async STT.Task<SAVM.Task> CreateAsync(SAVM.TaskCreate taskForm, CancellationToken ct)
@@ -178,7 +175,7 @@ namespace Steamfitter.Api.Services
             }
             TaskVmParameters.Reserve(taskForm.ActionParameters);
 
-            var taskEntity = _mapper.Map<TaskEntity>(taskForm);
+            var taskEntity = taskForm.ToEntity();
             taskEntity.DateCreated = DateTime.UtcNow;
             taskEntity.CreatedBy = _user.GetId();
             taskEntity.UserId = _user.GetId();
@@ -343,12 +340,12 @@ namespace Steamfitter.Api.Services
             }
             TaskVmParameters.Reserve(taskForm.ActionParameters);
 
-            _mapper.Map(taskForm, taskToUpdate);
+            taskForm.ApplyTo(taskToUpdate);
             taskToUpdate.DateModified = DateTime.UtcNow;
             taskToUpdate.ModifiedBy = _user.GetId();
             await _context.SaveChangesAsync(ct);
 
-            var updatedTask = _mapper.Map<SAVM.Task>(taskToUpdate);
+            var updatedTask = taskToUpdate.ToTask();
             updatedTask.VmList = null;
 
             return updatedTask;
@@ -376,14 +373,14 @@ namespace Steamfitter.Api.Services
         {
             var items = await CopyTaskAsync(id, newLocationId, newLocationType, ct);
 
-            return _mapper.Map<IEnumerable<SAVM.Task>>(items);
+            return items.Select(x => x.ToTask()).ToList();
         }
 
         public async STT.Task<IEnumerable<SAVM.Task>> MoveAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct)
         {
             var items = await MoveTaskAsync(id, newLocationId, newLocationType, ct);
 
-            return _mapper.Map<IEnumerable<SAVM.Task>>(items);
+            return items.Select(x => x.ToTask()).ToList();
         }
 
         public async STT.Task<SAVM.Task> CreateFromResultAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct)
@@ -443,9 +440,9 @@ namespace Steamfitter.Api.Services
             // save new task to the database
             _context.Tasks.Add(newTaskEntity);
             await _context.SaveChangesAsync();
-            var newTask = _mapper.Map<SAVM.Task>(newTaskEntity);
+            var newTask = newTaskEntity.ToTask();
 
-            return _mapper.Map<SAVM.Task>(newTask);
+            return newTask;
         }
 
         private async STT.Task<IEnumerable<TaskEntity>> CopyTaskAsync(Guid id, Guid newLocationId, string newLocationType, CancellationToken ct)
@@ -480,7 +477,7 @@ namespace Steamfitter.Api.Services
                     break;
             }
             // create the copy
-            var newTaskEntity = _mapper.Map<TaskEntity, TaskEntity>(existingTaskEntity);
+            var newTaskEntity = existingTaskEntity.ToCopy();
             // set the new task relationships
             newTaskEntity.ScenarioTemplate = null;
             newTaskEntity.ScenarioTemplateId = scenarioTemplateId;
@@ -497,7 +494,7 @@ namespace Steamfitter.Api.Services
             // save new task to the database
             _context.Tasks.Add(newTaskEntity);
             await _context.SaveChangesAsync();
-            var newTask = _mapper.Map<SAVM.Task>(newTaskEntity);
+            var newTask = newTaskEntity.ToTask();
             // return the new task with all of its new subtasks
             var entities = new List<TaskEntity>();
             entities.Add(newTaskEntity);
@@ -556,7 +553,7 @@ namespace Steamfitter.Api.Services
             }
 
             await _context.SaveChangesAsync();
-            var movedTask = _mapper.Map<SAVM.Task>(existingTaskEntity);
+            var movedTask = existingTaskEntity.ToTask();
             var entities = new List<TaskEntity>();
             entities.Add(existingTaskEntity);
             entities.AddRange(await MoveSubTasks(existingTaskEntity.Id, sourceScenarioId, sourceScenarioTemplateId, ct));

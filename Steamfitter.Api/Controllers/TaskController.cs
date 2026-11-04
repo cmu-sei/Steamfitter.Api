@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -15,7 +16,6 @@ using Steamfitter.Api.Services;
 using SAVM = Steamfitter.Api.ViewModels;
 using Swashbuckle.AspNetCore.Annotations;
 using Steamfitter.Api.ViewModels;
-using AutoMapper;
 
 namespace Steamfitter.Api.Controllers
 {
@@ -24,14 +24,12 @@ namespace Steamfitter.Api.Controllers
         private readonly ITaskService _taskService;
         private readonly ISteamfitterAuthorizationService _authorizationService;
         private readonly IResultService _resultService;
-        private readonly IMapper _mapper;
 
-        public TaskController(ITaskService TaskService, ISteamfitterAuthorizationService authorizationService, IResultService resultService, IMapper mapper)
+        public TaskController(ITaskService TaskService, ISteamfitterAuthorizationService authorizationService, IResultService resultService)
         {
             _taskService = TaskService;
             _authorizationService = authorizationService;
             _resultService = resultService;
-            _mapper = mapper;
         }
 
         /// <summary>
@@ -97,7 +95,7 @@ namespace Steamfitter.Api.Controllers
             var fullScenarioIds = _authorizationService.GetAuthorizedScenarioIds(ScenarioPermission.ViewScenario);
             return Ok(list.Select(x => fullScenarioIds.Contains(x.ScenarioId.Value)
                 ? x
-                : _mapper.Map<SAVM.Task>(_mapper.Map<SAVM.TaskSummary>(x))));
+                : x.ToTaskSummary().ToTask()));
         }
 
         /// <summary>

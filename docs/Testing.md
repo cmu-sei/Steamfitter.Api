@@ -2,7 +2,7 @@ Steamfitter.Api has an automated test suite in the `Steamfitter.Api.Tests` proje
 
 # Testing
 
-The suite is built on xUnit v3 and NSubstitute, and runs against a real PostgreSQL instance started in a container. It is on the Crucible API test standard: the files under `Steamfitter.Api.Tests/Support/Shared/`, the test project's `Directory.Build.props` and `xunit.runner.json` are copied from the standard by its `sync.sh` and are not edited here. A typical test sends an HTTP request to the application hosted in process, through the real routes, MVC filters, claims transformer, authorization handlers, AutoMapper profiles and a real database with the real migrations, then asserts on the response and on what changed in the database. Only the collaborators that leave the process are replaced.
+The suite is built on xUnit v3 and NSubstitute, and runs against a real PostgreSQL instance started in a container. It is on the Crucible API test standard: the files under `Steamfitter.Api.Tests/Support/Shared/`, the test project's `Directory.Build.props` and `xunit.runner.json` are copied from the standard by its `sync.sh` and are not edited here. A typical test sends an HTTP request to the application hosted in process, through the real routes, MVC filters, claims transformer, authorization handlers, mappings and a real database with the real migrations, then asserts on the response and on what changed in the database. Only the collaborators that leave the process are replaced.
 
 # Running the tests
 
@@ -67,7 +67,6 @@ The shared base classes and what each provides (`Db`, `NewContext()`, `Mediator`
 - `TestData` holds the object mothers and the ids of the seeded rows: the system roles (`Administrator`, `ContentDeveloper`, `Observer`), the scenario roles (`Manager`, `Observer`, `Member`, `Facilitator`) and the template roles (`Manager`, `Observer`, `Member`), all from `HasData` in `Steamfitter.Api.Data/Models`.
 - `ClaimsPrincipalBuilder` writes the claims the transformer produces (`Permission`, and the JSON `ScenarioPermission` / `ScenarioTemplatePermission` claims), for the authorization handler tests and the service tests only; an HTTP test's caller is always an actor.
 - `AuthorizationHarness` wires the three permission handlers as `AuthorizationPolicyExtensions` does, and builds Steamfitter's `AuthorizationService` over a principal and a context.
-- `TestMapper` is the real AutoMapper configuration, including a private copy of Startup's internal `IgnoreNullSourceValues` convention.
 - `ApiTestHost` (with `ServiceTestBase`) builds, per principal, the services the hub and the two background services resolve, with recorders of its own: `Hub` (`EngineHub`), `Executors` and `OutboundHttp`. Its context is scoped and comes from the test's session rather than being the test's single `Db`, because `TaskExecutionService`, `TaskMaintenanceService` and `ScoringService` open scopes of their own and dispose the context they resolve. `ApiTestHostTests` constructs each registered service, so a missing registration fails one test by name.
 
 ## What is real, and what is not
@@ -113,7 +112,7 @@ Steamfitter.Api.Tests/
     Authorization/   the permission handlers and AuthorizationService
     Extensions/      the scopes the default policy and the MVC AuthorizeFilter require; the HTTP client timeout
     Filters/         JsonExceptionFilter, malformed requests and enum values
-    Mappings/        the AutoMapper configuration
+    Mappings/        the mappers' conversions no endpoint test reaches directly
   Support/           Steamfitter's harness files, its extras and the harness self-tests
     Shared/          the standard's shared files, copied by sync.sh and never edited here
 ```
