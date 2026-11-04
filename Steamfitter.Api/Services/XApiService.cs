@@ -96,33 +96,33 @@ namespace Steamfitter.Api.Services
 
             // configure AgentAccount
             _account = new TinCan.AgentAccount();
-            _account.name = subjectId;
+            _account.Name = subjectId;
             if (!string.IsNullOrWhiteSpace(_xApiOptions.IssuerUrl))
             {
-                _account.homePage = new Uri(_xApiOptions.IssuerUrl);
+                _account.HomePage = new Uri(_xApiOptions.IssuerUrl);
             }
             else if (issuer?.Contains("http") == true)
             {
-                _account.homePage = new Uri(issuer);
+                _account.HomePage = new Uri(issuer);
             }
             else
             {
-                _account.homePage = new Uri("http://" + (issuer ?? "localhost"));
+                _account.HomePage = new Uri("http://" + (issuer ?? "localhost"));
             }
 
             // configure Agent
             _agent = new TinCan.Agent();
             var userEntity = _context.Users.Find(userId);
-            _agent.name = userEntity?.Name ?? "Unknown User";
-            _agent.account = _account;
+            _agent.Name = userEntity?.Name ?? "Unknown User";
+            _agent.Account = _account;
 
             // Store the current user ID for use in queuing statements
             _currentUserId = userId;
 
             // Initialize the Context
             _xApiContext = new Context();
-            _xApiContext.platform = _xApiOptions.Platform;
-            _xApiContext.language = "en-US";
+            _xApiContext.Platform = _xApiOptions.Platform;
+            _xApiContext.Language = "en-US";
         }
 
         public Boolean IsConfigured()
@@ -147,36 +147,36 @@ namespace Steamfitter.Api.Services
             }
 
             var verb = new Verb();
-            verb.id = new Uri("http://adlnet.gov/expapi/verbs/launched");
-            verb.display = new LanguageMap();
-            verb.display.Add("en-US", "launched");
+            verb.Id = new Uri("http://adlnet.gov/expapi/verbs/launched");
+            verb.Display = new LanguageMap();
+            verb.Display.Add("en-US", "launched");
 
             var activity = new Activity();
-            activity.id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId;
-            activity.definition = new TinCan.ActivityDefinition();
-            activity.definition.type = new Uri("http://adlnet.gov/expapi/activities/simulation");
-            activity.definition.name = new LanguageMap();
-            activity.definition.name.Add("en-US", scenario.Name);
-            activity.definition.description = new LanguageMap();
-            activity.definition.description.Add("en-US", scenario.Description ?? scenario.Name);
+            activity.Id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId;
+            activity.Definition = new TinCan.ActivityDefinition();
+            activity.Definition.Type = new Uri("http://adlnet.gov/expapi/activities/simulation");
+            activity.Definition.Name = new LanguageMap();
+            activity.Definition.Name.Add("en-US", scenario.Name);
+            activity.Definition.Description = new LanguageMap();
+            activity.Definition.Description.Add("en-US", scenario.Description ?? scenario.Name);
 
             if (!string.IsNullOrWhiteSpace(_xApiOptions.UiUrl))
             {
-                activity.definition.moreInfo = new Uri(_xApiOptions.UiUrl.TrimEnd('/') + "/scenario/" + scenarioId);
+                activity.Definition.MoreInfo = new Uri(_xApiOptions.UiUrl.TrimEnd('/') + "/scenario/" + scenarioId);
             }
 
             var context = new Context();
-            context.platform = _xApiContext.platform;
-            context.language = _xApiContext.language;
-            context.registration = scenarioId; // Group statements by scenario session
+            context.Platform = _xApiContext.Platform;
+            context.Language = _xApiContext.Language;
+            context.Registration = scenarioId; // Group statements by scenario session
 
             var statement = new Statement();
-            statement.actor = _agent;
-            statement.verb = verb;
-            statement.target = activity;
-            statement.context = context;
+            statement.Actor = _agent;
+            statement.Verb = verb;
+            statement.Target = activity;
+            statement.Context = context;
 
-            return await QueueStatementAsync(statement, verb.id, activity.id, scenarioId, ct);
+            return await QueueStatementAsync(statement, verb.Id, activity.Id, scenarioId, ct);
         }
 
         public async Task<Boolean> ScenarioEndedAsync(Guid scenarioId, CancellationToken ct)
@@ -196,36 +196,36 @@ namespace Steamfitter.Api.Services
             }
 
             var verb = new Verb();
-            verb.id = new Uri("http://adlnet.gov/expapi/verbs/terminated");
-            verb.display = new LanguageMap();
-            verb.display.Add("en-US", "terminated");
+            verb.Id = new Uri("http://adlnet.gov/expapi/verbs/terminated");
+            verb.Display = new LanguageMap();
+            verb.Display.Add("en-US", "terminated");
 
             var activity = new Activity();
-            activity.id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId;
-            activity.definition = new TinCan.ActivityDefinition();
-            activity.definition.type = new Uri("http://adlnet.gov/expapi/activities/simulation");
-            activity.definition.name = new LanguageMap();
-            activity.definition.name.Add("en-US", scenario.Name);
-            activity.definition.description = new LanguageMap();
-            activity.definition.description.Add("en-US", scenario.Description ?? scenario.Name);
+            activity.Id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId;
+            activity.Definition = new TinCan.ActivityDefinition();
+            activity.Definition.Type = new Uri("http://adlnet.gov/expapi/activities/simulation");
+            activity.Definition.Name = new LanguageMap();
+            activity.Definition.Name.Add("en-US", scenario.Name);
+            activity.Definition.Description = new LanguageMap();
+            activity.Definition.Description.Add("en-US", scenario.Description ?? scenario.Name);
 
             if (!string.IsNullOrWhiteSpace(_xApiOptions.UiUrl))
             {
-                activity.definition.moreInfo = new Uri(_xApiOptions.UiUrl.TrimEnd('/') + "/scenario/" + scenarioId);
+                activity.Definition.MoreInfo = new Uri(_xApiOptions.UiUrl.TrimEnd('/') + "/scenario/" + scenarioId);
             }
 
             var context = new Context();
-            context.platform = _xApiContext.platform;
-            context.language = _xApiContext.language;
-            context.registration = scenarioId; // Group statements by scenario session
+            context.Platform = _xApiContext.Platform;
+            context.Language = _xApiContext.Language;
+            context.Registration = scenarioId; // Group statements by scenario session
 
             var statement = new Statement();
-            statement.actor = _agent;
-            statement.verb = verb;
-            statement.target = activity;
-            statement.context = context;
+            statement.Actor = _agent;
+            statement.Verb = verb;
+            statement.Target = activity;
+            statement.Context = context;
 
-            return await QueueStatementAsync(statement, verb.id, activity.id, scenarioId, ct);
+            return await QueueStatementAsync(statement, verb.Id, activity.Id, scenarioId, ct);
         }
 
         public async Task<Boolean> TaskExecutedAsync(Guid taskId, Guid scenarioId, Guid? userId, CancellationToken ct)
@@ -264,18 +264,18 @@ namespace Steamfitter.Api.Services
             }
 
             var verb = new Verb();
-            verb.id = new Uri("http://adlnet.gov/expapi/verbs/executed");
-            verb.display = new LanguageMap();
-            verb.display.Add("en-US", "executed");
+            verb.Id = new Uri("http://adlnet.gov/expapi/verbs/executed");
+            verb.Display = new LanguageMap();
+            verb.Display.Add("en-US", "executed");
 
             var activity = new Activity();
-            activity.id = _xApiOptions.ApiUrl + "tasks/" + taskId;
-            activity.definition = new TinCan.ActivityDefinition();
-            activity.definition.type = new Uri("http://adlnet.gov/expapi/activities/cmi.interaction");
-            activity.definition.name = new LanguageMap();
-            activity.definition.name.Add("en-US", task.Name);
-            activity.definition.description = new LanguageMap();
-            activity.definition.description.Add("en-US", task.Description ?? task.Name);
+            activity.Id = _xApiOptions.ApiUrl + "tasks/" + taskId;
+            activity.Definition = new TinCan.ActivityDefinition();
+            activity.Definition.Type = new Uri("http://adlnet.gov/expapi/activities/cmi.interaction");
+            activity.Definition.Name = new LanguageMap();
+            activity.Definition.Name.Add("en-US", task.Name);
+            activity.Definition.Description = new LanguageMap();
+            activity.Definition.Description.Add("en-US", task.Description ?? task.Name);
 
             var activityExtensions = new Newtonsoft.Json.Linq.JObject();
             activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/task-action"] = task.Action.ToString();
@@ -291,35 +291,35 @@ namespace Steamfitter.Api.Services
             {
                 activityExtensions["https://crucible.sei.cmu.edu/xapi/extensions/expected-output"] = task.ExpectedOutput;
             }
-            activity.definition.extensions = new TinCan.Extensions(activityExtensions);
+            activity.Definition.Extensions = new TinCan.Extensions(activityExtensions);
 
             var result = new Result();
-            result.completion = task.IsComplete;
-            result.success = task.Status == Data.TaskStatus.succeeded;
+            result.Completion = task.IsComplete;
+            result.Success = task.Status == Data.TaskStatus.succeeded;
             if (task.Score > 0)
             {
-                result.score = new Score();
-                result.score.raw = task.ScoreEarned;
-                result.score.max = task.Score;
-                result.score.min = 0;
-                result.score.scaled = task.Score > 0 ? (double)task.ScoreEarned / task.Score : 0;
+                result.Score = new Score();
+                result.Score.Raw = task.ScoreEarned;
+                result.Score.Max = task.Score;
+                result.Score.Min = 0;
+                result.Score.Scaled = task.Score > 0 ? (double)task.ScoreEarned / task.Score : 0;
             }
 
             var context = new Context();
-            context.platform = _xApiContext.platform;
-            context.language = _xApiContext.language;
-            context.registration = scenarioId;
+            context.Platform = _xApiContext.Platform;
+            context.Language = _xApiContext.Language;
+            context.Registration = scenarioId;
 
             var contextActivities = new ContextActivities();
             var parentActivity = new Activity();
-            parentActivity.id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId;
-            parentActivity.definition = new ActivityDefinition();
-            parentActivity.definition.type = new Uri("http://adlnet.gov/expapi/activities/simulation");
-            parentActivity.definition.name = new LanguageMap();
-            parentActivity.definition.name.Add("en-US", scenario.Name);
-            parentActivity.definition.description = new LanguageMap();
-            parentActivity.definition.description.Add("en-US", scenario.Description ?? scenario.Name);
-            contextActivities.parent = new List<Activity> { parentActivity };
+            parentActivity.Id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId;
+            parentActivity.Definition = new ActivityDefinition();
+            parentActivity.Definition.Type = new Uri("http://adlnet.gov/expapi/activities/simulation");
+            parentActivity.Definition.Name = new LanguageMap();
+            parentActivity.Definition.Name.Add("en-US", scenario.Name);
+            parentActivity.Definition.Description = new LanguageMap();
+            parentActivity.Definition.Description.Add("en-US", scenario.Description ?? scenario.Name);
+            contextActivities.Parent = new List<Activity> { parentActivity };
 
             var groupingList = new List<Activity>();
             var moveGroupMatch = System.Text.RegularExpressions.Regex.Match(task.Name ?? "", @"^(\d+)-(\d+)\s");
@@ -329,36 +329,36 @@ namespace Steamfitter.Api.Services
                 var groupNumber = int.Parse(moveGroupMatch.Groups[2].Value);
 
                 var moveActivity = new Activity();
-                moveActivity.id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId + "/move/" + moveNumber;
-                moveActivity.definition = new ActivityDefinition();
-                moveActivity.definition.type = new Uri("http://id.tincanapi.com/activitytype/collection-simple");
-                moveActivity.definition.name = new LanguageMap();
-                moveActivity.definition.name.Add("en-US", $"Move {moveNumber}");
+                moveActivity.Id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId + "/move/" + moveNumber;
+                moveActivity.Definition = new ActivityDefinition();
+                moveActivity.Definition.Type = new Uri("http://id.tincanapi.com/activitytype/collection-simple");
+                moveActivity.Definition.Name = new LanguageMap();
+                moveActivity.Definition.Name.Add("en-US", $"Move {moveNumber}");
                 groupingList.Add(moveActivity);
 
                 var groupActivity = new Activity();
-                groupActivity.id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId + "/move/" + moveNumber + "/group/" + groupNumber;
-                groupActivity.definition = new ActivityDefinition();
-                groupActivity.definition.type = new Uri("http://id.tincanapi.com/activitytype/collection-simple");
-                groupActivity.definition.name = new LanguageMap();
-                groupActivity.definition.name.Add("en-US", $"Group {groupNumber}");
+                groupActivity.Id = _xApiOptions.ApiUrl + "scenarios/" + scenarioId + "/move/" + moveNumber + "/group/" + groupNumber;
+                groupActivity.Definition = new ActivityDefinition();
+                groupActivity.Definition.Type = new Uri("http://id.tincanapi.com/activitytype/collection-simple");
+                groupActivity.Definition.Name = new LanguageMap();
+                groupActivity.Definition.Name.Add("en-US", $"Group {groupNumber}");
                 groupingList.Add(groupActivity);
             }
             if (groupingList.Count > 0)
             {
-                contextActivities.grouping = groupingList;
+                contextActivities.Grouping = groupingList;
             }
 
-            context.contextActivities = contextActivities;
+            context.ContextActivities = contextActivities;
 
             var statement = new Statement();
-            statement.actor = _agent;
-            statement.verb = verb;
-            statement.target = activity;
-            statement.result = result;
-            statement.context = context;
+            statement.Actor = _agent;
+            statement.Verb = verb;
+            statement.Target = activity;
+            statement.Result = result;
+            statement.Context = context;
 
-            return await QueueStatementAsync(statement, verb.id, activity.id, scenarioId, ct);
+            return await QueueStatementAsync(statement, verb.Id, activity.Id, scenarioId, ct);
         }
 
         private async Task<Boolean> QueueStatementAsync(
@@ -372,7 +372,7 @@ namespace Steamfitter.Api.Services
             {
                 var queuedStatement = new XApiQueuedStatementEntity
                 {
-                    StatementJson = statement.ToJSON(true),
+                    StatementJson = statement.ToJson(true),
                     Verb = verbUri.ToString(),
                     ActivityId = activityId,
                     ScenarioId = scenarioId,
