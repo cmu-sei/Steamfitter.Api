@@ -8,9 +8,17 @@ namespace Steamfitter.Api.Infrastructure.Mappings;
 
 /// <summary>Copies of stored tasks, scenarios, templates and credentials, for the copy requests.</summary>
 /// <remarks>
+/// <para>
 /// A mapping between two values of the same type returns the source itself unless the mapper deep-clones,
 /// so the copies have a mapper of their own. Only scalar members are left to copy: ids and navigations are
 /// ignored, and the caller places the copy.
+/// </para>
+/// <para>
+/// AutoMapper's copies deep-mapped any navigation the context had already loaded: a task copy would have
+/// moved the original's loaded results onto the copy and inserted copies of its loaded subtasks, and a
+/// scenario copy would have inserted a copy of its loaded template. No copy request loads those
+/// navigations before it copies, so leaving them out changes nothing a request can reach.
+/// </para>
 /// </remarks>
 [Mapper(UseDeepCloning = true)]
 public static partial class EntityCopyMapper

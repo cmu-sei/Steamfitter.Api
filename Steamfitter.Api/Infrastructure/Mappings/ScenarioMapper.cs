@@ -27,13 +27,14 @@ public static partial class ScenarioMapper
     [MapperRequiredMapping(RequiredMappingStrategy.Source)]
     public static partial Scenario ToScenario(this ScenarioSummary source);
 
-    /// <remarks>The entity's constructor sets the status, which the request does not carry.</remarks>
+    /// <remarks>The entity's constructor sets the status, which the request does not carry. The handler sets the id.</remarks>
     [MapperRequiredMapping(RequiredMappingStrategy.Source)]
+    [MapperIgnoreSource(nameof(ScenarioCreate.Id))]
     public static partial ScenarioEntity ToEntity(this ScenarioCreate source);
 
     [MapperRequiredMapping(RequiredMappingStrategy.Source)]
     public static partial void ApplyTo(this ScenarioEdit source, ScenarioEntity target);
 
-    private static List<VmCredential> MapVmCredentials(ICollection<VmCredentialEntity> source) =>
-        source == null ? [] : source.Select(x => x.ToVmCredential()).ToList();
+    // VmCredentialMapper owns the list.
+    private static List<VmCredential> MapVmCredentials(ICollection<VmCredentialEntity> source) => source.ToVmCredentials();
 }

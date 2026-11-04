@@ -12,9 +12,9 @@ namespace Steamfitter.Api.Infrastructure.Mappings;
 
 /// <summary>Tasks' mappings.</summary>
 /// <remarks>
-/// A task's action parameters are stored as a JSON input string. A request's parameters are written
-/// with <c>JsonSerializer.Serialize</c>, so none are stored as the JSON <c>null</c>, and read back as an
-/// empty dictionary.
+/// A task's action parameters are stored as a JSON input string, written with
+/// <c>JsonSerializer.Serialize</c>. A request without parameters is therefore stored as the JSON
+/// <c>null</c>, which is read back as an empty dictionary.
 /// </remarks>
 [Mapper]
 public static partial class TaskMapper
@@ -35,6 +35,7 @@ public static partial class TaskMapper
     public static partial Task ToTask(this TaskSummary source);
 
     // An empty input string has no parameters; one that is not JSON is kept under BadInputString.
+    [UserMapping(Default = false)]
     private static Dictionary<string, string> ReadActionParameters(TaskEntity source)
     {
         var parameters = new Dictionary<string, string>();
@@ -70,6 +71,7 @@ public static partial class TaskMapper
     [MapProperty(nameof(TaskEdit.ActionParameters), nameof(TaskEntity.InputString), Use = nameof(WriteInputString))]
     public static partial void ApplyTo(this TaskEdit source, TaskEntity target);
 
+    [UserMapping(Default = false)]
     private static string WriteInputString(Dictionary<string, string> actionParameters) =>
         JsonSerializer.Serialize(actionParameters);
 }

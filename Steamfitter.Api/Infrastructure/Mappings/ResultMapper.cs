@@ -24,6 +24,7 @@ public static partial class ResultMapper
     public static partial void ApplyTo(this ResultEdit source, ResultEntity target);
 
     // An input string that is not JSON, a missing one included, is kept under BadInputString.
+    [UserMapping(Default = false)]
     private static Dictionary<string, string> ReadActionParameters(ResultEntity source)
     {
         var parameters = new Dictionary<string, string>();

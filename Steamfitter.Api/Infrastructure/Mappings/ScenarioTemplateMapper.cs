@@ -28,6 +28,6 @@ public static partial class ScenarioTemplateMapper
     [MapperRequiredMapping(RequiredMappingStrategy.Source)]
     public static partial void ApplyTo(this ScenarioTemplateForm source, ScenarioTemplateEntity target);
 
-    private static List<VmCredential> MapVmCredentials(ICollection<VmCredentialEntity> source) =>
-        source == null ? [] : source.Select(x => x.ToVmCredential()).ToList();
+    // VmCredentialMapper owns the list.
+    private static List<VmCredential> MapVmCredentials(ICollection<VmCredentialEntity> source) => source.ToVmCredentials();
 }

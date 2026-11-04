@@ -9,6 +9,7 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
+using Steamfitter.Api.Hubs;
 using Steamfitter.Api.Tests.Support;
 using SAVM = Steamfitter.Api.ViewModels;
 using TaskStatus = Steamfitter.Api.Data.TaskStatus;
@@ -116,6 +117,7 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
         task.UserExecutable = true;
         task.Repeatable = true;
         task.Status = TaskStatus.succeeded;
+        task.TriggerCondition = TaskTrigger.Completion;
         await Seed(source, target, task);
 
         await AssertStatus(HttpStatusCode.OK, await RootClient.PostAsJsonAsync($"api/tasks/{task.Id}/copy", new { id = target.Id, locationType = "scenario" }, Ct));
@@ -126,8 +128,43 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Equal(("Original", "A task", TaskAction.guest_process_run, "stackstorm", "mask"), (copy.Name, copy.Description, copy.Action, copy.ApiUrl, copy.VmMask));
         Assert.Equal((task.InputString, "root", 30, 2, 3, 4), (copy.InputString, copy.ExpectedOutput, copy.ExpirationSeconds, copy.DelaySeconds, copy.IntervalSeconds, copy.Iterations));
         Assert.Equal((TaskIterationTermination.UntilSuccess, 1, 5, true, true), (copy.IterationTermination, copy.CurrentIteration, copy.Score, copy.UserExecutable, copy.Repeatable));
+        // The totals are not compared: the scenario's scores are recalculated once the copy is saved.
+        Assert.Equal(TaskTrigger.Completion, copy.TriggerCondition);
         Assert.Equal((TaskStatus.none, Root.Id, (Guid?)null), (copy.Status, copy.UserId.Value, copy.TriggerTaskId));
         Assert.Equal(source.Id, (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).ScenarioId);
+    }
+
+    /// <summary>A task update without parameters stores them as the JSON <c>null</c> too.</summary>
+    [Fact]
+    public async Task A_task_updated_without_parameters_stores_a_json_null()
+    {
+        var scenario = TestData.Scenario();
+        var task = TestData.ScenarioTask(scenario.Id);
+        task.InputString = """{"Moid":"vm-1"}""";
+        await Seed(scenario, task);
+
+        var updated = await ReadAsync<SAVM.Task>(await RootClient.PutAsJsonAsync($"api/tasks/{task.Id}",
+            new { name = "Updated", action = "send_email", vmMask = "", actionParameters = (object)null }, Ct));
+
+        Assert.Empty(updated.ActionParameters);
+        await using var db = NewContext();
+        Assert.Equal("null", (await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).InputString);
+    }
+
+    /// <summary>A copied scenario's credentials carry the original's password and description.</summary>
+    [Fact]
+    public async Task A_copied_scenarios_credentials_carry_the_originals_members()
+    {
+        var scenario = TestData.Scenario("Original");
+        var credential = TestData.VmCredential(scenarioId: scenario.Id, username: "admin");
+        await Seed(scenario, credential);
+
+        var copy = await ReadAsync<SAVM.Scenario>(await RootClient.PostAsync($"api/scenarios/{scenario.Id}/copy", null, Ct));
+
+        await using var db = NewContext();
+        var copied = await db.VmCredentials.SingleAsync(x => x.ScenarioId == copy.Id, Ct);
+        Assert.NotEqual(credential.Id, copied.Id);
+        Assert.Equal(("admin", "secret", "A credential", (Guid?)null), (copied.Username, copied.Password, copied.Description, copied.ScenarioTemplateId));
     }
 
     // ---- Results --------------------------------------------------------------------------------
@@ -149,6 +186,40 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
 
         Assert.Equal("vm-1", readableResult.ActionParameters["Moid"]);
         Assert.Null(Assert.Single(missingResult.ActionParameters, x => x.Key == "BadInputString").Value);
+    }
+
+    /// <summary>A result stored with the JSON <c>null</c> as its input string, as one of a task without parameters is, has no parameters.</summary>
+    [Fact]
+    public async Task A_result_stored_with_a_json_null_has_no_parameters()
+    {
+        var scenario = TestData.Scenario();
+        var task = TestData.ScenarioTask(scenario.Id);
+        var result = TestData.Result(task.Id);
+        result.InputString = "null";
+        await Seed(scenario, task, result);
+
+        var read = await ReadAsync<SAVM.Result>(await RootClient.GetAsync($"api/results/{result.Id}", Ct));
+
+        Assert.NotNull(read.ActionParameters);
+        Assert.Empty(read.ActionParameters);
+    }
+
+    /// <summary>A result update writes both outputs, clearing one it leaves out.</summary>
+    [Fact]
+    public async Task A_result_update_clears_an_output_it_leaves_out()
+    {
+        var scenario = TestData.Scenario();
+        var task = TestData.ScenarioTask(scenario.Id);
+        var result = TestData.Result(task.Id);
+        result.ExpectedOutput = "expected";
+        result.ActualOutput = "actual";
+        await Seed(scenario, task, result);
+
+        await AssertStatus(HttpStatusCode.OK, await RootClient.PutAsJsonAsync($"api/results/{result.Id}", new { actualOutput = "changed" }, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.Results.SingleAsync(x => x.Id == result.Id, Ct);
+        Assert.Equal(((string)null, "changed", task.Id), (stored.ExpectedOutput, stored.ActualOutput, stored.TaskId));
     }
 
     // ---- Scenarios and templates ----------------------------------------------------------------
@@ -177,6 +248,8 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
         scenario.StartDate = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
         scenario.EndDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
         await Seed(template, scenario);
+        await using var before = NewContext();
+        var templates = await before.ScenarioTemplates.CountAsync(Ct);
 
         var copy = await ReadAsync<SAVM.Scenario>(await RootClient.PostAsync($"api/scenarios/{scenario.Id}/copy", null, Ct));
 
@@ -184,7 +257,58 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
         var stored = await db.Scenarios.SingleAsync(x => x.Id == copy.Id, Ct);
         Assert.Equal((template.Id, "Described", "A view"), (stored.ScenarioTemplateId, stored.Description, stored.View));
         Assert.Equal((scenario.StartDate, scenario.EndDate, true), (stored.StartDate, stored.EndDate, stored.OnDemand));
-        Assert.Single(db.ScenarioTemplates.Where(x => x.Id == template.Id));
+        Assert.Equal(templates, await db.ScenarioTemplates.CountAsync(Ct));
+    }
+
+    /// <summary>A scenario update clears the view, default credential and description it leaves out, and keeps its status and template.</summary>
+    [Fact]
+    public async Task A_scenario_update_clears_what_it_leaves_out()
+    {
+        var template = TestData.ScenarioTemplate();
+        var scenario = TestData.Scenario("Before", viewId: null, scenarioTemplateId: template.Id, status: ScenarioStatus.active);
+        scenario.View = "A view";
+        scenario.DefaultVmCredentialId = Guid.NewGuid();
+        await Seed(template, scenario);
+
+        await AssertStatus(HttpStatusCode.OK, await RootClient.PutAsJsonAsync($"api/scenarios/{scenario.Id}",
+            new { name = "After", startDate = scenario.StartDate, endDate = scenario.EndDate }, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.Scenarios.SingleAsync(x => x.Id == scenario.Id, Ct);
+        Assert.Equal(("After", null, null, (Guid?)null), (stored.Name, stored.Description, stored.View, stored.DefaultVmCredentialId));
+        Assert.Equal((ScenarioStatus.active, template.Id), (stored.Status, stored.ScenarioTemplateId.Value));
+    }
+
+    /// <summary>The scenario's own group is first sent the summary, without the description, then the full scenario.</summary>
+    [Fact]
+    public async Task A_scenarios_own_group_is_sent_its_summary_then_the_full_scenario()
+    {
+        var created = await ReadAsync<SAVM.Scenario>(await RootClient.PostAsJsonAsync("api/scenarios", new { name = "Broadcast", description = "Described" }, Ct));
+
+        var sent = Factory.Hub<EngineHub>().ToGroup(created.Id)
+            .Where(x => x.Method == EngineMethods.ScenarioCreated)
+            .Select(x => Assert.IsType<SAVM.Scenario>(x.Argument))
+            .ToList();
+
+        Assert.Equal(2, sent.Count);
+        Assert.Equal(("Broadcast", null), (sent[0].Name, sent[0].Description));
+        Assert.Null(sent[0].VmCredentials);
+        Assert.Equal("Described", sent[1].Description);
+    }
+
+    /// <summary>A credential update clears the password and description it leaves out.</summary>
+    [Fact]
+    public async Task A_credential_update_clears_what_it_leaves_out()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id);
+        await Seed(scenario, credential);
+
+        await AssertStatus(HttpStatusCode.OK, await RootClient.PutAsJsonAsync($"api/vmCredentials/{credential.Id}", new { username = "changed" }, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct);
+        Assert.Equal(("changed", null, null, scenario.Id), (stored.Username, stored.Password, stored.Description, stored.ScenarioId.Value));
     }
 
     /// <summary>A template read without credentials has an empty list of them, and earns no score.</summary>
@@ -255,6 +379,28 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Null(updated.RoleId);
         await using var db = NewContext();
         Assert.Null((await db.Users.SingleAsync(x => x.Id == user.Id, Ct)).RoleId);
+    }
+
+    /// <summary>A PUT writes the body's id onto the row, so an id other than the route's fails the save with a 500 that changes nothing.</summary>
+    [Fact]
+    public async Task A_put_with_a_body_id_other_than_the_routes_is_a_server_error()
+    {
+        var user = TestData.User(name: $"User {Guid.NewGuid():N}");
+        var group = TestData.Group($"Group {Guid.NewGuid():N}");
+        var role = TestData.SystemRole($"Role {Guid.NewGuid():N}");
+        await Seed(user, group, role);
+
+        var userResponse = await RootClient.PutAsJsonAsync($"api/users/{user.Id}", new { id = Guid.NewGuid(), name = "Renamed" }, Ct);
+        var groupResponse = await RootClient.PutAsJsonAsync($"api/groups/{group.Id}", new { id = Guid.NewGuid(), name = "Renamed" }, Ct);
+        var roleResponse = await RootClient.PutAsJsonAsync($"api/system-roles/{role.Id}", new { id = Guid.NewGuid(), name = "Renamed", permissions = Array.Empty<int>() }, Ct);
+
+        Assert.StartsWith("The property 'UserEntity.Id' is part of a key", (await AssertJsonError(HttpStatusCode.InternalServerError, userResponse)).Detail);
+        Assert.StartsWith("The property 'GroupEntity.Id' is part of a key", (await AssertJsonError(HttpStatusCode.InternalServerError, groupResponse)).Detail);
+        Assert.StartsWith("The property 'SystemRoleEntity.Id' is part of a key", (await AssertJsonError(HttpStatusCode.InternalServerError, roleResponse)).Detail);
+        await using var db = NewContext();
+        Assert.Equal(user.Name, (await db.Users.SingleAsync(x => x.Id == user.Id, Ct)).Name);
+        Assert.Equal(group.Name, (await db.Groups.SingleAsync(x => x.Id == group.Id, Ct)).Name);
+        Assert.Equal(role.Name, (await db.SystemRoles.SingleAsync(x => x.Id == role.Id, Ct)).Name);
     }
 
     /// <summary>The view model has no description, so an update keeps the stored one.</summary>

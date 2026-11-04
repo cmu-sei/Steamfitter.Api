@@ -38,12 +38,23 @@ public class MapperTests
         Assert.Equal("not json", task.ActionParameters["BadInputString"]);
     }
 
+    /// <summary>A task sent as a summary keeps the summary's members and loses the rest.</summary>
     [Fact]
-    public void A_task_maps_to_its_summary_without_its_parameters()
+    public void A_task_round_tripped_through_its_summary_keeps_only_the_summarys_members()
     {
-        var summary = new SAVM.Task { Id = Guid.NewGuid(), Name = "Task", ActionParameters = new() { ["Secret"] = "value" } }.ToTaskSummary();
+        var task = new SAVM.Task
+        {
+            Id = Guid.NewGuid(),
+            Name = "Task",
+            Score = 3,
+            ApiUrl = "stackstorm",
+            ActionParameters = new() { ["Secret"] = "value" }
+        };
 
-        Assert.Equal("Task", summary.Name);
+        var summarized = task.ToTaskSummary().ToTask();
+
+        Assert.Equal((task.Id, "Task", 3), (summarized.Id, summarized.Name, summarized.Score));
+        Assert.Equal((null, null), (summarized.ApiUrl, summarized.ActionParameters));
     }
 
     /// <summary>A copy is a new object, not the original: a mapping between two values of one type returns the source unless it deep-clones.</summary>
@@ -56,5 +67,21 @@ public class MapperTests
 
         Assert.NotSame(original, copy);
         Assert.Equal((Guid.Empty, "Original"), (copy.Id, copy.Name));
+    }
+
+    /// <summary>A copy carries none of the original's navigations, even loaded ones; the copy requests copy subtasks themselves.</summary>
+    [Fact]
+    public void A_copy_leaves_out_the_originals_navigations()
+    {
+        var parent = new TaskEntity { Id = Guid.NewGuid() };
+        var original = new TaskEntity { Id = Guid.NewGuid(), TriggerTask = parent, Scenario = new ScenarioEntity() };
+        original.Children.Add(new TaskEntity { Id = Guid.NewGuid() });
+        original.Results.Add(new ResultEntity { Id = Guid.NewGuid() });
+
+        var copy = original.ToCopy();
+
+        Assert.Equal((null, null), (copy.TriggerTask, copy.Scenario));
+        Assert.Empty(copy.Children);
+        Assert.Empty(copy.Results);
     }
 }
