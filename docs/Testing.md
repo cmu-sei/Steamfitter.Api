@@ -2,7 +2,7 @@ Steamfitter.Api has an automated test suite in the `Steamfitter.Api.Tests` proje
 
 # Testing
 
-The suite is built on xUnit v3 and NSubstitute, and runs against a real PostgreSQL instance started in a container. It is on the Crucible API test standard: the files under `Steamfitter.Api.Tests/Support/Shared/`, the test project's `Directory.Build.props`, `xunit.runner.json`, `coverlet.runsettings` and `.github/workflows/build-and-test.yml` are copied from the standard by its `sync.sh` and are not edited here. A typical test sends an HTTP request to the application hosted in process, through the real routes, MVC filters, claims transformer, authorization handlers, AutoMapper profiles and a real database with the real migrations, then asserts on the response and on what changed in the database. Only the collaborators that leave the process are replaced.
+The suite is built on xUnit v3 and NSubstitute, and runs against a real PostgreSQL instance started in a container. It is on the Crucible API test standard: the files under `Steamfitter.Api.Tests/Support/Shared/`, the test project's `Directory.Build.props` and `xunit.runner.json` are copied from the standard by its `sync.sh` and are not edited here. A typical test sends an HTTP request to the application hosted in process, through the real routes, MVC filters, claims transformer, authorization handlers, AutoMapper profiles and a real database with the real migrations, then asserts on the response and on what changed in the database. Only the collaborators that leave the process are replaced.
 
 # Running the tests
 
@@ -10,21 +10,23 @@ The suite is built on xUnit v3 and NSubstitute, and runs against a real PostgreS
 dotnet test Steamfitter.Api.Tests
 ```
 
+The suite runs on Microsoft.Testing.Platform (`"test": { "runner": "Microsoft.Testing.Platform" }` in `global.json`), which xunit.v3 4 requires on the .NET 10 SDK, so test options are xUnit's own (`--filter-class`, `--filter-method`, `--xunit-diagnostics`; see `dotnet test Steamfitter.Api.Tests --help`) rather than VSTest's `--filter` and `-- xUnit.…` settings.
+
 Docker must be running. The suite starts and disposes its own PostgreSQL container (`postgres:16-alpine`) through Testcontainers. The container starts when the first test asks for a database, so the tests that take none (`MappingConfigurationTests`, `JsonExceptionFilterTests` and `PermissionHandlerTests`) run without Docker.
 
 A single class or test:
 
 ```bash
-dotnet test Steamfitter.Api.Tests --filter "FullyQualifiedName~.TaskControllerTests"
-dotnet test Steamfitter.Api.Tests --filter "FullyQualifiedName~.TaskControllerTests.Execute_is_forbidden_for_a_member_holding_only_EditScenario"
+dotnet test Steamfitter.Api.Tests --filter-class "*.TaskControllerTests"
+dotnet test Steamfitter.Api.Tests --filter-method "*.TaskControllerTests.Execute_is_forbidden_for_a_member_holding_only_EditScenario"
 ```
 
-The leading dot makes the filter match the class name from its first letter, so it cannot also match a longer class name that ends in it.
+The leading `*.` makes the filter match the class name from its first letter, so it cannot also match a longer class name that ends in it.
 
-To see which database the run used, pass the diagnostic flag on the command line (never in `xunit.runner.json`, where it makes the run hang after the last test):
+To see which database the run used, pass the diagnostic flag on the command line (never in `xunit.runner.json`, where it makes the run hang after the last test). It is printed with `dotnet run` because `dotnet test` does not forward the test app's diagnostic messages:
 
 ```bash
-dotnet test Steamfitter.Api.Tests -- xUnit.DiagnosticMessages=true
+dotnet run --project Steamfitter.Api.Tests -- --xunit-diagnostics on
 ```
 
 The run then prints `[Steamfitter.Api.Tests] database provider: PostgreSQL (postgres:16-alpine, real migrations)` once.
@@ -32,10 +34,17 @@ The run then prints `[Steamfitter.Api.Tests] database provider: PostgreSQL (post
 # Coverage
 
 ```bash
-dotnet test Steamfitter.Api.Tests --collect:"XPlat Code Coverage"
+dotnet test Steamfitter.Api.Tests --results-directory TestResults/coverage \
+  --coverlet --coverlet-output-format cobertura \
+  --coverlet-include "[Steamfitter.Api]*" --coverlet-include "[Steamfitter.Api.Data]*" \
+  --coverlet-exclude "[*.Migrations.PostgreSQL]*" --coverlet-exclude "[*.Tests]*" \
+  --coverlet-exclude-by-file "**/.nuget/packages/**/*.cs" --coverlet-exclude-by-file "**/Migrations/**/*.cs" \
+  --coverlet-exclude-by-attribute GeneratedCodeAttribute --coverlet-exclude-by-attribute CompilerGeneratedAttribute \
+  --coverlet-exclude-by-attribute ExcludeFromCodeCoverageAttribute --coverlet-exclude-by-attribute Obsolete \
+  --coverlet-skip-auto-props
 ```
 
-`coverlet.runsettings` is applied automatically (the test project names it in `RunSettingsFilePath`), with the collector disabled by default, so a plain run collects nothing and a coverage run cannot lose its exclusions: `Steamfitter.Api.Migrations.PostgreSQL`, any `**/Migrations/**` source, the `Crucible.Common.EntityEvents` sources that compile into `Steamfitter.Api.Data`, generated code and auto-properties. coverlet's cobertura output lists every class twice; read `lines-covered` and `lines-valid` on the root element rather than summing classes. Coverage is a local diagnostic; CI neither collects nor gates on it.
+Coverage comes from `coverlet.MTP`, the Microsoft.Testing.Platform form of coverlet, and is opt-in through `--coverlet`, so a plain run collects nothing. The include filters keep the figure to `Steamfitter.Api` and `Steamfitter.Api.Data` (without them coverlet also instruments third-party assemblies that ship sources), and the rest exclude `Steamfitter.Api.Migrations.PostgreSQL`, any `**/Migrations/**` source, the `Crucible.Common.EntityEvents` sources that compile into `Steamfitter.Api.Data`, the test assembly, generated code and auto-properties. On the same code this reports the same figure as the VSTest run did (5,075 of 6,672 lines). coverlet's cobertura output lists every class twice; read `lines-covered` and `lines-valid` on the root element rather than summing classes. Coverage is a local diagnostic; CI neither collects nor gates on it.
 
 # Build settings
 
@@ -45,7 +54,7 @@ The repository has no central package management, so the test project carries it
 
 The test project keeps `ImplicitUsings` off, like the Steamfitter projects, so every file lists its usings. Two names clash and are aliased where a file needs both: `TaskStatus` (`Steamfitter.Api.Data` and `System.Threading.Tasks`) and `Task` (the view model, imported as `SAVM.Task` through `using SAVM = Steamfitter.Api.ViewModels;`).
 
-The suite runs in VSTest mode of `dotnet test`, as every Crucible API does; the standard's README ("Microsoft guidance") says why Microsoft.Testing.Platform mode is not used yet.
+The suite runs on Microsoft.Testing.Platform: `global.json` selects it for `dotnet test`, and `UseMicrosoftTestingPlatformRunner` in the project file builds the test app for it. Coverage comes from `coverlet.MTP`; `xunit.runner.visualstudio` and `Microsoft.NET.Test.Sdk` are not referenced (both VSTest only).
 
 # How the harness works
 
@@ -113,4 +122,4 @@ Steamfitter's extras in `Support/`: `TaskActionRecorder`, `ApiTestHost` / `Servi
 
 # Continuous integration
 
-`.github/workflows/build-and-test.yml` is the standard's workflow with this repository's test project filled in (`sync.sh` keeps it identical): restore, build, `dotnet test Steamfitter.Api.Tests -- xUnit.DiagnosticMessages=true`, a grep for the `[Steamfitter.Api.Tests] database provider: PostgreSQL` banner, and the TRX of the run as the `test-results` artifact, uploaded even when the job fails. It runs on pull requests and on pushes to `main`, with the SDK from `global.json`, and has no `services: postgres:` block because Testcontainers manages the container. The repository had no test workflow before.
+`.github/workflows/build-and-test.yml` calls the shared `dotnet-test.yaml` workflow in cmu-sei/Crucible-Github-Actions, which reads the test runner from `global.json`: restore, build, the suite as a Microsoft.Testing.Platform test app with `--xunit-diagnostics on`, a grep for the `[Steamfitter.Api.Tests] database provider: PostgreSQL` banner, and the TRX of the run as the `test-results` artifact, uploaded even when the job fails. It runs on pull requests and on pushes to `main`, with the SDK from `global.json`, and has no `services: postgres:` block because Testcontainers manages the container. The repository had no test workflow before.
