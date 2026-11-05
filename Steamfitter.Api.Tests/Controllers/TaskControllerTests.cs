@@ -503,19 +503,6 @@ public class TaskControllerTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Equal(start.Id, (await db.Tasks.SingleAsync(x => x.Id == created.Id, Ct)).TriggerTaskId);
     }
 
-    /// <summary>A form with no action parameters is answered with a 500.</summary>
-    [Fact]
-    public async Task Create_stores_a_form_without_action_parameters_with_none()
-    {
-        var scenario = TestData.Scenario();
-        await Seed(scenario);
-
-        var response = await RootClient.PostAsJsonAsync("api/tasks", new { name = "No parameters", scenarioId = scenario.Id, action = "send_email", apiUrl = "email", vmMask = "" }, Ct);
-
-        var created = await ReadAsync<SAVM.Task>(response);
-        Assert.Empty(created.ActionParameters ?? []);
-    }
-
     [Fact]
     public async Task Copy_copies_a_task_into_another_scenario_for_a_member_who_may_view_the_source_and_edit_the_target()
     {

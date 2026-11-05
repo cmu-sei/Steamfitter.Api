@@ -237,19 +237,36 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Null(read.Users);
     }
 
-    /// <summary>A copied scenario carries the original's members, its template included.</summary>
+    /// <summary>A scenario and a template are read with their credentials.</summary>
+    [Fact]
+    public async Task A_scenario_and_a_template_are_read_with_their_credentials()
+    {
+        var template = TestData.ScenarioTemplate();
+        var scenario = TestData.Scenario();
+        await Seed(
+            template,
+            scenario,
+            TestData.VmCredential(scenarioId: scenario.Id, username: "scenario-user"),
+            TestData.VmCredential(scenarioTemplateId: template.Id, username: "template-user"));
+
+        var readScenario = await ReadAsync<SAVM.Scenario>(await RootClient.GetAsync($"api/scenarios/{scenario.Id}", Ct));
+        var readTemplate = await ReadAsync<SAVM.ScenarioTemplate>(await RootClient.GetAsync($"api/scenarioTemplates/{template.Id}", Ct));
+
+        Assert.Equal("scenario-user", Assert.Single(readScenario.VmCredentials).Username);
+        Assert.Equal("template-user", Assert.Single(readTemplate.VmCredentials).Username);
+    }
+
+    /// <summary>A copied scenario carries the original's members, its view and template included.</summary>
     [Fact]
     public async Task A_copied_scenario_carries_the_originals_members()
     {
         var template = TestData.ScenarioTemplate();
-        var scenario = TestData.Scenario("Original", viewId: null, scenarioTemplateId: template.Id);
+        var scenario = TestData.Scenario("Original", viewId: Guid.NewGuid(), scenarioTemplateId: template.Id);
         scenario.Description = "Described";
         scenario.View = "A view";
         scenario.StartDate = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
         scenario.EndDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
         await Seed(template, scenario);
-        await using var before = NewContext();
-        var templates = await before.ScenarioTemplates.CountAsync(Ct);
 
         var copy = await ReadAsync<SAVM.Scenario>(await RootClient.PostAsync($"api/scenarios/{scenario.Id}/copy", null, Ct));
 
@@ -257,7 +274,7 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
         var stored = await db.Scenarios.SingleAsync(x => x.Id == copy.Id, Ct);
         Assert.Equal((template.Id, "Described", "A view"), (stored.ScenarioTemplateId, stored.Description, stored.View));
         Assert.Equal((scenario.StartDate, scenario.EndDate, true), (stored.StartDate, stored.EndDate, stored.OnDemand));
-        Assert.Equal(templates, await db.ScenarioTemplates.CountAsync(Ct));
+        Assert.Equal(scenario.ViewId, stored.ViewId);
     }
 
     /// <summary>A scenario update clears the view, default credential and description it leaves out, and keeps its status and template.</summary>
@@ -342,6 +359,25 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
 
     // ---- Users, groups and roles ----------------------------------------------------------------
 
+    /// <summary>
+    /// A user PUT writes the body's audit fields too, so a body without them resets the stored creation
+    /// date and creator. Pins current behavior.
+    /// </summary>
+    [Fact]
+    public async Task A_user_put_without_audit_fields_resets_them()
+    {
+        var user = TestData.User(name: $"User {Guid.NewGuid():N}");
+        user.DateCreated = new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc);
+        user.CreatedBy = Guid.NewGuid();
+        await Seed(user);
+
+        await ReadAsync<SAVM.User>(await RootClient.PutAsJsonAsync($"api/users/{user.Id}", new { id = user.Id, name = "Renamed" }, Ct));
+
+        await using var db = NewContext();
+        var stored = await db.Users.SingleAsync(x => x.Id == user.Id, Ct);
+        Assert.Equal(("Renamed", default(DateTime), Guid.Empty), (stored.Name, stored.DateCreated, stored.CreatedBy));
+    }
+
     [Fact]
     public async Task A_users_role_id_is_returned_hyphenated_and_read_in_any_guid_format()
     {
@@ -381,24 +417,23 @@ public class MappedResponseTests(DatabaseFixture fixture, SteamfitterAppFactory 
         Assert.Null((await db.Users.SingleAsync(x => x.Id == user.Id, Ct)).RoleId);
     }
 
-    /// <summary>A PUT writes the body's id onto the row, so an id other than the route's fails the save with a 500 that changes nothing.</summary>
+    /// <summary>
+    /// A PUT writes the body's id onto the row, so an id other than the route's fails the save with a 500
+    /// that changes nothing. <c>UserControllerTests</c> covers the same for users.
+    /// </summary>
     [Fact]
     public async Task A_put_with_a_body_id_other_than_the_routes_is_a_server_error()
     {
-        var user = TestData.User(name: $"User {Guid.NewGuid():N}");
         var group = TestData.Group($"Group {Guid.NewGuid():N}");
         var role = TestData.SystemRole($"Role {Guid.NewGuid():N}");
-        await Seed(user, group, role);
+        await Seed(group, role);
 
-        var userResponse = await RootClient.PutAsJsonAsync($"api/users/{user.Id}", new { id = Guid.NewGuid(), name = "Renamed" }, Ct);
         var groupResponse = await RootClient.PutAsJsonAsync($"api/groups/{group.Id}", new { id = Guid.NewGuid(), name = "Renamed" }, Ct);
         var roleResponse = await RootClient.PutAsJsonAsync($"api/system-roles/{role.Id}", new { id = Guid.NewGuid(), name = "Renamed", permissions = Array.Empty<int>() }, Ct);
 
-        Assert.StartsWith("The property 'UserEntity.Id' is part of a key", (await AssertJsonError(HttpStatusCode.InternalServerError, userResponse)).Detail);
         Assert.StartsWith("The property 'GroupEntity.Id' is part of a key", (await AssertJsonError(HttpStatusCode.InternalServerError, groupResponse)).Detail);
         Assert.StartsWith("The property 'SystemRoleEntity.Id' is part of a key", (await AssertJsonError(HttpStatusCode.InternalServerError, roleResponse)).Detail);
         await using var db = NewContext();
-        Assert.Equal(user.Name, (await db.Users.SingleAsync(x => x.Id == user.Id, Ct)).Name);
         Assert.Equal(group.Name, (await db.Groups.SingleAsync(x => x.Id == group.Id, Ct)).Name);
         Assert.Equal(role.Name, (await db.SystemRoles.SingleAsync(x => x.Id == role.Id, Ct)).Name);
     }

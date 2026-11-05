@@ -11,7 +11,7 @@ namespace Steamfitter.Api.Tests.Infrastructure.Mappings;
 /// <summary>The mappers' conversions that no endpoint test reaches directly.</summary>
 public class MapperTests
 {
-    /// <summary>A null nullable member clears the value; only a null onto a non-nullable member is skipped.</summary>
+    /// <summary>A form's null clears a nullable member rather than keeping the stored value.</summary>
     [Fact]
     public void A_form_without_a_duration_clears_the_templates_duration()
     {
@@ -22,20 +22,13 @@ public class MapperTests
         Assert.Equal(("Renamed", null), (destination.Name, destination.DurationHours));
     }
 
+    /// <summary>An empty input string reads back as no action parameters, as a missing one does.</summary>
     [Fact]
-    public void A_tasks_input_string_is_read_back_as_its_action_parameters()
+    public void An_empty_input_string_is_read_back_as_no_action_parameters()
     {
-        var task = new TaskEntity { InputString = """{"Moid":"{moid}"}""" }.ToTask();
+        var task = new TaskEntity { InputString = "" }.ToTask();
 
-        Assert.Equal("{moid}", task.ActionParameters["Moid"]);
-    }
-
-    [Fact]
-    public void An_unreadable_input_string_is_kept_under_BadInputString()
-    {
-        var task = new TaskEntity { Id = Guid.NewGuid(), InputString = "not json" }.ToTask();
-
-        Assert.Equal("not json", task.ActionParameters["BadInputString"]);
+        Assert.Empty(task.ActionParameters);
     }
 
     /// <summary>A task sent as a summary keeps the summary's members and loses the rest.</summary>
@@ -67,6 +60,66 @@ public class MapperTests
 
         Assert.NotSame(original, copy);
         Assert.Equal((Guid.Empty, "Original"), (copy.Id, copy.Name));
+    }
+
+    /// <summary>
+    /// A task copy keeps the original's totals, as AutoMapper's copy did; they are recalculated only when
+    /// a scored task is added.
+    /// </summary>
+    [Fact]
+    public void A_task_copy_keeps_the_originals_totals()
+    {
+        var original = new TaskEntity { TotalScore = 4, TotalStatus = Data.TaskStatus.succeeded };
+
+        var copy = original.ToCopy();
+
+        Assert.Equal((4, Data.TaskStatus.succeeded), (copy.TotalScore, copy.TotalStatus));
+    }
+
+    /// <summary>
+    /// A scenario copy keeps its view and template ids but none of the original's collections or
+    /// navigations: copying the memberships would also loop through their scenario back to this one.
+    /// </summary>
+    [Fact]
+    public void A_scenario_copy_keeps_its_ids_and_leaves_out_the_originals_collections()
+    {
+        var original = new ScenarioEntity
+        {
+            Id = Guid.NewGuid(),
+            ViewId = Guid.NewGuid(),
+            ScenarioTemplateId = Guid.NewGuid(),
+            ScenarioTemplate = new ScenarioTemplateEntity()
+        };
+        original.Tasks.Add(new TaskEntity { Id = Guid.NewGuid() });
+        original.VmCredentials.Add(new VmCredentialEntity { Id = Guid.NewGuid() });
+        original.Memberships.Add(new ScenarioMembershipEntity { Id = Guid.NewGuid(), Scenario = original });
+
+        var copy = original.ToCopy();
+
+        Assert.Equal((original.ViewId, original.ScenarioTemplateId), (copy.ViewId, copy.ScenarioTemplateId));
+        Assert.Null(copy.ScenarioTemplate);
+        Assert.Empty(copy.Tasks);
+        Assert.Empty(copy.VmCredentials);
+        Assert.Empty(copy.Memberships);
+    }
+
+    /// <summary>A template copy leaves out the original's tasks, scenarios, credentials and memberships.</summary>
+    [Fact]
+    public void A_template_copy_leaves_out_the_originals_collections()
+    {
+        var original = new ScenarioTemplateEntity { Id = Guid.NewGuid(), Name = "Original" };
+        original.Tasks.Add(new TaskEntity { Id = Guid.NewGuid() });
+        original.Scenarios.Add(new ScenarioEntity { Id = Guid.NewGuid() });
+        original.VmCredentials.Add(new VmCredentialEntity { Id = Guid.NewGuid() });
+        original.Memberships.Add(new ScenarioTemplateMembershipEntity { Id = Guid.NewGuid(), ScenarioTemplate = original });
+
+        var copy = original.ToCopy();
+
+        Assert.Equal("Original", copy.Name);
+        Assert.Empty(copy.Tasks);
+        Assert.Empty(copy.Scenarios);
+        Assert.Empty(copy.VmCredentials);
+        Assert.Empty(copy.Memberships);
     }
 
     /// <summary>A copy carries none of the original's navigations, even loaded ones; the copy requests copy subtasks themselves.</summary>

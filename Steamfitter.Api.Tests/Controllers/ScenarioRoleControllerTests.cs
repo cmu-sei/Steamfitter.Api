@@ -94,6 +94,14 @@ public class ScenarioRoleControllerTests(DatabaseFixture fixture, SteamfitterApp
     }
 
     [Fact]
+    public async Task Get_template_role_returns_the_roles_permissions()
+    {
+        var role = await ReadAsync<SAVM.ScenarioTemplateRole>(await RootClient.GetAsync($"api/scenarioTemplate-roles/{TestData.ScenarioTemplateRoles.Observer}", Ct));
+
+        Assert.Equal([ScenarioTemplatePermission.ViewScenarioTemplate], role.Permissions);
+    }
+
+    [Fact]
     public async Task Get_template_role_is_forbidden_for_a_caller_holding_only_ManageScenarioTemplates()
     {
         var actor = await Actor().WithSystemPermissions(SystemPermission.ManageScenarioTemplates).SeedAsync();
