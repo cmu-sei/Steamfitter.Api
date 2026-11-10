@@ -2,8 +2,8 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System.Threading;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Threading.Tasks;
-using AutoMapper;
 using MediatR;
 using Crucible.Common.EntityEvents.Events;
 using Microsoft.AspNetCore.SignalR;
@@ -15,19 +15,16 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
     public class ScenarioTemplateMembershipCreatedSignalRHandler : INotificationHandler<EntityCreated<ScenarioTemplateMembershipEntity>>
     {
         private readonly IHubContext<EngineHub> _engineHub;
-        private readonly IMapper _mapper;
 
         public ScenarioTemplateMembershipCreatedSignalRHandler(
-            IHubContext<EngineHub> engineHub,
-            IMapper mapper)
+            IHubContext<EngineHub> engineHub)
         {
             _engineHub = engineHub;
-            _mapper = mapper;
         }
 
         public async Task Handle(EntityCreated<ScenarioTemplateMembershipEntity> notification, CancellationToken cancellationToken)
         {
-            var scenarioTemplateMembership = _mapper.Map<ViewModels.ScenarioTemplateMembership>(notification.Entity);
+            var scenarioTemplateMembership = notification.Entity.ToScenarioTemplateMembership();
             await _engineHub.Clients
                 .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
                 .SendAsync(EngineMethods.ScenarioTemplateMembershipCreated, scenarioTemplateMembership);
@@ -55,19 +52,16 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
     public class ScenarioTemplateMembershipUpdatedSignalRHandler : INotificationHandler<EntityUpdated<ScenarioTemplateMembershipEntity>>
     {
         private readonly IHubContext<EngineHub> _engineHub;
-        private readonly IMapper _mapper;
 
         public ScenarioTemplateMembershipUpdatedSignalRHandler(
-            IHubContext<EngineHub> engineHub,
-            IMapper mapper)
+            IHubContext<EngineHub> engineHub)
         {
             _engineHub = engineHub;
-            _mapper = mapper;
         }
 
         public async Task Handle(EntityUpdated<ScenarioTemplateMembershipEntity> notification, CancellationToken cancellationToken)
         {
-            var scenarioTemplateMembership = _mapper.Map<ViewModels.ScenarioTemplateMembership>(notification.Entity);
+            var scenarioTemplateMembership = notification.Entity.ToScenarioTemplateMembership();
             await _engineHub.Clients
                 .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
                 .SendAsync(EngineMethods.ScenarioTemplateMembershipUpdated, scenarioTemplateMembership);

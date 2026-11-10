@@ -2,13 +2,13 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
@@ -34,17 +34,14 @@ namespace Steamfitter.Api.Services
     {
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
-        private readonly IMapper _mapper;
         private readonly ITaskService _taskService;
 
         public GroupService(SteamfitterContext context,
                                 IPrincipal user,
-                                IMapper mapper,
                                 ITaskService taskService)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
-            _mapper = mapper;
             _taskService = taskService;
         }
 
@@ -52,19 +49,19 @@ namespace Steamfitter.Api.Services
         {
             var items = await _context.Groups.ToListAsync(ct);
 
-            return _mapper.Map<IEnumerable<SAVM.Group>>(items);
+            return items.Select(x => x.ToGroup()).ToList();
         }
 
         public async STT.Task<ViewModels.Group> GetAsync(Guid id, CancellationToken ct)
         {
             var item = await _context.Groups.SingleOrDefaultAsync(o => o.Id == id, ct);
 
-            return _mapper.Map<SAVM.Group>(item);
+            return item.ToGroup();
         }
 
         public async STT.Task<ViewModels.Group> CreateAsync(ViewModels.Group group, CancellationToken ct)
         {
-            var groupEntity = _mapper.Map<GroupEntity>(group);
+            var groupEntity = group.ToEntity();
             _context.Groups.Add(groupEntity);
             await _context.SaveChangesAsync(ct);
             group = await GetAsync(groupEntity.Id, ct);
@@ -78,9 +75,9 @@ namespace Steamfitter.Api.Services
             if (groupToUpdate == null)
                 throw new EntityNotFoundException<SAVM.Group>();
 
-            _mapper.Map(group, groupToUpdate);
+            group.ApplyTo(groupToUpdate);
             await _context.SaveChangesAsync(ct);
-            var updatedGroup = _mapper.Map<SAVM.Group>(groupToUpdate);
+            var updatedGroup = groupToUpdate.ToGroup();
 
             return updatedGroup;
         }
@@ -99,19 +96,19 @@ namespace Steamfitter.Api.Services
         {
             var items = await _context.GroupMemberships.Where(m => m.GroupId == groupId).ToListAsync(ct);
 
-            return _mapper.Map<IEnumerable<SAVM.GroupMembership>>(items);
+            return items.Select(x => x.ToGroupMembership()).ToList();
         }
 
         public async STT.Task<ViewModels.GroupMembership> GetMembershipAsync(Guid id, CancellationToken ct)
         {
             var item = await _context.GroupMemberships.SingleOrDefaultAsync(o => o.Id == id, ct);
 
-            return _mapper.Map<SAVM.GroupMembership>(item);
+            return item.ToGroupMembership();
         }
 
         public async STT.Task<ViewModels.GroupMembership> CreateMembershipAsync(ViewModels.GroupMembership groupMembership, CancellationToken ct)
         {
-            var groupMembershipEntity = _mapper.Map<GroupMembershipEntity>(groupMembership);
+            var groupMembershipEntity = groupMembership.ToEntity();
             _context.GroupMemberships.Add(groupMembershipEntity);
             await _context.SaveChangesAsync(ct);
             groupMembership = await GetMembershipAsync(groupMembershipEntity.Id, ct);

@@ -1,8 +1,8 @@
 // Copyright 2021 Carnegie Mellon University. All Rights Reserved.
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
-using AutoMapper;
 using IdentityModel.Client;
+using Steamfitter.Api.Infrastructure.Mappings;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,7 +40,6 @@ namespace Steamfitter.Api.Services
         private readonly IOptionsMonitor<Infrastructure.Options.HttpTaskOptions> _httpTaskOptions;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ITaskExecutionQueue _taskExecutionQueue;
-        private readonly IMapper _mapper;
         private readonly IHubContext<EngineHub> _engineHub;
         private readonly IVmOperationsService _vmOperationsService;
         private readonly ISshService _sshService;
@@ -54,7 +53,6 @@ namespace Steamfitter.Api.Services
             IOptionsMonitor<Infrastructure.Options.VmTaskProcessingOptions> vmTaskProcessingOptions,
             IOptionsMonitor<Infrastructure.Options.HttpTaskOptions> httpTaskOptions,
             IServiceScopeFactory scopeFactory,
-            IMapper mapper,
             IHubContext<EngineHub> engineHub,
             IVmOperationsService vmOperationsService,
             ISshService sshService,
@@ -68,7 +66,6 @@ namespace Steamfitter.Api.Services
             _vmTaskProcessingOptions = vmTaskProcessingOptions;
             _httpTaskOptions = httpTaskOptions;
             _scopeFactory = scopeFactory;
-            _mapper = mapper;
             _engineHub = engineHub;
             _vmOperationsService = vmOperationsService;
             _sshService = sshService;
@@ -855,10 +852,10 @@ namespace Steamfitter.Api.Services
         {
             await _engineHub.Clients.Group(EngineHub.SCENARIO_GROUP)
                 .SendAsync(EngineMethods.ResultsUpdated,
-                _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
+                resultEntityList.Select(x => x.ToResult()).ToList());
             await _engineHub.Clients.Group(resultEntityList[0].Task.ScenarioId.ToString())
                 .SendAsync(EngineMethods.ResultsUpdated,
-                _mapper.Map<IEnumerable<ViewModels.Result>>(resultEntityList));
+                resultEntityList.Select(x => x.ToResult()).ToList());
         }
 
         private string ValidateHttpTaskUrl(string inputString)

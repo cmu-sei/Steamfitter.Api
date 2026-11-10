@@ -2,7 +2,7 @@ Steamfitter.Api has an automated test suite in the `Steamfitter.Api.Tests` proje
 
 # Testing
 
-The suite is built on xUnit v3 and NSubstitute, and runs against a real PostgreSQL instance started in a container. It is on the Crucible API test standard: the files under `Steamfitter.Api.Tests/Support/Shared/`, the test project's `Directory.Build.props` and `xunit.runner.json` are copied from the standard by its `sync.sh` and are not edited here. A typical test sends an HTTP request to the application hosted in process, through the real routes, MVC filters, claims transformer, authorization handlers, AutoMapper profiles and a real database with the real migrations, then asserts on the response and on what changed in the database. Only the collaborators that leave the process are replaced.
+The suite is built on xUnit v3 and NSubstitute, and runs against a real PostgreSQL instance started in a container. It is on the Crucible API test standard: the files under `Steamfitter.Api.Tests/Support/Shared/`, the test project's `Directory.Build.props` and `xunit.runner.json` are copied from the standard by its `sync.sh` and are not edited here. A typical test sends an HTTP request to the application hosted in process, through the real routes, MVC filters, claims transformer, authorization handlers, mappings and a real database with the real migrations, then asserts on the response and on what changed in the database. Only the collaborators that leave the process are replaced.
 
 # Running the tests
 
@@ -48,7 +48,7 @@ Coverage comes from `coverlet.MTP`, the Microsoft.Testing.Platform form of cover
 
 # Build settings
 
-`Steamfitter.Api.Tests/Directory.Build.props` (shared) turns on `TreatWarningsAsErrors` for the test project only, which makes the xUnit analyzers fail the build: xUnit1051 (an awaited call without the test's cancellation token), xUnit1026, xUnit2000, xUnit2012. The root `.editorconfig` raises xUnit1004, so a `[Fact(Skip = ...)]` fails the build too. Restore warnings stay warnings (`WarningsNotAsErrors`: the NuGet audit NU1901-NU1904, AutoMapper 13 and MediatR 12 being pinned for licensing, and NU1510). The application projects are unchanged.
+`Steamfitter.Api.Tests/Directory.Build.props` (shared) turns on `TreatWarningsAsErrors` for the test project only, which makes the xUnit analyzers fail the build: xUnit1051 (an awaited call without the test's cancellation token), xUnit1026, xUnit2000, xUnit2012. The root `.editorconfig` raises xUnit1004, so a `[Fact(Skip = ...)]` fails the build too. Restore warnings stay warnings (`WarningsNotAsErrors`: the NuGet audit NU1901-NU1904, MediatR 12 being pinned for licensing, and NU1510). The application projects are unchanged.
 
 The repository has no central package management, so the test project carries its package versions itself; they are exactly the standard's `test-packages.props`, which `sync.sh --check` verifies, including its optional `Microsoft.AspNetCore.SignalR.Client` 10.0.1 for `EngineHub`'s real-connection tests. One more reference is Steamfitter's own: `Newtonsoft.Json` 13.0.3. `Steamfitter.Api` compiles against 13.0.3, which reaches it only through `Microsoft.EntityFrameworkCore.Design` (`PrivateAssets=all`), so a project referencing the API would otherwise get IdentityModel's 11.0.2 and MSBuild reports the conflict (MSB3277).
 
@@ -67,7 +67,6 @@ The shared base classes and what each provides (`Db`, `NewContext()`, `Mediator`
 - `TestData` holds the object mothers and the ids of the seeded rows: the system roles (`Administrator`, `ContentDeveloper`, `Observer`), the scenario roles (`Manager`, `Observer`, `Member`, `Facilitator`) and the template roles (`Manager`, `Observer`, `Member`), all from `HasData` in `Steamfitter.Api.Data/Models`.
 - `ClaimsPrincipalBuilder` writes the claims the transformer produces (`Permission`, and the JSON `ScenarioPermission` / `ScenarioTemplatePermission` claims), for the authorization handler tests and the service tests only; an HTTP test's caller is always an actor.
 - `AuthorizationHarness` wires the three permission handlers as `AuthorizationPolicyExtensions` does, and builds Steamfitter's `AuthorizationService` over a principal and a context.
-- `TestMapper` is the real AutoMapper configuration, including a private copy of Startup's internal `IgnoreNullSourceValues` convention.
 - `ApiTestHost` (with `ServiceTestBase`) builds, per principal, the services the hub and the two background services resolve, with recorders of its own: `Hub` (`EngineHub`), `Executors` and `OutboundHttp`. Its context is scoped and comes from the test's session rather than being the test's single `Db`, because `TaskExecutionService`, `TaskMaintenanceService` and `ScoringService` open scopes of their own and dispose the context they resolve. `ApiTestHostTests` constructs each registered service, so a missing registration fails one test by name.
 
 ## What is real, and what is not
@@ -113,7 +112,7 @@ Steamfitter.Api.Tests/
     Authorization/   the permission handlers and AuthorizationService
     Extensions/      the scopes the default policy and the MVC AuthorizeFilter require; the HTTP client timeout
     Filters/         JsonExceptionFilter, malformed requests and enum values
-    Mappings/        the AutoMapper configuration
+    Mappings/        the mappers' conversions no endpoint test reaches directly
   Support/           Steamfitter's harness files, its extras and the harness self-tests
     Shared/          the standard's shared files, copied by sync.sh and never edited here
 ```

@@ -2,13 +2,13 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using Steamfitter.Api.Data;
@@ -38,7 +38,6 @@ namespace Steamfitter.Api.Services
         private readonly SteamfitterContext _context;
         private readonly ITaskService _taskService;
         private readonly ClaimsPrincipal _user;
-        private readonly IMapper _mapper;
         private readonly IHubContext<EngineHub> _engineHub;
         private readonly ISteamfitterAuthorizationService _authorizationService;
         private readonly IUserClaimsService _userClaimsService;
@@ -47,7 +46,6 @@ namespace Steamfitter.Api.Services
             SteamfitterContext context,
             ITaskService taskService,
             IPrincipal user,
-            IMapper mapper,
             IHubContext<EngineHub> engineHub,
             ISteamfitterAuthorizationService authorizationService,
             IUserClaimsService userClaimsService)
@@ -57,7 +55,6 @@ namespace Steamfitter.Api.Services
             _context = context;
             _taskService = taskService;
             _user = user as ClaimsPrincipal;
-            _mapper = mapper;
             _engineHub = engineHub;
         }
 
@@ -66,7 +63,7 @@ namespace Steamfitter.Api.Services
             var items = await _context.ScenarioTemplates.Include(st => st.VmCredentials)
                 .ToListAsync(ct);
 
-            return _mapper.Map<IEnumerable<SAVM.ScenarioTemplate>>(items);
+            return items.Select(x => x.ToScenarioTemplate()).ToList();
         }
 
         public async STT.Task<IEnumerable<ViewModels.ScenarioTemplate>> GetMineAsync(CancellationToken ct)
@@ -78,7 +75,7 @@ namespace Steamfitter.Api.Services
                 .Include(st => st.VmCredentials)
                 .ToListAsync(ct);
 
-            return _mapper.Map<IEnumerable<SAVM.ScenarioTemplate>>(items);
+            return items.Select(x => x.ToScenarioTemplate()).ToList();
         }
 
         public async STT.Task<ViewModels.ScenarioTemplate> GetAsync(Guid id, CancellationToken ct)
@@ -89,12 +86,12 @@ namespace Steamfitter.Api.Services
             if (item == null)
                 throw new EntityNotFoundException<ScenarioTemplate>();
 
-            return _mapper.Map<SAVM.ScenarioTemplate>(item);
+            return item.ToScenarioTemplate();
         }
 
         public async STT.Task<ViewModels.ScenarioTemplate> CreateAsync(ViewModels.ScenarioTemplateForm scenarioTemplateForm, CancellationToken ct)
         {
-            var scenarioTemplateEntity = _mapper.Map<ScenarioTemplateEntity>(scenarioTemplateForm);
+            var scenarioTemplateEntity = scenarioTemplateForm.ToEntity();
             // a new template has no credentials for a default to name
             scenarioTemplateEntity.DefaultVmCredentialId = null;
             scenarioTemplateEntity.DateCreated = DateTime.UtcNow;
@@ -122,7 +119,7 @@ namespace Steamfitter.Api.Services
             if (oldScenarioTemplateEntity == null)
                 throw new EntityNotFoundException<SAVM.ScenarioTemplate>($"ScenarioTemplate {oldScenarioTemplateId} was not found.");
 
-            var newScenarioTemplateEntity = _mapper.Map<ScenarioTemplateEntity>(oldScenarioTemplateEntity);
+            var newScenarioTemplateEntity = oldScenarioTemplateEntity.ToCopy();
             newScenarioTemplateEntity.CreatedBy = _user.GetId();
             newScenarioTemplateEntity.Name = $"{oldScenarioTemplateEntity.Name} - {_user.Claims.FirstOrDefault(c => c.Type == "name").Value}";
 
@@ -165,7 +162,7 @@ namespace Steamfitter.Api.Services
                 throw new EntityNotFoundException<SAVM.ScenarioTemplate>();
 
             await ScopeValidation.EnsureVmCredentialIsInParentAsync(scenarioTemplateForm.DefaultVmCredentialId, null, id, _context, ct);
-            _mapper.Map(scenarioTemplateForm, scenarioTemplateToUpdate);
+            scenarioTemplateForm.ApplyTo(scenarioTemplateToUpdate);
             scenarioTemplateToUpdate.DateModified = DateTime.UtcNow;
             scenarioTemplateToUpdate.ModifiedBy = _user.GetId();
 
@@ -199,7 +196,7 @@ namespace Steamfitter.Api.Services
             Guid? newDefaultVmCredentialId = null;
             foreach (var oldVmCredentialEntity in oldVmCredentials)
             {
-                var newVmCredentialEntity = _mapper.Map<VmCredentialEntity>(oldVmCredentialEntity);
+                var newVmCredentialEntity = oldVmCredentialEntity.ToCopy();
                 newVmCredentialEntity.ScenarioTemplate = null;
                 newVmCredentialEntity.Scenario = null;
                 newVmCredentialEntity.ScenarioTemplateId = scenarioTemplateId;

@@ -2,12 +2,13 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
+using System.Linq;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -34,16 +35,14 @@ namespace Steamfitter.Api.Services
         private readonly ClaimsPrincipal _user;
         private readonly IAuthorizationService _authorizationService;
         private readonly IUserClaimsService _userClaimsService;
-        private readonly IMapper _mapper;
         private readonly ILogger<IUserService> _logger;
 
-        public UserService(SteamfitterContext context, IPrincipal user, IAuthorizationService authorizationService, IUserClaimsService userClaimsService, ILogger<IUserService> logger, IMapper mapper)
+        public UserService(SteamfitterContext context, IPrincipal user, IAuthorizationService authorizationService, IUserClaimsService userClaimsService, ILogger<IUserService> logger)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
             _authorizationService = authorizationService;
             _userClaimsService = userClaimsService;
-            _mapper = mapper;
             _logger = logger;
         }
 
@@ -51,19 +50,19 @@ namespace Steamfitter.Api.Services
         {
             var items = await _context.Users
                 .ToArrayAsync(ct);
-            return _mapper.Map<IEnumerable<SAVM.User>>(items);
+            return items.Select(x => x.ToUser()).ToList();
         }
 
         public async STT.Task<ViewModels.User> GetAsync(Guid id, CancellationToken ct)
         {
             var item = await _context.Users
                 .SingleOrDefaultAsync(o => o.Id == id, ct);
-            return _mapper.Map<SAVM.User>(item);
+            return item.ToUser();
         }
 
         public async STT.Task<ViewModels.User> CreateAsync(ViewModels.User user, CancellationToken ct)
         {
-            var userEntity = _mapper.Map<UserEntity>(user);
+            var userEntity = user.ToEntity();
 
             _context.Users.Add(userEntity);
             await _context.SaveChangesAsync(ct);
@@ -84,7 +83,7 @@ namespace Steamfitter.Api.Services
             if (userToUpdate == null)
                 throw new EntityNotFoundException<SAVM.User>();
 
-            _mapper.Map(user, userToUpdate);
+            user.ApplyTo(userToUpdate);
 
             _context.Users.Update(userToUpdate);
             await _context.SaveChangesAsync(ct);

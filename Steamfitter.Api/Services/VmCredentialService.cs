@@ -2,13 +2,13 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Steamfitter.Api.Data;
@@ -34,18 +34,15 @@ namespace Steamfitter.Api.Services
     {
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
-        private readonly IMapper _mapper;
         private readonly ILogger<TaskService> _logger;
 
         public VmCredentialService(
             SteamfitterContext context,
             IPrincipal user,
-            IMapper mapper,
             ILogger<TaskService> logger)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
-            _mapper = mapper;
             _logger = logger;
         }
 
@@ -53,7 +50,7 @@ namespace Steamfitter.Api.Services
         {
             var items = await _context.VmCredentials.ToListAsync(ct);
 
-            return _mapper.Map<IEnumerable<SAVM.VmCredential>>(items);
+            return items.Select(x => x.ToVmCredential()).ToList();
         }
 
         public async STT.Task<SAVM.VmCredential> GetAsync(Guid id, CancellationToken ct)
@@ -63,26 +60,26 @@ namespace Steamfitter.Api.Services
             if (item == null)
                 throw new EntityNotFoundException<SAVM.VmCredential>();
 
-            return _mapper.Map<SAVM.VmCredential>(item);
+            return item.ToVmCredential();
         }
 
         public async STT.Task<IEnumerable<SAVM.VmCredential>> GetByScenarioTemplateIdAsync(Guid scenarioTemplateId, CancellationToken ct)
         {
             var vmCredentials = _context.VmCredentials.Where(x => x.ScenarioTemplateId == scenarioTemplateId);
 
-            return _mapper.Map<IEnumerable<SAVM.VmCredential>>(vmCredentials);
+            return vmCredentials.Select(x => x.ToVmCredential()).ToList();
         }
 
         public async STT.Task<IEnumerable<SAVM.VmCredential>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct)
         {
             var vmCredentials = _context.VmCredentials.Where(x => x.ScenarioId == scenarioId);
 
-            return _mapper.Map<IEnumerable<SAVM.VmCredential>>(vmCredentials);
+            return vmCredentials.Select(x => x.ToVmCredential()).ToList();
         }
 
         public async STT.Task<SAVM.VmCredential> CreateAsync(SAVM.VmCredentialCreate vmCredential, CancellationToken ct)
         {
-            var vmCredentialEntity = _mapper.Map<VmCredentialEntity>(vmCredential);
+            var vmCredentialEntity = vmCredential.ToEntity();
             vmCredentialEntity.DateCreated = DateTime.UtcNow;
             vmCredentialEntity.CreatedBy = _user.GetId();
 
@@ -99,12 +96,12 @@ namespace Steamfitter.Api.Services
             if (vmCredentialToUpdate == null)
                 throw new EntityNotFoundException<SAVM.VmCredential>();
 
-            _mapper.Map(vmCredential, vmCredentialToUpdate);
+            vmCredential.ApplyTo(vmCredentialToUpdate);
             vmCredentialToUpdate.DateModified = DateTime.UtcNow;
             vmCredentialToUpdate.ModifiedBy = _user.GetId();
             await _context.SaveChangesAsync(ct);
 
-            return _mapper.Map<SAVM.VmCredential>(vmCredentialToUpdate);
+            return vmCredentialToUpdate.ToVmCredential();
         }
 
         public async STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct)

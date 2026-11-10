@@ -2,6 +2,7 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -14,7 +15,6 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
@@ -57,14 +57,12 @@ namespace Steamfitter.Api.Services
 
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
-        private readonly IMapper _mapper;
         private readonly IUserClaimsService _userClaimsService;
 
-        public ScenarioTemplateArchiveService(SteamfitterContext context, IPrincipal user, IMapper mapper, IUserClaimsService userClaimsService)
+        public ScenarioTemplateArchiveService(SteamfitterContext context, IPrincipal user, IUserClaimsService userClaimsService)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
-            _mapper = mapper;
             _userClaimsService = userClaimsService;
         }
 
@@ -288,7 +286,7 @@ namespace Steamfitter.Api.Services
                 await _userClaimsService.RefreshCurrentClaimsAsync();
             }
 
-            result.ScenarioTemplates = _mapper.Map<List<ScenarioTemplate>>(entities);
+            result.ScenarioTemplates = entities.Select(x => x.ToScenarioTemplate()).ToList();
             return result;
         }
 

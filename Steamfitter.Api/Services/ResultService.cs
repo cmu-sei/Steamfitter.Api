@@ -2,13 +2,13 @@
 // Released under a MIT (SEI)-style license. See LICENSE.md in the project root for license information.
 
 using System;
+using Steamfitter.Api.Infrastructure.Mappings;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
 using STT = System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
@@ -35,15 +35,12 @@ namespace Steamfitter.Api.Services
     {
         private readonly SteamfitterContext _context;
         private readonly ClaimsPrincipal _user;
-        private readonly IMapper _mapper;
 
         public ResultService(SteamfitterContext context,
-                                            IPrincipal user,
-                                            IMapper mapper)
+                                            IPrincipal user)
         {
             _context = context;
             _user = user as ClaimsPrincipal;
-            _mapper = mapper;
         }
 
         public async STT.Task<ViewModels.Result> GetAsync(Guid id, CancellationToken ct)
@@ -51,7 +48,7 @@ namespace Steamfitter.Api.Services
             var item = await _context.Results
                 .SingleOrDefaultAsync(o => o.Id == id, ct);
 
-            return _mapper.Map<SAVM.Result>(item);
+            return item.ToResult();
         }
 
         public async STT.Task<IEnumerable<ViewModels.Result>> GetByScenarioIdAsync(Guid scenarioId, CancellationToken ct)
@@ -59,7 +56,7 @@ namespace Steamfitter.Api.Services
             var taskIdList = _context.Tasks.Where(dt => dt.ScenarioId == scenarioId).Select(dt => dt.Id.ToString()).ToList();
             var results = _context.Results.Where(dt => taskIdList.Contains(dt.TaskId.ToString()));
 
-            return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
+            return results.Select(x => x.ToResult()).ToList();
         }
 
         /// <summary>The Results of the View's Scenarios, of only the given Scenarios when they are given.</summary>
@@ -69,14 +66,14 @@ namespace Steamfitter.Api.Services
             if (scenarioIds != null)
                 results = results.Where(r => scenarioIds.Contains(r.Task.ScenarioId.Value));
 
-            return _mapper.Map<IEnumerable<ViewModels.Result>>(await results.ToListAsync(ct));
+            return (await results.ToListAsync(ct)).Select(x => x.ToResult()).ToList();
         }
 
         public async STT.Task<IEnumerable<ViewModels.Result>> GetByUserIdAsync(Guid userId, CancellationToken ct)
         {
             var results = _context.Results.Where(r => r.CreatedBy == userId);
 
-            return _mapper.Map<IEnumerable<ViewModels.Result>>(results.OrderByDescending(r => r.StatusDate));
+            return results.OrderByDescending(r => r.StatusDate).Select(x => x.ToResult()).ToList();
         }
 
         public async STT.Task<IEnumerable<ViewModels.Result>> GetByVmIdAsync(Guid vmId, bool hasSystemPermission, IEnumerable<Guid> authorizedScenarioIds, CancellationToken ct)
@@ -92,18 +89,18 @@ namespace Steamfitter.Api.Services
                 results = results.Where(r => authorizedTaskIds.Contains(r.TaskId));
             }
 
-            return _mapper.Map<IEnumerable<ViewModels.Result>>(await results.ToListAsync(ct));
+            return (await results.ToListAsync(ct)).Select(x => x.ToResult()).ToList();
         }
 
         public async STT.Task<IEnumerable<SAVM.Result>> GetByTaskIdAsync(Guid taskId, CancellationToken ct)
         {
             var results = await _context.Results.Where(dt => dt.TaskId == taskId).ToListAsync(ct);
-            return _mapper.Map<IEnumerable<ViewModels.Result>>(results);
+            return results.Select(x => x.ToResult()).ToList();
         }
 
         public async STT.Task<ViewModels.Result> CreateAsync(ViewModels.ResultCreate result, CancellationToken ct)
         {
-            var resultEntity = _mapper.Map<ResultEntity>(result);
+            var resultEntity = result.ToEntity();
             resultEntity.Status = TaskStatus.none;
             resultEntity.DateCreated = DateTime.UtcNow;
             resultEntity.CreatedBy = _user.GetId();
@@ -121,12 +118,12 @@ namespace Steamfitter.Api.Services
             if (resultToUpdate == null)
                 throw new EntityNotFoundException<SAVM.Result>();
 
-            _mapper.Map(result, resultToUpdate);
+            result.ApplyTo(resultToUpdate);
             resultToUpdate.DateModified = DateTime.UtcNow;
             resultToUpdate.ModifiedBy = _user.GetId();
             await _context.SaveChangesAsync(ct);
 
-            return _mapper.Map<SAVM.Result>(resultToUpdate);
+            return resultToUpdate.ToResult();
         }
 
         public async STT.Task<bool> DeleteAsync(Guid id, CancellationToken ct)
