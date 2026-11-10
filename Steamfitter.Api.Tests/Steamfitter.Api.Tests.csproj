@@ -30,14 +30,14 @@
 
   <!-- No central package management in this repository, so the versions are the standard's test-packages.props. -->
   <ItemGroup>
-    <PackageReference Include="xunit.v3" Version="4.0.1" />
-    <PackageReference Include="coverlet.MTP" Version="10.0.1" />
-    <PackageReference Include="NSubstitute" Version="6.0.0" />
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="coverlet.MTP" Version="10.1.0" />
+    <PackageReference Include="NSubstitute" Version="6.2.0" />
     <!-- Hosts the API in process over TestServer, so the tests drive the real Startup. -->
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
-    <PackageReference Include="Testcontainers.PostgreSql" Version="4.15.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.14" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <!-- The SignalR client for EngineHub's real-connection tests (Hubs/EngineHubConnectionTests); optional in the standard. -->
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.13" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,7 +47,7 @@
       gets IdentityModel's 11.0.2 instead and MSBuild reports the conflict (MSB3277). This pins the
       version the API was built against.
     -->
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>
