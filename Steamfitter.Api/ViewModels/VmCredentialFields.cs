@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Steamfitter.Api.Services;
 
 namespace Steamfitter.Api.ViewModels
 {
@@ -12,14 +13,21 @@ namespace Steamfitter.Api.ViewModels
     /// is not among them: only <see cref="VmCredentialCreate"/> names it, so an edit cannot move a
     /// credential to another Scenario or Scenario Template.
     /// </summary>
-    public abstract class VmCredentialFields
+    public abstract class VmCredentialFields : IValidatableObject
     {
         public string Username { get; set; }
         public string Password { get; set; }
         public string Description { get; set; }
+
+        public virtual IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            // the placeholder a redacted Task shows, copied into a credential, would be saved as its password
+            if (Password == TaskSecretParameters.Redacted)
+                yield return new ValidationResult("A VmCredential cannot be saved with a redacted password. Enter the password itself.", [nameof(Password)]);
+        }
     }
 
-    public class VmCredentialCreate : VmCredentialFields, IValidatableObject
+    public class VmCredentialCreate : VmCredentialFields
     {
         /// <summary>The Scenario Template the credential belongs to. Exactly one of ScenarioTemplateId and ScenarioId is required.</summary>
         public Guid? ScenarioTemplateId { get; set; }
@@ -27,8 +35,11 @@ namespace Steamfitter.Api.ViewModels
         /// <summary>The Scenario the credential belongs to. Exactly one of ScenarioTemplateId and ScenarioId is required.</summary>
         public Guid? ScenarioId { get; set; }
 
-        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        public override IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
+            foreach (var result in base.Validate(validationContext))
+                yield return result;
+
             if ((ScenarioId == null) == (ScenarioTemplateId == null))
                 yield return new ValidationResult("A VmCredential must belong to exactly one Scenario or Scenario Template.", [nameof(ScenarioId), nameof(ScenarioTemplateId)]);
         }

@@ -9,6 +9,7 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
+using Steamfitter.Api.Services;
 using Steamfitter.Api.Tests.Support;
 using SAVM = Steamfitter.Api.ViewModels;
 
@@ -34,7 +35,7 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var template = TestData.ScenarioTemplate();
         var credential = TestData.VmCredential(scenarioTemplateId: template.Id);
         await Seed(template, credential);
-        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate]).SeedAsync();
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
 
         var credentials = await ReadAsync<List<SAVM.VmCredential>>(await Client(actor).GetAsync($"api/scenarioTemplates/{template.Id}/vmCredentials", Ct));
 
@@ -67,7 +68,7 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var scenario = TestData.Scenario();
         var credential = TestData.VmCredential(scenarioId: scenario.Id);
         await Seed(scenario, credential);
-        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
         var credentials = await ReadAsync<List<SAVM.VmCredential>>(await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/vmCredentials", Ct));
 
@@ -100,7 +101,7 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var scenario = TestData.Scenario();
         var credential = TestData.VmCredential(scenarioId: scenario.Id, username: "readable");
         await Seed(scenario, credential);
-        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
 
         var read = await ReadAsync<SAVM.VmCredential>(await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
 
@@ -113,7 +114,7 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var template = TestData.ScenarioTemplate();
         var credential = TestData.VmCredential(scenarioTemplateId: template.Id);
         await Seed(template, credential);
-        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate]).SeedAsync();
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.EditScenarioTemplate]).SeedAsync();
 
         await AssertStatus(HttpStatusCode.OK, await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
     }
@@ -370,7 +371,7 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var template = TestData.ScenarioTemplate();
         var credential = TestData.VmCredential(scenarioTemplateId: template.Id);
         await Seed(template, credential);
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarioTemplates).SeedAsync();
 
         var credentials = await ReadAsync<List<SAVM.VmCredential>>(await Client(actor).GetAsync($"api/scenarioTemplates/{template.Id}/vmCredentials", Ct));
 
@@ -383,7 +384,7 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var scenario = TestData.Scenario();
         var credential = TestData.VmCredential(scenarioId: scenario.Id);
         await Seed(scenario, credential);
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
         var credentials = await ReadAsync<List<SAVM.VmCredential>>(await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/vmCredentials", Ct));
 
@@ -396,7 +397,7 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var scenario = TestData.Scenario();
         var credential = TestData.VmCredential(scenarioId: scenario.Id);
         await Seed(scenario, credential);
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarios).SeedAsync();
 
         await AssertStatus(HttpStatusCode.OK, await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
     }
@@ -429,7 +430,7 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
         var template = TestData.ScenarioTemplate();
         var credential = TestData.VmCredential(scenarioTemplateId: template.Id, username: "readable");
         await Seed(template, credential);
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+        var actor = await Actor().WithSystemPermissions(SystemPermission.EditScenarioTemplates).SeedAsync();
 
         var read = await ReadAsync<SAVM.VmCredential>(await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
 
@@ -668,5 +669,148 @@ public class VmCredentialControllerTests(DatabaseFixture fixture, SteamfitterApp
 
         await using var db = NewContext();
         Assert.Equal("after", (await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct)).Username);
+    }
+
+    // ---- Reads take edit: a credential's password is a secret that viewing its parent does not reach ----
+
+    [Fact]
+    public async Task GetByScenarioId_is_forbidden_for_a_member_holding_only_ViewScenario()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario, TestData.VmCredential(scenarioId: scenario.Id));
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/vmCredentials", Ct));
+    }
+
+    /// <summary>The seeded Observer role, read only by its description, is refused them.</summary>
+    [Fact]
+    public async Task GetByScenarioId_is_forbidden_for_a_member_given_the_Observer_role()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario, TestData.VmCredential(scenarioId: scenario.Id));
+        var actor = await Actor().OnScenario(scenario.Id, roleId: TestData.ScenarioRoles.Observer).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/vmCredentials", Ct));
+    }
+
+    [Fact]
+    public async Task GetByScenarioId_is_forbidden_for_a_caller_holding_only_ViewScenarios()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario, TestData.VmCredential(scenarioId: scenario.Id));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarios/{scenario.Id}/vmCredentials", Ct));
+    }
+
+    [Fact]
+    public async Task GetByScenarioTemplateId_is_forbidden_for_a_member_holding_only_ViewScenarioTemplate()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template, TestData.VmCredential(scenarioTemplateId: template.Id));
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarioTemplates/{template.Id}/vmCredentials", Ct));
+    }
+
+    [Fact]
+    public async Task GetByScenarioTemplateId_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate();
+        await Seed(template, TestData.VmCredential(scenarioTemplateId: template.Id));
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/scenarioTemplates/{template.Id}/vmCredentials", Ct));
+    }
+
+    [Fact]
+    public async Task Get_of_a_scenario_credential_is_forbidden_for_a_member_holding_only_ViewScenario()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id);
+        await Seed(scenario, credential);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
+    }
+
+    [Fact]
+    public async Task Get_of_a_scenario_credential_is_forbidden_for_a_caller_holding_only_ViewScenarios()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id);
+        await Seed(scenario, credential);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarios).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
+    }
+
+    [Fact]
+    public async Task Get_of_a_template_credential_is_forbidden_for_a_member_holding_only_ViewScenarioTemplate()
+    {
+        var template = TestData.ScenarioTemplate();
+        var credential = TestData.VmCredential(scenarioTemplateId: template.Id);
+        await Seed(template, credential);
+        var actor = await Actor().OnScenarioTemplate(template.Id, permissions: [ScenarioTemplatePermission.ViewScenarioTemplate]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
+    }
+
+    [Fact]
+    public async Task Get_of_a_template_credential_is_forbidden_for_a_caller_holding_only_ViewScenarioTemplates()
+    {
+        var template = TestData.ScenarioTemplate();
+        var credential = TestData.VmCredential(scenarioTemplateId: template.Id);
+        await Seed(template, credential);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.Forbidden, await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
+    }
+
+    [Fact]
+    public async Task Get_returns_the_password_to_a_member_holding_EditScenario()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id);
+        credential.Password = "guest-secret";
+        await Seed(scenario, credential);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        var read = await ReadAsync<SAVM.VmCredential>(await Client(actor).GetAsync($"api/vmCredentials/{credential.Id}", Ct));
+
+        Assert.Equal("guest-secret", read.Password);
+    }
+
+    // ---- The placeholder a redacted Task shows is not a password ----
+
+    [Fact]
+    public async Task Create_with_the_redacted_placeholder_as_its_password_is_a_bad_request()
+    {
+        var scenario = TestData.Scenario();
+        await Seed(scenario);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        var response = await Client(actor).PostAsJsonAsync("api/vmCredentials", new { scenarioId = scenario.Id, username = "copied", password = TaskSecretParameters.Redacted }, Ct);
+
+        await AssertStatus(HttpStatusCode.BadRequest, response);
+        await using var db = NewContext();
+        Assert.False(await db.VmCredentials.AnyAsync(x => x.ScenarioId == scenario.Id, Ct));
+    }
+
+    [Fact]
+    public async Task Update_with_the_redacted_placeholder_as_its_password_is_a_bad_request()
+    {
+        var scenario = TestData.Scenario();
+        var credential = TestData.VmCredential(scenarioId: scenario.Id);
+        credential.Password = "kept";
+        await Seed(scenario, credential);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.EditScenario]).SeedAsync();
+
+        var response = await Client(actor).PutAsJsonAsync($"api/vmCredentials/{credential.Id}", new { username = "user", password = TaskSecretParameters.Redacted }, Ct);
+
+        await AssertStatus(HttpStatusCode.BadRequest, response);
+        await using var db = NewContext();
+        Assert.Equal("kept", (await db.VmCredentials.SingleAsync(x => x.Id == credential.Id, Ct)).Password);
     }
 }

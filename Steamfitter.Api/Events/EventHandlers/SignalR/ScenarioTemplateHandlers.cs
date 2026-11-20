@@ -24,7 +24,9 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
 
         public async Task Handle(EntityCreated<ScenarioTemplateEntity> notification, CancellationToken cancellationToken)
         {
+            // the groups take viewers, who may not read the VM Credentials; null tells a client to keep the ones it has
             var scenarioTemplate = notification.Entity.ToScenarioTemplate();
+            scenarioTemplate.VmCredentials = null;
             await _engineHub.Clients
                 .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
                 .SendAsync(EngineMethods.ScenarioTemplateCreated, scenarioTemplate);
@@ -67,7 +69,9 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
 
         public async Task Handle(EntityUpdated<ScenarioTemplateEntity> notification, CancellationToken cancellationToken)
         {
+            // the groups take viewers, who may not read the VM Credentials; null tells a client to keep the ones it has
             var scenarioTemplate = notification.Entity.ToScenarioTemplate();
+            scenarioTemplate.VmCredentials = null;
             await _engineHub.Clients
                 .Groups(EngineHub.SCENARIO_TEMPLATE_GROUP)
                 .SendAsync(EngineMethods.ScenarioTemplateUpdated, scenarioTemplate);

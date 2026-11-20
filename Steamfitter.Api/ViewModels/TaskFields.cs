@@ -5,6 +5,7 @@ using Steamfitter.Api.Data;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Steamfitter.Api.Services;
 
 namespace Steamfitter.Api.ViewModels
 {
@@ -51,6 +52,10 @@ namespace Steamfitter.Api.ViewModels
         {
             if ((ScenarioId == null) == (ScenarioTemplateId == null))
                 yield return new ValidationResult("A Task must belong to exactly one Scenario or Scenario Template.", [nameof(ScenarioId), nameof(ScenarioTemplateId)]);
+
+            // a new Task has no stored secret for the placeholder to stand for
+            if (TaskSecretParameters.AnyRedacted(ActionParameters))
+                yield return new ValidationResult("A Task cannot be created with a redacted password or private key. Enter the secret itself.", [nameof(ActionParameters)]);
         }
     }
 

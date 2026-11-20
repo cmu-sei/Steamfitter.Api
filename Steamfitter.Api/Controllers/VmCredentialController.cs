@@ -33,6 +33,9 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <remarks>
         /// Returns all VmCredentials for the specified ScenarioTemplate
+        /// <para />
+        /// Accessible to a User with the EditScenarioTemplates system permission or EditScenarioTemplate permission on the
+        /// ScenarioTemplate: a credential's password is a secret that viewing the ScenarioTemplate does not reach
         /// </remarks>
         /// <returns></returns>
         [HttpGet("scenarioTemplates/{id}/VmCredentials")]
@@ -40,7 +43,7 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarioTemplateVmCredentials")]
         public async STT.Task<IActionResult> GetByScenarioTemplateId(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(id, [SystemPermission.ViewScenarioTemplates], [ScenarioTemplatePermission.ViewScenarioTemplate], ct))
+            if (!await _authorizationService.AuthorizeAsync<SAVM.ScenarioTemplate>(id, [SystemPermission.EditScenarioTemplates], [ScenarioTemplatePermission.EditScenarioTemplate], ct))
                 throw new ForbiddenException();
 
             var list = await _vmCredentialService.GetByScenarioTemplateIdAsync(id, ct);
@@ -52,6 +55,9 @@ namespace Steamfitter.Api.Controllers
         /// </summary>
         /// <remarks>
         /// Returns all VmCredentials for the specified Scenario
+        /// <para />
+        /// Accessible to a User with the EditScenarios system permission or EditScenario permission on the Scenario:
+        /// a credential's password is a secret that viewing the Scenario does not reach
         /// </remarks>
         /// <returns></returns>
         [HttpGet("scenarios/{id}/VmCredentials")]
@@ -59,7 +65,7 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getScenarioVmCredentials")]
         public async STT.Task<IActionResult> GetByScenarioId(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.ViewScenarios], [ScenarioPermission.ViewScenario], ct))
+            if (!await _authorizationService.AuthorizeAsync<SAVM.Scenario>(id, [SystemPermission.EditScenarios], [ScenarioPermission.EditScenario], ct))
                 throw new ForbiddenException();
 
             var list = await _vmCredentialService.GetByScenarioIdAsync(id, ct);
@@ -72,9 +78,9 @@ namespace Steamfitter.Api.Controllers
         /// <remarks>
         /// Returns the VmCredential with the id specified
         /// <para />
-        /// Accessible to a SuperUser or a User that is a member of a Team within the specified VmCredential
+        /// Accessible to a User who may edit the Scenario or ScenarioTemplate the VmCredential belongs to
         /// </remarks>
-        /// <param name="id">The id of the STT.Task</param>
+        /// <param name="id">The id of the VmCredential</param>
         /// <param name="ct"></param>
         /// <returns></returns>
         [HttpGet("VmCredentials/{id}")]
@@ -82,7 +88,7 @@ namespace Steamfitter.Api.Controllers
         [SwaggerOperation(OperationId = "getVmCredential")]
         public async STT.Task<IActionResult> Get(Guid id, CancellationToken ct)
         {
-            if (!await _authorizationService.AuthorizeVmCredentialScopeAsync(id, ScopeAccess.View, ct))
+            if (!await _authorizationService.AuthorizeVmCredentialScopeAsync(id, ScopeAccess.Edit, ct))
                 throw new ForbiddenException();
 
             var vmCredential = await _vmCredentialService.GetAsync(id, ct);

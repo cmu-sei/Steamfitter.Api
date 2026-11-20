@@ -148,7 +148,8 @@ namespace Steamfitter.Api.Controllers
         /// Returns a json file containing the specified ScenarioTemplates, with their VM Credentials and Task trees.
         /// All ScenarioTemplates are exported if no ids are specified.
         /// <para />
-        /// Accessible to a User with the ViewScenarioTemplates system permission, or ViewScenarioTemplate permission on each specified ScenarioTemplate
+        /// Accessible to a User with the ViewScenarioTemplates system permission, or ViewScenarioTemplate permission on each specified ScenarioTemplate.
+        /// A ScenarioTemplate the User may not edit is written without its VM Credentials, and its Tasks' passwords and private keys are left empty.
         /// </remarks>
         /// <param name="ids">The ids of the ScenarioTemplates to export</param>
         /// <param name="ct"></param>
@@ -170,7 +171,8 @@ namespace Steamfitter.Api.Controllers
                 }
             }
 
-            var (stream, fileName) = await _scenarioTemplateArchiveService.ExportAsync(ids, ct);
+            var secretAccess = await _authorizationService.GetSecretAccessAsync(ct);
+            var (stream, fileName) = await _scenarioTemplateArchiveService.ExportAsync(ids, secretAccess, ct);
 
             // If this is wrapped in an Ok, it throws an exception
             return File(stream, "application/json", fileName);

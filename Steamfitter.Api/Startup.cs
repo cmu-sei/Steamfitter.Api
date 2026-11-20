@@ -155,6 +155,7 @@ public class Startup
         {
             options.Filters.Add(typeof(ValidateModelStateFilter));
             options.Filters.Add(typeof(JsonExceptionFilter));
+            options.Filters.Add(typeof(SecretRedactionFilter));
 
             // Require all scopes in authOptions
             var policyBuilder = new AuthorizationPolicyBuilder().RequireAuthenticatedUser();
@@ -221,6 +222,7 @@ public class Startup
         services.AddScoped<IPrincipal>(p => p.GetService<IHttpContextAccessor>()?.HttpContext?.User);
         services.AddScoped<IScoringService, ScoringService>();
         services.AddScoped<ISteamfitterAuthorizationService, AuthorizationService>();
+        services.AddScoped<ISecretRedactor, SecretRedactor>();
         services.AddScoped<IIdentityResolver, IdentityResolver>();
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<ISystemRoleService, SystemRoleService>();

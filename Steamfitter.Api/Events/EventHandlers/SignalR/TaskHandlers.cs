@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Hubs;
+using Steamfitter.Api.Services;
 
 namespace Steamfitter.Api.Events.EventHandlers.SignalR
 {
@@ -28,7 +29,9 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
 
         public async Task Handle(EntityCreated<TaskEntity> notification, CancellationToken cancellationToken)
         {
+            // the groups take viewers, who may not read the guest credentials a Task carries
             var task = notification.Entity.ToTask();
+            TaskSecretParameters.Redact(task.ActionParameters);
 
             if (notification.Entity.ScenarioTemplateId.HasValue)
             {
@@ -93,7 +96,9 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
 
         public async Task Handle(EntityUpdated<TaskEntity> notification, CancellationToken cancellationToken)
         {
+            // the groups take viewers, who may not read the guest credentials a Task carries
             var task = notification.Entity.ToTask();
+            TaskSecretParameters.Redact(task.ActionParameters);
 
             if (notification.Entity.ScenarioTemplateId.HasValue)
             {

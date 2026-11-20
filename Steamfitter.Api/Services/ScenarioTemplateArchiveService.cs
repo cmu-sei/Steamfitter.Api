@@ -18,6 +18,7 @@ using STT = System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
+using Steamfitter.Api.Infrastructure.Authorization;
 using Steamfitter.Api.Data.Models;
 using Steamfitter.Api.Infrastructure.Extensions;
 using Steamfitter.Api.ViewModels;
@@ -26,7 +27,11 @@ namespace Steamfitter.Api.Services
 {
     public interface IScenarioTemplateArchiveService
     {
-        STT.Task<(MemoryStream Stream, string FileName)> ExportAsync(IEnumerable<Guid> ids, CancellationToken ct);
+        /// <summary>
+        /// Writes the Scenario Templates to a file. A template whose secrets <paramref name="secretAccess"/> does not
+        /// reach is written without its VM Credentials and with its Tasks' passwords and private keys left empty.
+        /// </summary>
+        STT.Task<(MemoryStream Stream, string FileName)> ExportAsync(IEnumerable<Guid> ids, SecretAccess secretAccess, CancellationToken ct);
         STT.Task<ImportScenarioTemplatesResult> ImportAsync(IFormFile file, CancellationToken ct);
     }
 
@@ -68,7 +73,7 @@ namespace Steamfitter.Api.Services
 
         #region Export
 
-        public async STT.Task<(MemoryStream Stream, string FileName)> ExportAsync(IEnumerable<Guid> ids, CancellationToken ct)
+        public async STT.Task<(MemoryStream Stream, string FileName)> ExportAsync(IEnumerable<Guid> ids, SecretAccess secretAccess, CancellationToken ct)
         {
             var idList = ids?.Distinct().ToList() ?? new List<Guid>();
             IQueryable<ScenarioTemplateEntity> query = _context.ScenarioTemplates
@@ -88,9 +93,10 @@ namespace Steamfitter.Api.Services
                     $"ScenarioTemplate {string.Join(", ", missing)} was not found.");
 
             // one requested template is written as an object, anything else as a list
+            ScenarioTemplateExport Export(ScenarioTemplateEntity template) => ToExport(template, secretAccess.Allows(null, template.Id));
             var json = idList.Count == 1
-                ? JsonSerializer.SerializeToUtf8Bytes(ToExport(templates[0]), JsonOptions)
-                : JsonSerializer.SerializeToUtf8Bytes(templates.Select(ToExport).ToList(), JsonOptions);
+                ? JsonSerializer.SerializeToUtf8Bytes(Export(templates[0]), JsonOptions)
+                : JsonSerializer.SerializeToUtf8Bytes(templates.Select(Export).ToList(), JsonOptions);
 
             var fileName = idList.Count == 1
                 ? SanitizeFileName(templates[0].Name)
@@ -99,7 +105,8 @@ namespace Steamfitter.Api.Services
             return (new MemoryStream(json), $"{fileName}.json");
         }
 
-        private static ScenarioTemplateExport ToExport(ScenarioTemplateEntity template)
+        // a caller who may only view the template gets none of its guest credentials, as from its other endpoints
+        private static ScenarioTemplateExport ToExport(ScenarioTemplateEntity template, bool includeSecrets)
         {
             var taskIds = template.Tasks.Select(t => t.Id).ToHashSet();
             return new ScenarioTemplateExport
@@ -108,8 +115,9 @@ namespace Steamfitter.Api.Services
                 Name = template.Name,
                 Description = template.Description,
                 DurationHours = template.DurationHours,
-                DefaultVmCredentialId = template.DefaultVmCredentialId,
+                DefaultVmCredentialId = includeSecrets ? template.DefaultVmCredentialId : null,
                 VmCredentials = template.VmCredentials
+                    .Where(_ => includeSecrets)
                     .OrderBy(c => c.Username)
                     .Select(c => new VmCredentialExport
                     {
@@ -120,7 +128,7 @@ namespace Steamfitter.Api.Services
                     })
                     .ToList(),
                 Tasks = OrderParentsFirst(template.Tasks)
-                    .Select(t => ToExport(t, taskIds))
+                    .Select(t => ToExport(t, taskIds, includeSecrets))
                     .ToList()
             };
         }
@@ -128,7 +136,7 @@ namespace Steamfitter.Api.Services
         // a trigger Task in another Scenario or Scenario Template is a link the runner does not follow and
         // an import refuses, so the Task is written as the root it acts as: a manual one, as deleting that
         // trigger would leave it, so that it does not start with the Scenario
-        private static TaskExport ToExport(TaskEntity task, IReadOnlySet<Guid> templateTaskIds)
+        private static TaskExport ToExport(TaskEntity task, IReadOnlySet<Guid> templateTaskIds, bool includeSecrets)
         {
             var triggerInTemplate = task.TriggerTaskId.HasValue && templateTaskIds.Contains(task.TriggerTaskId.Value);
             var export = new TaskExport
@@ -157,10 +165,13 @@ namespace Steamfitter.Api.Services
                 try
                 {
                     export.ActionParameters = JsonSerializer.Deserialize<Dictionary<string, string>>(task.InputString);
+                    if (!includeSecrets)
+                        TaskSecretParameters.Strip(export.ActionParameters);
                 }
                 catch (JsonException)
                 {
-                    export.InputString = task.InputString;
+                    // an input string that is not read cannot have its secrets taken out, so it is left out whole
+                    export.InputString = includeSecrets ? task.InputString : null;
                 }
             }
 

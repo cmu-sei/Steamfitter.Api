@@ -38,7 +38,8 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         var parent = TestData.TemplateTask(template.Id, "Parent");
         var child = TestData.TemplateTask(template.Id, "Child", triggerTaskId: parent.Id);
         await Seed(template, parent, child, TestData.VmCredential(scenarioTemplateId: template.Id, username: "exported"));
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+        // the credentials are written for a caller who may edit the template
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates, SystemPermission.EditScenarioTemplates).SeedAsync();
 
         var response = await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={template.Id}", Ct);
 

@@ -339,6 +339,8 @@ namespace Steamfitter.Api.Services
                 taskForm.VmMask = vmIdString.Remove(vmIdString.Count() - 1);
             }
             TaskVmParameters.Reserve(taskForm.ActionParameters);
+            // a secret sent back as it was shown to the caller keeps its stored value
+            TaskSecretParameters.KeepStored(taskForm.ActionParameters, taskToUpdate.InputString);
 
             taskForm.ApplyTo(taskToUpdate);
             taskToUpdate.DateModified = DateTime.UtcNow;
