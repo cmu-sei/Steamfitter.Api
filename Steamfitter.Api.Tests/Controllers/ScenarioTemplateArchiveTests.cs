@@ -238,12 +238,35 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
 
         var created = Assert.Single(result.ScenarioTemplates);
         Assert.Contains(result.Warnings, x => x.Contains("VM Credential user has a redacted password"));
-        Assert.Contains(result.Warnings, x => x.Contains("Task Parent has a redacted password or private key"));
+        Assert.Contains(result.Warnings, x => x.Contains("Task Parent has redacted secret parameters"));
         await using var db = NewContext();
         Assert.Equal("", (await db.VmCredentials.SingleAsync(x => x.ScenarioTemplateId == created.Id, Ct)).Password);
         var stored = JsonSerializer.Deserialize<Dictionary<string, string>>(
             (await db.Tasks.SingleAsync(x => x.ScenarioTemplateId == created.Id && x.Name == "Parent", Ct)).InputString);
         Assert.Equal(("", "", "whoami"), (stored["Password"], stored["PrivateKey"], stored["CommandText"]));
+    }
+
+    /// <summary>
+    /// A file's raw input string, which import uses when it has one, has its redacted secrets emptied too, keeping
+    /// every other value and its type; so does an unread input string redacted under BadInputString.
+    /// </summary>
+    [Fact]
+    public async Task Import_leaves_a_redacted_secret_in_a_raw_input_string_empty_and_warns()
+    {
+        var export = Export("Raw");
+        export.Tasks[0].InputString = $$"""{"Password":"{{TaskSecretParameters.Redacted}}","Port":22}""";
+        export.Tasks[1].ActionParameters = new() { [TaskSecretParameters.BadInputString] = TaskSecretParameters.Redacted };
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(await Import(actor, Json([export]), "Raw.json"), ExportJson);
+
+        var created = Assert.Single(result.ScenarioTemplates);
+        Assert.Contains(result.Warnings, x => x.Contains("Task Parent has redacted secret parameters"));
+        Assert.Contains(result.Warnings, x => x.Contains("Task Child has redacted secret parameters"));
+        await using var db = NewContext();
+        var tasks = await db.Tasks.Where(x => x.ScenarioTemplateId == created.Id).ToDictionaryAsync(x => x.Name, x => x.InputString, Ct);
+        Assert.Equal("""{"Password":"","Port":22}""", tasks["Parent"]);
+        Assert.Equal("", JsonSerializer.Deserialize<Dictionary<string, string>>(tasks["Child"])[TaskSecretParameters.BadInputString]);
     }
 
     /// <summary>A child task counts once, inside its parent's total: root 10 with child 5 scores 15, not 20.</summary>

@@ -508,8 +508,11 @@ namespace Steamfitter.Api.Services
             {
                 // a file cannot choose the VM a Task runs on, any more than a create request can
                 TaskVmParameters.Reserve(task.ActionParameters);
-                if (TaskSecretParameters.ClearRedacted(task.ActionParameters))
-                    warnings.Add($"Scenario Template {template.Name}: Task {task.Name} has a redacted password or private key, which was left empty");
+                // a file's input string, used when it has one, is cleared as its parameters are
+                var (inputString, inputCleared) = TaskSecretParameters.ClearRedacted(task.InputString);
+                task.InputString = inputString;
+                if (TaskSecretParameters.ClearRedacted(task.ActionParameters) | inputCleared)
+                    warnings.Add($"Scenario Template {template.Name}: Task {task.Name} has redacted secret parameters, which were left empty");
                 var taskEntity = new TaskEntity
                 {
                     Id = Guid.NewGuid(),

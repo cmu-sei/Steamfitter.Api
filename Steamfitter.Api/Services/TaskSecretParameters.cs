@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Steamfitter.Api.Services
 {
@@ -73,6 +74,41 @@ namespace Steamfitter.Api.Services
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The input string with each secret that is <see cref="Redacted"/> emptied, keeping every other value and its
+        /// type, and whether there was one. One that is not a JSON object is returned as it is.
+        /// </summary>
+        public static (string InputString, bool Cleared) ClearRedacted(string inputString)
+        {
+            if (string.IsNullOrEmpty(inputString) || !inputString.Contains(Redacted))
+                return (inputString, false);
+
+            JsonObject parameters;
+            try
+            {
+                parameters = JsonNode.Parse(inputString) as JsonObject;
+            }
+            catch (JsonException)
+            {
+                return (inputString, false);
+            }
+
+            if (parameters == null)
+                return (inputString, false);
+
+            var keys = parameters
+                .Where(x => (IsSecret(x.Key) || x.Key == BadInputString)
+                    && x.Value is JsonValue value && value.TryGetValue<string>(out var text) && text == Redacted)
+                .Select(x => x.Key)
+                .ToList();
+            foreach (var key in keys)
+            {
+                parameters[key] = string.Empty;
+            }
+
+            return keys.Count == 0 ? (inputString, false) : (parameters.ToJsonString(), true);
         }
 
         /// <summary>Whether any secret is <see cref="Redacted"/>, which only a copy of a redacted Task carries.</summary>
