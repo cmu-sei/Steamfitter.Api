@@ -14,6 +14,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
+using Steamfitter.Api.Services;
 using Steamfitter.Api.Tests.Support;
 using SAVM = Steamfitter.Api.ViewModels;
 
@@ -211,6 +212,38 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.Equal(
             new Dictionary<string, string> { ["Moid"] = "{moid}", ["VmName"] = "{VmName}", ["CommandText"] = "whoami" },
             JsonSerializer.Deserialize<Dictionary<string, string>>(stored.InputString));
+    }
+
+    /// <summary>
+    /// A file made from a redacted response carries the placeholder, which is not a password: it is left empty, as a
+    /// create request would refuse it, and the import says so.
+    /// </summary>
+    [Fact]
+    public async Task Import_leaves_a_redacted_password_or_private_key_empty_and_warns()
+    {
+        var export = Export("Redacted");
+        export.VmCredentials[0].Password = TaskSecretParameters.Redacted;
+        export.Tasks[0].Action = TaskAction.guest_process_run;
+        export.Tasks[0].ApiUrl = "vm";
+        export.Tasks[0].ActionParameters = new()
+        {
+            ["Username"] = "guest",
+            ["Password"] = TaskSecretParameters.Redacted,
+            ["PrivateKey"] = TaskSecretParameters.Redacted,
+            ["CommandText"] = "whoami"
+        };
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(await Import(actor, Json([export]), "Redacted.json"), ExportJson);
+
+        var created = Assert.Single(result.ScenarioTemplates);
+        Assert.Contains(result.Warnings, x => x.Contains("VM Credential user has a redacted password"));
+        Assert.Contains(result.Warnings, x => x.Contains("Task Parent has a redacted password or private key"));
+        await using var db = NewContext();
+        Assert.Equal("", (await db.VmCredentials.SingleAsync(x => x.ScenarioTemplateId == created.Id, Ct)).Password);
+        var stored = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            (await db.Tasks.SingleAsync(x => x.ScenarioTemplateId == created.Id && x.Name == "Parent", Ct)).InputString);
+        Assert.Equal(("", "", "whoami"), (stored["Password"], stored["PrivateKey"], stored["CommandText"]));
     }
 
     /// <summary>A child task counts once, inside its parent's total: root 10 with child 5 scores 15, not 20.</summary>

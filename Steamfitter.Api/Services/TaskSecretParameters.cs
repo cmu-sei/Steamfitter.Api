@@ -58,6 +58,23 @@ namespace Steamfitter.Api.Services
             }
         }
 
+        /// <summary>
+        /// Empties each secret that is <see cref="Redacted"/>, for a file whose Tasks have no stored secret for the
+        /// placeholder to stand for. Returns whether there was one.
+        /// </summary>
+        public static bool ClearRedacted(IDictionary<string, string> actionParameters)
+        {
+            if (!AnyRedacted(actionParameters))
+                return false;
+
+            foreach (var key in actionParameters.Keys.Where(x => (IsSecret(x) || x == BadInputString) && actionParameters[x] == Redacted).ToList())
+            {
+                actionParameters[key] = string.Empty;
+            }
+
+            return true;
+        }
+
         /// <summary>Whether any secret is <see cref="Redacted"/>, which only a copy of a redacted Task carries.</summary>
         public static bool AnyRedacted(IDictionary<string, string> actionParameters) =>
             actionParameters != null && actionParameters.Any(x => (IsSecret(x.Key) || x.Key == BadInputString) && x.Value == Redacted);
@@ -79,8 +96,11 @@ namespace Steamfitter.Api.Services
 
                 if (key == BadInputString)
                 {
-                    // the whole stored string, which is what the parameter was read from
-                    actionParameters[key] = stored == null ? storedInputString ?? string.Empty : string.Empty;
+                    // the whole stored string the parameter was read from, or, once a save has wrapped it, the value
+                    // stored under the key
+                    actionParameters[key] = stored == null
+                        ? storedInputString ?? string.Empty
+                        : stored.TryGetValue(BadInputString, out var wrapped) ? wrapped ?? string.Empty : string.Empty;
                 }
                 else if (IsSecret(key))
                 {

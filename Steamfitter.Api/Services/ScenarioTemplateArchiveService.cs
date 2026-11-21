@@ -470,11 +470,19 @@ namespace Steamfitter.Api.Services
             var credentialIdMap = new Dictionary<Guid, Guid>();
             foreach (var credential in template.VmCredentials)
             {
+                // the placeholder of a redacted response is not a password, as a create request cannot save it either
+                var password = credential.Password;
+                if (password == TaskSecretParameters.Redacted)
+                {
+                    password = string.Empty;
+                    warnings.Add($"Scenario Template {template.Name}: VM Credential {credential.Username} has a redacted password, which was left empty");
+                }
+
                 var credentialEntity = new VmCredentialEntity
                 {
                     Id = Guid.NewGuid(),
                     Username = credential.Username,
-                    Password = credential.Password,
+                    Password = password,
                     Description = credential.Description,
                     CreatedBy = userId,
                     DateCreated = now
@@ -500,6 +508,8 @@ namespace Steamfitter.Api.Services
             {
                 // a file cannot choose the VM a Task runs on, any more than a create request can
                 TaskVmParameters.Reserve(task.ActionParameters);
+                if (TaskSecretParameters.ClearRedacted(task.ActionParameters))
+                    warnings.Add($"Scenario Template {template.Name}: Task {task.Name} has a redacted password or private key, which was left empty");
                 var taskEntity = new TaskEntity
                 {
                     Id = Guid.NewGuid(),

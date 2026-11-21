@@ -330,6 +330,28 @@ public class SecretRedactionTests(DatabaseFixture fixture, SteamfitterAppFactory
         Assert.Equal("", stored["Password"]);
     }
 
+    /// <summary>
+    /// An unread input string, once a save has wrapped it under BadInputString, is redacted under that key too; sent
+    /// back as the placeholder, it keeps the wrapped value.
+    /// </summary>
+    [Fact]
+    public async Task An_edit_sending_the_placeholder_for_a_wrapped_unread_input_keeps_it()
+    {
+        var scenario = TestData.Scenario();
+        var task = TestData.ScenarioTask(scenario.Id);
+        var unread = $$"""{"Password":"{{Secret}}","Port":22}""";
+        task.InputString = JsonSerializer.Serialize(new Dictionary<string, string> { [TaskSecretParameters.BadInputString] = unread });
+        await Seed(scenario, task);
+        var actor = await Actor().OnScenario(scenario.Id, permissions: [ScenarioPermission.ViewScenario, ScenarioPermission.EditScenario]).SeedAsync();
+
+        await AssertStatus(HttpStatusCode.OK, await Client(actor).PutAsJsonAsync($"api/tasks/{task.Id}",
+            TaskForm("Renamed", new() { [TaskSecretParameters.BadInputString] = TaskSecretParameters.Redacted }), Ct));
+
+        await using var db = NewContext();
+        var stored = JsonSerializer.Deserialize<Dictionary<string, string>>((await db.Tasks.SingleAsync(x => x.Id == task.Id, Ct)).InputString);
+        Assert.Equal(unread, stored[TaskSecretParameters.BadInputString]);
+    }
+
     [Fact]
     public async Task A_create_sending_the_placeholder_is_a_bad_request()
     {
