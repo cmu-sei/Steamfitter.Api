@@ -54,11 +54,43 @@ public interface ISteamfitterAuthorizationService
     /// <summary>Whether the caller holds <paramref name="access"/> on the Scenario or Scenario Template the VM Credential belongs to.</summary>
     Task<bool> AuthorizeVmCredentialScopeAsync(Guid vmCredentialId, ScopeAccess access, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// The Scenarios and Scenario Templates whose guest credentials the caller may read: those it may edit. Their
+    /// VM Credentials, and the secrets their Tasks and Results carry, are hidden from a caller who may only view them.
+    /// </summary>
+    Task<SecretAccess> GetSecretAccessAsync(CancellationToken cancellationToken);
+
     /// <summary>Whether any of the given Scenarios belongs to the Player View.</summary>
     Task<bool> AnyScenarioOfViewAsync(Guid viewId, IReadOnlyCollection<Guid> scenarioIds, CancellationToken cancellationToken);
     IEnumerable<SystemPermission> GetSystemPermissions();
     IEnumerable<ScenarioPermissionClaim> GetScenarioPermissions(Guid? scenarioId = null);
     IEnumerable<ScenarioTemplatePermissionClaim> GetScenarioTemplatePermissions(Guid? scenarioTemplateId = null);
+}
+
+/// <summary>
+/// Where the caller may read guest credentials: the Scenarios and Scenario Templates it may edit, as
+/// <see cref="ISteamfitterAuthorizationService.AuthorizeScopeAsync"/> decides for <see cref="ScopeAccess.Edit"/>.
+/// </summary>
+public sealed class SecretAccess(
+    bool allScenarios,
+    bool allScenarioTemplates,
+    IReadOnlySet<Guid> scenarioIds,
+    IReadOnlySet<Guid> scenarioTemplateIds)
+{
+    /// <summary>Whether every record's secrets are the caller's to read, so that none need be looked at.</summary>
+    public bool AllowsAll => allScenarios && allScenarioTemplates;
+
+    /// <summary>
+    /// Whether the caller may read the secrets of a record of the Scenario or Scenario Template given, exactly one
+    /// of which must be. A record of neither, as a Result whose Task is gone, needs both system permissions.
+    /// </summary>
+    public bool Allows(Guid? scenarioId, Guid? scenarioTemplateId) => (scenarioId, scenarioTemplateId) switch
+    {
+        ({ } id, null) => allScenarios || scenarioIds.Contains(id),
+        (null, { } id) => allScenarioTemplates || scenarioTemplateIds.Contains(id),
+        (null, null) => AllowsAll,
+        _ => false
+    };
 }
 
 /// <summary>The access a request needs on the Scenario or Scenario Template a record belongs to.</summary>
@@ -185,6 +217,12 @@ public class AuthorizationService(
 
     private static ScenarioTemplatePermission ScenarioTemplatePermissionFor(ScopeAccess access) =>
         access == ScopeAccess.Edit ? ScenarioTemplatePermission.EditScenarioTemplate : ScenarioTemplatePermission.ViewScenarioTemplate;
+
+    public async Task<SecretAccess> GetSecretAccessAsync(CancellationToken cancellationToken) =>
+        new(await HasSystemPermission<IAuthorizationType>([ScenarioSystemPermission(ScopeAccess.Edit)]),
+            await HasSystemPermission<IAuthorizationType>([ScenarioTemplateSystemPermission(ScopeAccess.Edit)]),
+            GetAuthorizedScenarioIds(ScenarioPermissionFor(ScopeAccess.Edit)).ToHashSet(),
+            GetAuthorizedScenarioTemplateIds(ScenarioTemplatePermissionFor(ScopeAccess.Edit)).ToHashSet());
 
     public IReadOnlyList<Guid> GetAuthorizedScenarioIds(ScenarioPermission permission)
     {

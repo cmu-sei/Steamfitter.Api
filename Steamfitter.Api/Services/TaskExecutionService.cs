@@ -850,12 +850,15 @@ namespace Steamfitter.Api.Services
 
         private async STT.Task SendNotificationAsync(List<ResultEntity> resultEntityList)
         {
+            // the groups take viewers, who may not read the guest credentials a Result carries
+            var results = resultEntityList.Select(x => x.ToResult()).ToList();
+            results.ForEach(x => TaskSecretParameters.Redact(x.ActionParameters));
             await _engineHub.Clients.Group(EngineHub.SCENARIO_GROUP)
                 .SendAsync(EngineMethods.ResultsUpdated,
-                resultEntityList.Select(x => x.ToResult()).ToList());
+                results);
             await _engineHub.Clients.Group(resultEntityList[0].Task.ScenarioId.ToString())
                 .SendAsync(EngineMethods.ResultsUpdated,
-                resultEntityList.Select(x => x.ToResult()).ToList());
+                results);
         }
 
         private string ValidateHttpTaskUrl(string inputString)

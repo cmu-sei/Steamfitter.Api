@@ -41,6 +41,21 @@ public class TaskMaintenanceServiceTests(DatabaseFixture fixture) : ServiceTestB
         Assert.Equal(resultId, Assert.IsType<SAVM.Result>(sent.Argument).Id);
     }
 
+    /// <summary>The groups take viewers, so the announcement carries no guest secret.</summary>
+    [Fact]
+    public async Task An_expired_result_is_sent_with_its_secrets_redacted()
+    {
+        await SeedOverduePendingResult(inputString: """{"Password":"guest-secret","PrivateKey":"guest-key","Command":"whoami"}""");
+
+        await Start(new RecordingLogger<TaskMaintenanceService>());
+        await WaitUntil(() => Task.FromResult(RootHost.Hub.ToGroup(EngineHub.SCENARIO_GROUP).Any(x => x.Method == EngineMethods.ResultsUpdated)), "a ResultsUpdated broadcast");
+
+        var sent = RootHost.Hub.ToGroup(EngineHub.SCENARIO_GROUP).First(x => x.Method == EngineMethods.ResultsUpdated);
+        var parameters = Assert.IsType<SAVM.Result>(sent.Argument).ActionParameters;
+        Assert.Equal((TaskSecretParameters.Redacted, TaskSecretParameters.Redacted, "whoami"),
+            (parameters["Password"], parameters["PrivateKey"], parameters["Command"]));
+    }
+
     [Fact]
     public async Task An_overdue_pending_result_is_stored_as_expired()
     {
@@ -110,13 +125,14 @@ public class TaskMaintenanceServiceTests(DatabaseFixture fixture) : ServiceTestB
         }
     }
 
-    private async Task<Guid> SeedOverduePendingResult(Guid? scenarioId = null)
+    private async Task<Guid> SeedOverduePendingResult(Guid? scenarioId = null, string inputString = null)
     {
         var scenario = TestData.Scenario(status: ScenarioStatus.active);
         scenario.Id = scenarioId ?? scenario.Id;
         var task = TestData.ScenarioTask(scenario.Id);
         var result = TestData.Result(task.Id, status: TaskStatus.pending);
         result.ExpirationSeconds = 1;
+        result.InputString = inputString ?? result.InputString;
         await Seed(scenario, task, result);
 
         return result.Id;

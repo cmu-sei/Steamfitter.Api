@@ -14,6 +14,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Steamfitter.Api.Data;
+using Steamfitter.Api.Services;
 using Steamfitter.Api.Tests.Support;
 using SAVM = Steamfitter.Api.ViewModels;
 
@@ -38,7 +39,8 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         var parent = TestData.TemplateTask(template.Id, "Parent");
         var child = TestData.TemplateTask(template.Id, "Child", triggerTaskId: parent.Id);
         await Seed(template, parent, child, TestData.VmCredential(scenarioTemplateId: template.Id, username: "exported"));
-        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+        // the credentials are written for a caller who may edit the template
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates, SystemPermission.EditScenarioTemplates).SeedAsync();
 
         var response = await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={template.Id}", Ct);
 
@@ -210,6 +212,110 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.Equal(
             new Dictionary<string, string> { ["Moid"] = "{moid}", ["VmName"] = "{VmName}", ["CommandText"] = "whoami" },
             JsonSerializer.Deserialize<Dictionary<string, string>>(stored.InputString));
+    }
+
+    /// <summary>
+    /// A file made from a redacted response carries the placeholder, which is not a password: it is left empty, as a
+    /// create request would refuse it, and the import says so.
+    /// </summary>
+    [Fact]
+    public async Task Import_leaves_a_redacted_password_or_private_key_empty_and_warns()
+    {
+        var export = Export("Redacted");
+        export.VmCredentials[0].Password = TaskSecretParameters.Redacted;
+        export.Tasks[0].Action = TaskAction.guest_process_run;
+        export.Tasks[0].ApiUrl = "vm";
+        export.Tasks[0].ActionParameters = new()
+        {
+            ["Username"] = "guest",
+            ["Password"] = TaskSecretParameters.Redacted,
+            ["PrivateKey"] = TaskSecretParameters.Redacted,
+            ["CommandText"] = "whoami"
+        };
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(await Import(actor, Json([export]), "Redacted.json"), ExportJson);
+
+        var created = Assert.Single(result.ScenarioTemplates);
+        Assert.Contains(result.Warnings, x => x.Contains("VM Credential user has a redacted password"));
+        Assert.Contains(result.Warnings, x => x.Contains("Task Parent has redacted secret parameters"));
+        await using var db = NewContext();
+        Assert.Equal("", (await db.VmCredentials.SingleAsync(x => x.ScenarioTemplateId == created.Id, Ct)).Password);
+        var stored = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            (await db.Tasks.SingleAsync(x => x.ScenarioTemplateId == created.Id && x.Name == "Parent", Ct)).InputString);
+        Assert.Equal(("", "", "whoami"), (stored["Password"], stored["PrivateKey"], stored["CommandText"]));
+    }
+
+    /// <summary>
+    /// A file's raw input string, which import uses when it has one, has its redacted secrets emptied too, keeping
+    /// every other value and its type; so does an unread input string redacted under BadInputString.
+    /// </summary>
+    [Fact]
+    public async Task Import_leaves_a_redacted_secret_in_a_raw_input_string_empty_and_warns()
+    {
+        var export = Export("Raw");
+        export.Tasks[0].InputString = $$"""{"Password":"{{TaskSecretParameters.Redacted}}","Port":22}""";
+        export.Tasks[1].ActionParameters = new() { [TaskSecretParameters.BadInputString] = TaskSecretParameters.Redacted };
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(await Import(actor, Json([export]), "Raw.json"), ExportJson);
+
+        var created = Assert.Single(result.ScenarioTemplates);
+        Assert.Contains(result.Warnings, x => x.Contains("Task Parent has redacted secret parameters"));
+        Assert.Contains(result.Warnings, x => x.Contains("Task Child has redacted secret parameters"));
+        await using var db = NewContext();
+        var tasks = await db.Tasks.Where(x => x.ScenarioTemplateId == created.Id).ToDictionaryAsync(x => x.Name, x => x.InputString, Ct);
+        Assert.Equal("""{"Password":"","Port":22}""", tasks["Parent"]);
+        Assert.Equal("", JsonSerializer.Deserialize<Dictionary<string, string>>(tasks["Child"])[TaskSecretParameters.BadInputString]);
+    }
+
+    /// <summary>
+    /// The placeholder is recognised however the file escapes it, and an input string with a repeated key imports
+    /// (the key kept as the file has it) rather than failing the file; the rest of the text is kept unescaped.
+    /// </summary>
+    [Fact]
+    public async Task Import_clears_an_escaped_placeholder_and_imports_an_input_string_with_a_repeated_key()
+    {
+        var export = Export("Escaped");
+        export.Tasks[0].InputString = """{"Password":"\u002a\u002a\u002a\u002a\u002a\u002a\u002a\u002a","CommandText":"a && b <c>"}""";
+        export.Tasks[1].InputString = """{"Password":"********","Password":"kept","Port":22}""";
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var response = await Import(actor, Json([export]), "Escaped.json");
+
+        await AssertStatus(HttpStatusCode.OK, response);
+        var created = Assert.Single((await ReadAsync<SAVM.ImportScenarioTemplatesResult>(response, ExportJson)).ScenarioTemplates);
+        await using var db = NewContext();
+        var tasks = await db.Tasks.Where(x => x.ScenarioTemplateId == created.Id).ToDictionaryAsync(x => x.Name, x => x.InputString, Ct);
+        Assert.Equal("""{"Password":"","CommandText":"a && b <c>"}""", tasks["Parent"]);
+        Assert.Equal("""{"Password":"","Password":"kept","Port":22}""", tasks["Child"]);
+    }
+
+    /// <summary>
+    /// An input string holding a string that can't be decoded, as one with a lone surrogate, doesn't fail the import,
+    /// wherever the string is: it is imported as written, and the import says any redacted secret in it was kept.
+    /// </summary>
+    [Fact]
+    public async Task Import_takes_an_input_string_holding_a_lone_surrogate_as_written_and_warns()
+    {
+        var export = Export("Surrogate");
+        var nextToPlaceholder = """{"Password":"********","CommandText":"\ud800"}""";
+        var inSecret = """{"Password":"*******\ud800"}""";
+        export.Tasks[0].InputString = nextToPlaceholder;
+        export.Tasks[1].InputString = inSecret;
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var response = await Import(actor, Json([export]), "Surrogate.json");
+
+        await AssertStatus(HttpStatusCode.OK, response);
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(response, ExportJson);
+        var created = Assert.Single(result.ScenarioTemplates);
+        Assert.Contains(result.Warnings, x => x.Contains("Task Parent has an input string that can't be read"));
+        Assert.Contains(result.Warnings, x => x.Contains("Task Child has an input string that can't be read"));
+        await using var db = NewContext();
+        var tasks = await db.Tasks.Where(x => x.ScenarioTemplateId == created.Id).ToDictionaryAsync(x => x.Name, x => x.InputString, Ct);
+        Assert.Equal(nextToPlaceholder, tasks["Parent"]);
+        Assert.Equal(inSecret, tasks["Child"]);
     }
 
     /// <summary>A child task counts once, inside its parent's total: root 10 with child 5 scores 15, not 20.</summary>

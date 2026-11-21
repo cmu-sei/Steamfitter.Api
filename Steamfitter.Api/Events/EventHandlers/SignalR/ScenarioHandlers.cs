@@ -31,7 +31,9 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
             await _engineHub.Clients.Group(notification.Entity.Id.ToString())
                 .SendAsync(EngineMethods.ScenarioCreated, scenarioSummary);
 
+            // the groups take viewers, who may not read the VM Credentials; null tells a client to keep the ones it has
             var scenario = notification.Entity.ToScenario();
+            scenario.VmCredentials = null;
             await _engineHub.Clients
                 .Groups(EngineHub.SCENARIO_GROUP)
                 .SendAsync(EngineMethods.ScenarioCreated, scenario);
@@ -78,7 +80,9 @@ namespace Steamfitter.Api.Events.EventHandlers.SignalR
             await _engineHub.Clients.Group(notification.Entity.Id.ToString())
                 .SendAsync(EngineMethods.ScenarioUpdated, scenarioSummary);
 
+            // the groups take viewers, who may not read the VM Credentials; null tells a client to keep the ones it has
             var scenario = notification.Entity.ToScenario();
+            scenario.VmCredentials = null;
             await _engineHub.Clients
                 .Groups(EngineHub.SCENARIO_GROUP)
                 .SendAsync(EngineMethods.ScenarioUpdated, scenario);
