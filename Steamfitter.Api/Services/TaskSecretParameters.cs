@@ -4,8 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text;
+using System.IO;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace Steamfitter.Api.Services
 {
@@ -77,38 +79,55 @@ namespace Steamfitter.Api.Services
         }
 
         /// <summary>
-        /// The input string with each secret that is <see cref="Redacted"/> emptied, keeping every other value and its
-        /// type, and whether there was one. One that is not a JSON object is returned as it is.
+        /// The input string with each secret that is <see cref="Redacted"/> emptied, keeping every other property,
+        /// repeated ones included, with its value and type, and whether there was one. Values are compared as
+        /// decoded, so an escaped placeholder is one. Input that is not a JSON object is returned as it is.
         /// </summary>
         public static (string InputString, bool Cleared) ClearRedacted(string inputString)
         {
-            if (string.IsNullOrEmpty(inputString) || !inputString.Contains(Redacted))
+            if (string.IsNullOrEmpty(inputString))
                 return (inputString, false);
 
-            JsonObject parameters;
+            JsonDocument document;
             try
             {
-                parameters = JsonNode.Parse(inputString) as JsonObject;
+                document = JsonDocument.Parse(inputString);
             }
             catch (JsonException)
             {
                 return (inputString, false);
             }
 
-            if (parameters == null)
-                return (inputString, false);
-
-            var keys = parameters
-                .Where(x => (IsSecret(x.Key) || x.Key == BadInputString)
-                    && x.Value is JsonValue value && value.TryGetValue<string>(out var text) && text == Redacted)
-                .Select(x => x.Key)
-                .ToList();
-            foreach (var key in keys)
+            using (document)
             {
-                parameters[key] = string.Empty;
-            }
+                if (document.RootElement.ValueKind != JsonValueKind.Object)
+                    return (inputString, false);
 
-            return keys.Count == 0 ? (inputString, false) : (parameters.ToJsonString(), true);
+                static bool IsRedactedSecret(JsonProperty property) =>
+                    (IsSecret(property.Name) || property.Name == BadInputString)
+                    && property.Value.ValueKind == JsonValueKind.String
+                    && property.Value.GetString() == Redacted;
+
+                // enumerated, not read into a dictionary, so a repeated key is kept as the file has it
+                if (!document.RootElement.EnumerateObject().Any(IsRedactedSecret))
+                    return (inputString, false);
+
+                using var stream = new MemoryStream();
+                using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
+                {
+                    writer.WriteStartObject();
+                    foreach (var property in document.RootElement.EnumerateObject())
+                    {
+                        if (IsRedactedSecret(property))
+                            writer.WriteString(property.Name, string.Empty);
+                        else
+                            property.WriteTo(writer);
+                    }
+                    writer.WriteEndObject();
+                }
+
+                return (Encoding.UTF8.GetString(stream.ToArray()), true);
+            }
         }
 
         /// <summary>Whether any secret is <see cref="Redacted"/>, which only a copy of a redacted Task carries.</summary>

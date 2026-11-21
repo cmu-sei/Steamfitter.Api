@@ -269,6 +269,28 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.Equal("", JsonSerializer.Deserialize<Dictionary<string, string>>(tasks["Child"])[TaskSecretParameters.BadInputString]);
     }
 
+    /// <summary>
+    /// The placeholder is recognised however the file escapes it, and an input string with a repeated key imports
+    /// (the key kept as the file has it) rather than failing the file; the rest of the text is kept unescaped.
+    /// </summary>
+    [Fact]
+    public async Task Import_clears_an_escaped_placeholder_and_imports_an_input_string_with_a_repeated_key()
+    {
+        var export = Export("Escaped");
+        export.Tasks[0].InputString = """{"Password":"\u002a\u002a\u002a\u002a\u002a\u002a\u002a\u002a","CommandText":"a && b <c>"}""";
+        export.Tasks[1].InputString = """{"Password":"********","Password":"kept","Port":22}""";
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var response = await Import(actor, Json([export]), "Escaped.json");
+
+        await AssertStatus(HttpStatusCode.OK, response);
+        var created = Assert.Single((await ReadAsync<SAVM.ImportScenarioTemplatesResult>(response, ExportJson)).ScenarioTemplates);
+        await using var db = NewContext();
+        var tasks = await db.Tasks.Where(x => x.ScenarioTemplateId == created.Id).ToDictionaryAsync(x => x.Name, x => x.InputString, Ct);
+        Assert.Equal("""{"Password":"","CommandText":"a && b <c>"}""", tasks["Parent"]);
+        Assert.Equal("""{"Password":"","Password":"kept","Port":22}""", tasks["Child"]);
+    }
+
     /// <summary>A child task counts once, inside its parent's total: root 10 with child 5 scores 15, not 20.</summary>
     [Fact]
     public async Task Import_scores_a_template_with_child_tasks_once_per_task()
