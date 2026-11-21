@@ -43,13 +43,16 @@ namespace Steamfitter.Api.Services
             }
         }
 
-        /// <summary>Empties each secret, for a file that leaves them out. An import must not take the placeholder for a password.</summary>
+        /// <summary>
+        /// Empties each secret, and an unread input string a Task was saved with, for a file that leaves them out. An
+        /// import must not take the placeholder for a password.
+        /// </summary>
         public static void Strip(IDictionary<string, string> actionParameters)
         {
             if (actionParameters == null)
                 return;
 
-            foreach (var key in actionParameters.Keys.Where(IsSecret).ToList())
+            foreach (var key in actionParameters.Keys.Where(x => IsSecret(x) || x == BadInputString).ToList())
             {
                 actionParameters[key] = string.Empty;
             }

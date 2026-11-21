@@ -448,6 +448,30 @@ public class SecretRedactionTests(DatabaseFixture fixture, SteamfitterAppFactory
         Assert.Equal("", Assert.Single(theirs.Tasks).ActionParameters["Password"]);
     }
 
+    /// <summary>
+    /// A Task whose input string could not be read is shown, and saved back, with the whole string under
+    /// BadInputString, so a viewer's export empties that too.
+    /// </summary>
+    [Fact]
+    public async Task Export_leaves_out_an_unread_input_string_saved_back_by_an_edit()
+    {
+        var template = TestData.ScenarioTemplate("Saved back");
+        var task = TestData.TemplateTask(template.Id);
+        task.InputString = JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            [TaskSecretParameters.BadInputString] = $$"""{"Password":"{{Secret}}","Port":22}"""
+        });
+        await Seed(template, task);
+        var actor = await Actor().WithSystemPermissions(SystemPermission.ViewScenarioTemplates).SeedAsync();
+
+        var response = await Client(actor).GetAsync($"api/scenarioTemplates/actions/export?ids={template.Id}", Ct);
+
+        var file = await response.Content.ReadAsStringAsync(Ct);
+        Assert.DoesNotContain(Secret, file);
+        var export = JsonSerializer.Deserialize<SAVM.ScenarioTemplateExport>(file, ExportJson);
+        Assert.Equal("", Assert.Single(export.Tasks).ActionParameters[TaskSecretParameters.BadInputString]);
+    }
+
     private static Dictionary<string, object> TaskForm(string name, Dictionary<string, string> actionParameters) => new()
     {
         ["name"] = name,

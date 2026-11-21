@@ -54,6 +54,24 @@ public class TaskExecutionServiceTests(DatabaseFixture fixture) : ServiceTestBas
         Assert.Equal(task.Id, Assert.Single(Assert.IsAssignableFrom<IEnumerable<SAVM.Result>>(toScenario.Argument)).TaskId);
     }
 
+    /// <summary>The groups take viewers, so the runner's announcement carries no guest secret.</summary>
+    [Fact]
+    public async Task Results_are_sent_with_their_secrets_redacted()
+    {
+        var task = await SeedActiveTask(TaskAction.send_email, "email", """{"Subject":"marker-secret","Password":"guest-secret","PrivateKey":"guest-key"}""");
+
+        await Run(RootHost, task);
+        await WaitForFinishedResult(task.Id);
+
+        foreach (var group in new[] { EngineHub.SCENARIO_GROUP, task.ScenarioId.Value.ToString() })
+        {
+            var sent = RootHost.Hub.ToGroup(group).First(x => x.Method == EngineMethods.ResultsUpdated);
+            var parameters = Assert.Single(Assert.IsAssignableFrom<IEnumerable<SAVM.Result>>(sent.Argument)).ActionParameters;
+            Assert.Equal((TaskSecretParameters.Redacted, TaskSecretParameters.Redacted, "marker-secret"),
+                (parameters["Password"], parameters["PrivateKey"], parameters["Subject"]));
+        }
+    }
+
     [Fact]
     public async Task An_http_task_to_a_host_outside_the_allow_list_fails_without_a_request()
     {
