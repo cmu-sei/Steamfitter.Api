@@ -292,21 +292,30 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
     }
 
     /// <summary>
-    /// A string the JSON writer can't encode, as one holding a lone surrogate, doesn't fail the import, whether or not
-    /// the input string has a placeholder to clear.
+    /// An input string holding a string that can't be decoded, as one with a lone surrogate, doesn't fail the import,
+    /// wherever the string is: it is imported as written, and the import says any redacted secret in it was kept.
     /// </summary>
     [Fact]
-    public async Task Import_takes_an_input_string_holding_a_lone_surrogate()
+    public async Task Import_takes_an_input_string_holding_a_lone_surrogate_as_written_and_warns()
     {
         var export = Export("Surrogate");
-        export.Tasks[0].InputString = """{"Password":"\ud800"}""";
-        export.Tasks[1].InputString = """{"Password":"********","CommandText":"\ud800"}""";
+        var nextToPlaceholder = """{"Password":"********","CommandText":"\ud800"}""";
+        var inSecret = """{"Password":"*******\ud800"}""";
+        export.Tasks[0].InputString = nextToPlaceholder;
+        export.Tasks[1].InputString = inSecret;
         var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
 
         var response = await Import(actor, Json([export]), "Surrogate.json");
 
         await AssertStatus(HttpStatusCode.OK, response);
-        Assert.Single((await ReadAsync<SAVM.ImportScenarioTemplatesResult>(response, ExportJson)).ScenarioTemplates);
+        var result = await ReadAsync<SAVM.ImportScenarioTemplatesResult>(response, ExportJson);
+        var created = Assert.Single(result.ScenarioTemplates);
+        Assert.Contains(result.Warnings, x => x.Contains("Task Parent has an input string that can't be read"));
+        Assert.Contains(result.Warnings, x => x.Contains("Task Child has an input string that can't be read"));
+        await using var db = NewContext();
+        var tasks = await db.Tasks.Where(x => x.ScenarioTemplateId == created.Id).ToDictionaryAsync(x => x.Name, x => x.InputString, Ct);
+        Assert.Equal(nextToPlaceholder, tasks["Parent"]);
+        Assert.Equal(inSecret, tasks["Child"]);
     }
 
     /// <summary>A child task counts once, inside its parent's total: root 10 with child 5 scores 15, not 20.</summary>

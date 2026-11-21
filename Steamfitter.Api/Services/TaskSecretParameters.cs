@@ -80,13 +80,15 @@ namespace Steamfitter.Api.Services
 
         /// <summary>
         /// The input string with each secret that is <see cref="Redacted"/> emptied, keeping every other property,
-        /// repeated ones included, with its value and type, and whether there was one. Values are compared as
-        /// decoded, so an escaped placeholder is one. Input that is not a JSON object is returned as it is.
+        /// repeated ones included, with its value and type. <c>Cleared</c> says whether there was one. Values are
+        /// compared with JSON escapes undone, so an escaped placeholder is one. Input that is not a JSON object is
+        /// returned as it is. So is input holding a string that can't be decoded, as one with a lone surrogate, which
+        /// no executor can read either; <c>Unreadable</c> says so, as any placeholder in it is kept as written.
         /// </summary>
-        public static (string InputString, bool Cleared) ClearRedacted(string inputString)
+        public static (string InputString, bool Cleared, bool Unreadable) ClearRedacted(string inputString)
         {
             if (string.IsNullOrEmpty(inputString))
-                return (inputString, false);
+                return (inputString, false, false);
 
             JsonDocument document;
             try
@@ -95,26 +97,27 @@ namespace Steamfitter.Api.Services
             }
             catch (JsonException)
             {
-                return (inputString, false);
+                return (inputString, false, false);
             }
 
             using (document)
             {
                 if (document.RootElement.ValueKind != JsonValueKind.Object)
-                    return (inputString, false);
+                    return (inputString, false, false);
 
                 static bool IsRedactedSecret(JsonProperty property) =>
                     (IsSecret(property.Name) || property.Name == BadInputString)
                     && property.Value.ValueKind == JsonValueKind.String
-                    // compared without decoding, which a string holding a lone surrogate can't be
                     && property.Value.ValueEquals(Redacted);
 
-                // enumerated, not read into a dictionary, so a repeated key is kept as the file has it
-                if (!document.RootElement.EnumerateObject().Any(IsRedactedSecret))
-                    return (inputString, false);
-
+                // Reading a name or value, or writing one, throws on a string that can't be decoded, as one holding
+                // a lone surrogate: the input is then imported as written rather than failing the whole file.
                 try
                 {
+                    // enumerated, not read into a dictionary, so a repeated key is kept as the file has it
+                    if (!document.RootElement.EnumerateObject().Any(IsRedactedSecret))
+                        return (inputString, false, false);
+
                     using var stream = new MemoryStream();
                     using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
                     {
@@ -129,13 +132,11 @@ namespace Steamfitter.Api.Services
                         writer.WriteEndObject();
                     }
 
-                    return (Encoding.UTF8.GetString(stream.ToArray()), true);
+                    return (Encoding.UTF8.GetString(stream.ToArray()), true, false);
                 }
                 catch (InvalidOperationException)
                 {
-                    // a string the writer can't encode, as one holding a lone surrogate: the input is imported as
-                    // written, as it was before secrets were cleared, rather than failing the whole file
-                    return (inputString, false);
+                    return (inputString, false, true);
                 }
             }
         }
