@@ -106,27 +106,37 @@ namespace Steamfitter.Api.Services
                 static bool IsRedactedSecret(JsonProperty property) =>
                     (IsSecret(property.Name) || property.Name == BadInputString)
                     && property.Value.ValueKind == JsonValueKind.String
-                    && property.Value.GetString() == Redacted;
+                    // compared without decoding, which a string holding a lone surrogate can't be
+                    && property.Value.ValueEquals(Redacted);
 
                 // enumerated, not read into a dictionary, so a repeated key is kept as the file has it
                 if (!document.RootElement.EnumerateObject().Any(IsRedactedSecret))
                     return (inputString, false);
 
-                using var stream = new MemoryStream();
-                using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
+                try
                 {
-                    writer.WriteStartObject();
-                    foreach (var property in document.RootElement.EnumerateObject())
+                    using var stream = new MemoryStream();
+                    using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
                     {
-                        if (IsRedactedSecret(property))
-                            writer.WriteString(property.Name, string.Empty);
-                        else
-                            property.WriteTo(writer);
+                        writer.WriteStartObject();
+                        foreach (var property in document.RootElement.EnumerateObject())
+                        {
+                            if (IsRedactedSecret(property))
+                                writer.WriteString(property.Name, string.Empty);
+                            else
+                                property.WriteTo(writer);
+                        }
+                        writer.WriteEndObject();
                     }
-                    writer.WriteEndObject();
-                }
 
-                return (Encoding.UTF8.GetString(stream.ToArray()), true);
+                    return (Encoding.UTF8.GetString(stream.ToArray()), true);
+                }
+                catch (InvalidOperationException)
+                {
+                    // a string the writer can't encode, as one holding a lone surrogate: the input is imported as
+                    // written, as it was before secrets were cleared, rather than failing the whole file
+                    return (inputString, false);
+                }
             }
         }
 

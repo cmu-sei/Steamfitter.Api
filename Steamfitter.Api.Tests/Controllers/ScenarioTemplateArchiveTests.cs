@@ -291,6 +291,24 @@ public class ScenarioTemplateArchiveTests(DatabaseFixture fixture, SteamfitterAp
         Assert.Equal("""{"Password":"","Password":"kept","Port":22}""", tasks["Child"]);
     }
 
+    /// <summary>
+    /// A string the JSON writer can't encode, as one holding a lone surrogate, doesn't fail the import, whether or not
+    /// the input string has a placeholder to clear.
+    /// </summary>
+    [Fact]
+    public async Task Import_takes_an_input_string_holding_a_lone_surrogate()
+    {
+        var export = Export("Surrogate");
+        export.Tasks[0].InputString = """{"Password":"\ud800"}""";
+        export.Tasks[1].InputString = """{"Password":"********","CommandText":"\ud800"}""";
+        var actor = await Actor().WithSystemPermissions(SystemPermission.CreateScenarioTemplates).SeedAsync();
+
+        var response = await Import(actor, Json([export]), "Surrogate.json");
+
+        await AssertStatus(HttpStatusCode.OK, response);
+        Assert.Single((await ReadAsync<SAVM.ImportScenarioTemplatesResult>(response, ExportJson)).ScenarioTemplates);
+    }
+
     /// <summary>A child task counts once, inside its parent's total: root 10 with child 5 scores 15, not 20.</summary>
     [Fact]
     public async Task Import_scores_a_template_with_child_tasks_once_per_task()
