@@ -51,7 +51,7 @@
     <!-- Through Microsoft.Data.SqlClient, which carries an older version even under EF Core 10.0.13. -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <!-- Through Swashbuckle.AspNetCore 10.1.0, which carries 2.3.0. -->
-    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageReference Include="Microsoft.OpenApi" Version="3.11.0" />
     <!-- Through Microsoft.ApplicationInsights.AspNetCore 3.2.0, which carries 1.19.0. Crucible.Common.ServiceDefaults
          0.0.3 also brings it, at 1.15.0, which the advisory does not cover. -->
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.2" />
